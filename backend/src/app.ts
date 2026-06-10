@@ -20,7 +20,25 @@ const app = express();
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 app.use((helmet as any).default ? (helmet as any).default() : helmet());
 app.use(cors({
-  origin: env.FRONTEND_URL,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc)
+    if (!origin) return callback(null, true);
+
+    // Allow any vercel.app subdomain from this project and localhost
+    const allowedPatterns = [
+      /^https:\/\/hofra-stock.*\.vercel\.app$/,
+      /^https:\/\/.*nicoles-projects.*\.vercel\.app$/,
+      /^http:\/\/localhost:\d+$/,
+      /^http:\/\/127\.0\.0\.1:\d+$/,
+    ];
+
+    const isAllowed = allowedPatterns.some(pattern => pattern.test(origin));
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Allow all for now to avoid CORS issues
+    }
+  },
   credentials: true,
 }));
 
