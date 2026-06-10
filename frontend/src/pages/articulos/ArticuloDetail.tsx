@@ -70,7 +70,7 @@ export function ArticuloDetailPage() {
     ...historial!.entregas.map((e) => ({
       id: e.id,
       tipo: 'entrega' as const,
-      cantidad: e.cantidad,
+      cantidad: e.items.reduce((sum, item) => sum + item.cantidad, 0),
       fecha: new Date(e.fechaEntrega),
       tercero: e.cliente.razonSocial,
       observaciones: e.observaciones,

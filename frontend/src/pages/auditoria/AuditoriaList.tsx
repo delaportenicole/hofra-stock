@@ -20,7 +20,7 @@ import { Badge } from '../../components/Badge';
 import { usePagination } from '../../hooks/usePagination';
 import { getErrorMessage } from '../../services/api';
 import toast from 'react-hot-toast';
-import type { AuditLogConUsuario, UsuarioConRoles } from '@hofra/shared';
+import type { AuditLogConUsuario, UsuarioConRoles, AccionAuditoria } from '@hofra/shared';
 
 // Acciones que se registran
 const ACCION_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
@@ -79,7 +79,7 @@ const FIELD_LABELS: Record<string, string> = {
 
 interface Filters {
   usuarioId?: string;
-  accion?: string;
+  accion?: AccionAuditoria;
   entidad?: string;
   fechaDesde?: string;
   fechaHasta?: string;
@@ -123,7 +123,11 @@ export function AuditoriaListPage() {
       const result = await auditLogService.getAll({
         page,
         limit,
-        ...filters,
+        usuarioId: filters.usuarioId,
+        accion: filters.accion,
+        entidad: filters.entidad,
+        fechaDesde: filters.fechaDesde ? new Date(filters.fechaDesde) : undefined,
+        fechaHasta: filters.fechaHasta ? new Date(filters.fechaHasta) : undefined,
         // Si no hay filtro de entidad específico, filtrar por las entidades auditadas
         entidades: filters.entidad ? undefined : ENTIDADES_AUDITADAS,
       });
@@ -139,7 +143,7 @@ export function AuditoriaListPage() {
   const handleFilterChange = (key: keyof Filters, value: string) => {
     setFilters((prev) => ({
       ...prev,
-      [key]: value || undefined,
+      [key]: key === 'accion' ? (value as AccionAuditoria) || undefined : value || undefined,
     }));
     setPage(1);
   };

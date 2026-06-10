@@ -262,7 +262,7 @@ export interface EntregaItem {
 }
 
 export interface EntregaItemConArticulo extends EntregaItem {
-  articulo: Pick<Articulo, 'id' | 'codigo' | 'nombre' | 'unidad'>;
+  articulo: Pick<Articulo, 'id' | 'codigo' | 'nombre' | 'unidad' | 'costoInicialEstimado'>;
 }
 
 export interface Entrega extends BaseEntity {

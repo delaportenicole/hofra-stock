@@ -91,7 +91,9 @@ export function RolesListPage() {
             <div className="flex items-center gap-2">
               <p className="font-medium">{item.nombre}</p>
               {SYSTEM_ROLES.includes(item.nombre) && (
-                <Lock className="w-3.5 h-3.5 text-warning-500" title="Rol del sistema" />
+                <span title="Rol del sistema">
+                  <Lock className="w-3.5 h-3.5 text-warning-500" />
+                </span>
               )}
             </div>
             {item.descripcion && (
