@@ -1,0 +1,90 @@
+import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
+import { useAuthStore } from '../stores/authStore';
+
+const api = axios.create({
+  baseURL: '/api',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor to add auth token
+api.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    const token = useAuthStore.getState().accessToken;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor to handle token refresh
+api.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & {
+      _retry?: boolean;
+    };
+
+    // If 401 and not already retrying
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      const refreshToken = useAuthStore.getState().refreshToken;
+
+      if (refreshToken) {
+        try {
+          const response = await axios.post('/api/auth/refresh', {
+            refreshToken,
+          });
+
+          const { accessToken, refreshToken: newRefreshToken } = response.data.data;
+
+          useAuthStore.getState().setTokens({
+            accessToken,
+            refreshToken: newRefreshToken,
+          });
+
+          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          return api(originalRequest);
+        } catch (refreshError) {
+          // Refresh failed, clear auth
+          useAuthStore.getState().clearAuth();
+          window.location.href = '/login';
+          return Promise.reject(refreshError);
+        }
+      } else {
+        // No refresh token, clear auth
+        useAuthStore.getState().clearAuth();
+        window.location.href = '/login';
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+export default api;
+
+// Type helpers
+export interface ApiError {
+  success: false;
+  message: string;
+  errors?: Record<string, string[]>;
+}
+
+export function isApiError(error: unknown): error is AxiosError<ApiError> {
+  return axios.isAxiosError(error);
+}
+
+export function getErrorMessage(error: unknown): string {
+  if (isApiError(error) && error.response?.data?.message) {
+    return error.response.data.message;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return 'Error desconocido';
+}
