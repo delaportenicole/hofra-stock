@@ -102,10 +102,6 @@ export function LoginPage() {
             </button>
           </div>
         </form>
-
-        <p className="text-center text-sm text-gray-500">
-          Usuario demo: admin / Admin123!
-        </p>
       </div>
     </div>
   );
