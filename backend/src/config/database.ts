@@ -2,20 +2,29 @@ import pg from 'pg';
 import dns from 'dns';
 import { env } from './env.js';
 
+// Force Node.js to accept self-signed certificates globally
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 // Force IPv4 for DNS resolution (fixes Render -> Supabase connection issues)
 dns.setDefaultResultOrder('ipv4first');
 
 const { Pool } = pg;
 
-const connectionString = env.DATABASE_URL;
+// Ensure connection string has sslmode parameter
+let connectionString = env.DATABASE_URL;
 
 if (!connectionString) {
   console.warn('Warning: DATABASE_URL not set. Database features will not work.');
+} else if (!connectionString.includes('sslmode=')) {
+  // Add sslmode=require if not present
+  connectionString += connectionString.includes('?') ? '&sslmode=require' : '?sslmode=require';
 }
 
 export const pool = new Pool({
   connectionString,
-  ssl: { rejectUnauthorized: false },
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
 
 export async function query<T = unknown>(
