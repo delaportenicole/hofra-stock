@@ -63,4 +63,19 @@ export const stockService = {
     const response = await api.post<{ data: Entrega }>('/stock/entregas', data);
     return response.data.data;
   },
+
+  async updateEntrega(id: string, data: Partial<CreateEntregaDto>): Promise<Entrega> {
+    const response = await api.put<{ data: Entrega }>(`/stock/entregas/${id}`, data);
+    return response.data.data;
+  },
+
+  async confirmEntrega(id: string): Promise<Entrega> {
+    const response = await api.post<{ data: Entrega }>(`/stock/entregas/${id}/confirmar`);
+    return response.data.data;
+  },
+
+  async cancelEntrega(id: string): Promise<Entrega> {
+    const response = await api.post<{ data: Entrega }>(`/stock/entregas/${id}/cancelar`);
+    return response.data.data;
+  },
 };

@@ -15,7 +15,7 @@ import { UNIDADES } from '@hofra/shared';
 import toast from 'react-hot-toast';
 import type { Rubro, Proveedor, Presentacion, Marca, CreateArticuloDto, UpdateArticuloDto } from '@hofra/shared';
 
-type FormData = CreateArticuloDto & { activo?: boolean; valorDolarCostoInicial?: number };
+type FormData = CreateArticuloDto & { activo?: boolean; valorDolarCostoInicial?: number; stockActual?: number };
 
 export function ArticuloFormPage() {
   const navigate = useNavigate();
@@ -53,6 +53,9 @@ export function ArticuloFormPage() {
 
   // Observar marca para el combobox
   const watchMarca = useWatch({ control, name: 'marca' });
+
+  // Observar stock actual (solo lectura)
+  const stockActual = useWatch({ control, name: 'stockActual' });
 
   // Calcular costo en USD
   const costoInicialEstimadoUsd =
@@ -140,12 +143,15 @@ export function ArticuloFormPage() {
   const onSubmit = async (data: FormData) => {
     setIsSaving(true);
     try {
+      // Excluir stockActual - solo se actualiza via reposiciones/entregas
+      const { stockActual: _, ...dataToSend } = data;
+
       if (isEditing) {
-        await articulosService.update(id!, data);
+        await articulosService.update(id!, dataToSend);
         toast.success('Artículo actualizado');
       } else {
         // Create the article first
-        const newArticulo = await articulosService.create(data);
+        const newArticulo = await articulosService.create(dataToSend);
 
         // If there's a pending image, upload it
         if (pendingImageFile && newArticulo.id) {
@@ -334,18 +340,18 @@ export function ArticuloFormPage() {
                 />
               </FormField>
 
-              <FormField label="Stock Actual" error={errors.stockActual}>
-                <Input
-                  type="number"
-                  min="0"
-                  {...register('stockActual', {
-                    valueAsNumber: true,
-                    min: { value: 0, message: 'No puede ser negativo' },
-                  })}
-                  error={errors.stockActual}
-                  placeholder="0"
-                />
-              </FormField>
+              {isEditing && (
+                <FormField label="Stock Actual">
+                  <div className="flex items-center h-10 px-3 bg-gray-100 border border-gray-200 rounded-lg">
+                    <span className="text-gray-700 font-medium">
+                      {stockActual ?? 0}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Solo se actualiza mediante reposiciones y entregas
+                  </p>
+                </FormField>
+              )}
             </div>
 
             {/* Costo Inicial Estimado */}

@@ -3,7 +3,7 @@ import { stockController } from '../controllers/stock.controller.js';
 import { authMiddleware, requirePermission } from '../middlewares/auth.js';
 import { auditMiddleware } from '../middlewares/audit.js';
 import { validateBody } from '../middlewares/validation.js';
-import { createReposicionSchema, updateReposicionSchema, createEntregaSchema } from '@hofra/shared';
+import { createReposicionSchema, updateReposicionSchema, createEntregaSchema, updateEntregaSchema } from '@hofra/shared';
 
 const router = Router();
 
@@ -24,5 +24,9 @@ router.post('/reposiciones/:id/cancelar', requirePermission('reposiciones', 'act
 router.get('/entregas', requirePermission('entregas', 'leer'), stockController.findAllEntregas);
 router.get('/entregas/:id', requirePermission('entregas', 'leer'), stockController.findEntregaById);
 router.post('/entregas', requirePermission('entregas', 'crear'), auditMiddleware('entregas'), validateBody(createEntregaSchema), stockController.createEntrega);
+router.put('/entregas/:id', requirePermission('entregas', 'actualizar'), auditMiddleware('entregas'), validateBody(updateEntregaSchema), stockController.updateEntrega);
+// confirm/cancel use manual audit in controller
+router.post('/entregas/:id/confirmar', requirePermission('entregas', 'actualizar'), stockController.confirmEntrega);
+router.post('/entregas/:id/cancelar', requirePermission('entregas', 'actualizar'), stockController.cancelEntrega);
 
 export { router as stockRoutes };

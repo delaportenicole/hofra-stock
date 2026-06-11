@@ -114,6 +114,13 @@ export function ArticulosListPage() {
       ),
     },
     {
+      key: 'sku',
+      header: 'SKU',
+      render: (item: ArticuloConRelaciones) => (
+        <span className="font-mono text-sm text-gray-600">{item.sku || '-'}</span>
+      ),
+    },
+    {
       key: 'nombre',
       header: 'Nombre',
       render: (item: ArticuloConRelaciones) => (

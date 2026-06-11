@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Printer } from 'lucide-react';
+import { Plus, Printer, Eye, Edit, MoreVertical, CheckCircle, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { stockService } from '../../services/stock.service';
@@ -10,18 +10,37 @@ import { PermissionGuard } from '../../components/PermissionGuard';
 import { usePagination } from '../../hooks/usePagination';
 import { getErrorMessage } from '../../services/api';
 import toast from 'react-hot-toast';
-import type { EntregaConRelaciones } from '@hofra/shared';
+import type { EntregaConRelaciones, EstadoEntrega } from '@hofra/shared';
+
+const estadoLabels: Record<EstadoEntrega, string> = {
+  en_curso: 'En Curso',
+  confirmada: 'Confirmada',
+  cancelada: 'Cancelada',
+};
+
+const estadoVariants: Record<EstadoEntrega, 'warning' | 'success' | 'secondary'> = {
+  en_curso: 'warning',
+  confirmada: 'success',
+  cancelada: 'secondary',
+};
 
 export function EntregasListPage() {
   const navigate = useNavigate();
   const [entregas, setEntregas] = useState<EntregaConRelaciones[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const { page, limit, setPage, setLimit } = usePagination();
 
   useEffect(() => {
     loadEntregas();
   }, [page, limit]);
+
+  useEffect(() => {
+    const handleClickOutside = () => setOpenMenuId(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   const loadEntregas = async () => {
     setIsLoading(true);
@@ -33,6 +52,35 @@ export function EntregasListPage() {
       toast.error(getErrorMessage(error));
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleConfirm = async (id: string) => {
+    try {
+      await stockService.confirmEntrega(id);
+      toast.success('Entrega confirmada');
+      loadEntregas();
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  };
+
+  const handleCancel = async (id: string, estado: EstadoEntrega) => {
+    const cantidadTotal = entregas.find(e => e.id === id)?.items.reduce((sum, i) => sum + i.cantidad, 0) || 0;
+    const mensaje = estado === 'confirmada'
+      ? `¿Esta seguro de cancelar esta entrega?\n\nEl stock se restaurara en ${cantidadTotal} unidades.`
+      : `¿Esta seguro de cancelar esta entrega?\n\nEl stock no sera afectado (la entrega aun no estaba confirmada).`;
+
+    if (!confirm(mensaje)) {
+      return;
+    }
+
+    try {
+      await stockService.cancelEntrega(id);
+      toast.success('Entrega cancelada');
+      loadEntregas();
+    } catch (error) {
+      toast.error(getErrorMessage(error));
     }
   };
 
@@ -155,7 +203,9 @@ export function EntregasListPage() {
       key: 'fecha',
       header: 'Fecha',
       render: (item: EntregaConRelaciones) => (
-        <span>{format(new Date(item.fechaEntrega), 'dd/MM/yyyy HH:mm', { locale: es })}</span>
+        <span className="whitespace-nowrap">
+          {format(new Date(item.fechaEntrega), 'dd/MM/yyyy HH:mm', { locale: es })}
+        </span>
       ),
     },
     {
@@ -190,22 +240,99 @@ export function EntregasListPage() {
     },
     {
       key: 'total',
-      header: 'Total Items',
+      header: 'Cant.',
+      render: (item: EntregaConRelaciones) => {
+        const variant = item.estado === 'confirmada' ? 'danger'
+          : item.estado === 'en_curso' ? 'warning'
+          : 'secondary';
+        const prefix = item.estado === 'confirmada' ? '-' : '';
+        return (
+          <Badge variant={variant}>
+            {prefix}{getTotalCantidad(item)}
+          </Badge>
+        );
+      },
+    },
+    {
+      key: 'estado',
+      header: 'Estado',
       render: (item: EntregaConRelaciones) => (
-        <Badge variant="secondary">{item.items.length} art.</Badge>
+        <Badge variant={estadoVariants[item.estado]}>
+          {estadoLabels[item.estado]}
+        </Badge>
       ),
     },
     {
       key: 'acciones',
-      header: 'Imprimir',
+      header: '',
       render: (item: EntregaConRelaciones) => (
-        <button
-          onClick={(e) => handlePrint(item, e)}
-          className="p-2 text-gray-500 hover:text-primary-600 hover:bg-gray-100 rounded-lg transition-colors"
-          title="Imprimir entrega"
-        >
-          <Printer className="w-5 h-5" />
-        </button>
+        <div className="relative">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpenMenuId(openMenuId === item.id ? null : item.id);
+            }}
+            className="p-1 hover:bg-gray-100 rounded"
+          >
+            <MoreVertical className="w-5 h-5 text-gray-500" />
+          </button>
+
+          {openMenuId === item.id && (
+            <div className="absolute right-0 z-10 mt-1 w-44 bg-white rounded-md shadow-lg border border-gray-200">
+              <Link
+                to={`/entregas/${item.id}`}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              >
+                <Eye className="w-4 h-4" />
+                Ver detalle
+              </Link>
+
+              <button
+                onClick={(e) => { e.stopPropagation(); handlePrint(item, e); }}
+                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              >
+                <Printer className="w-4 h-4" />
+                Imprimir
+              </button>
+
+              {item.estado === 'en_curso' && (
+                <>
+                  <Link
+                    to={`/entregas/${item.id}/editar`}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    <Edit className="w-4 h-4" />
+                    Editar
+                  </Link>
+                  <button
+                    onClick={() => handleConfirm(item.id)}
+                    className="flex items-center gap-2 w-full px-4 py-2 text-sm text-green-600 hover:bg-green-50"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    Confirmar
+                  </button>
+                  <button
+                    onClick={() => handleCancel(item.id, item.estado)}
+                    className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                  >
+                    <XCircle className="w-4 h-4" />
+                    Cancelar
+                  </button>
+                </>
+              )}
+
+              {item.estado === 'confirmada' && (
+                <button
+                  onClick={() => handleCancel(item.id, item.estado)}
+                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                >
+                  <XCircle className="w-4 h-4" />
+                  Cancelar
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       ),
     },
   ];
@@ -230,7 +357,7 @@ export function EntregasListPage() {
         pagination={{ page, limit, total, totalPages: Math.ceil(total / limit) }}
         onPageChange={setPage}
         onLimitChange={setLimit}
-        onRowClick={(item) => navigate(`/entregas/${item.id}`)}
+        getRowHref={(item) => `/entregas/${item.id}`}
         emptyMessage="No hay entregas registradas"
       />
     </div>

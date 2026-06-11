@@ -165,7 +165,7 @@ export class StockService {
       }
     }
 
-    // Create entrega with items
+    // Create entrega in estado "en_curso" - stock is NOT updated yet
     const entrega = await entregaRepository.create({
       clienteId: data.clienteId,
       numeroCotizacionInterna: data.numeroCotizacionInterna,
@@ -176,16 +176,98 @@ export class StockService {
       createdBy,
     });
 
-    // For each item, decrement stock
-    for (const item of data.items) {
-      // Decrement stock from reposiciones using FIFO
-      await reposicionRepository.descontarStockFIFO(item.articuloId, item.cantidad, createdBy);
-
-      // Decrement total stock
-      await articuloRepository.updateStock(item.articuloId, -item.cantidad, createdBy);
-    }
+    // Stock is NOT updated - it will be updated when the entrega is confirmed
 
     return entrega;
+  }
+
+  async updateEntrega(id: string, data: Partial<CreateEntregaDto>, updatedBy?: string): Promise<Entrega> {
+    // Verify entrega exists and is en_curso
+    const entrega = await entregaRepository.findByIdWithRelations(id);
+    if (!entrega) {
+      throw new NotFoundError('Entrega');
+    }
+
+    if (entrega.estado !== 'en_curso') {
+      throw new Error('Solo se pueden editar entregas en curso');
+    }
+
+    // If items are being updated, verify stock for new items
+    if (data.items) {
+      for (const item of data.items) {
+        const articulo = await articuloRepository.findById(item.articuloId);
+        if (!articulo) {
+          throw new NotFoundError(`Artículo ${item.articuloId}`);
+        }
+
+        const currentStock = await articuloRepository.getStock(item.articuloId);
+        if (currentStock < item.cantidad) {
+          throw new InsufficientStockError(currentStock, item.cantidad);
+        }
+      }
+    }
+
+    return entregaRepository.update(id, data, updatedBy);
+  }
+
+  async confirmEntrega(id: string, updatedBy?: string): Promise<Entrega> {
+    const entrega = await entregaRepository.findByIdWithRelations(id);
+    if (!entrega) {
+      throw new NotFoundError('Entrega');
+    }
+
+    if (entrega.estado !== 'en_curso') {
+      throw new Error('Solo se pueden confirmar entregas en curso');
+    }
+
+    // Verify all items have sufficient stock
+    for (const item of entrega.items) {
+      const currentStock = await articuloRepository.getStock(item.articuloId);
+      if (currentStock < item.cantidad) {
+        throw new InsufficientStockError(currentStock, item.cantidad);
+      }
+    }
+
+    // Confirm entrega
+    const confirmed = await entregaRepository.confirm(id, updatedBy);
+
+    // NOW decrement stock for each item
+    for (const item of entrega.items) {
+      // Decrement stock from reposiciones using FIFO
+      await reposicionRepository.descontarStockFIFO(item.articuloId, item.cantidad, updatedBy);
+
+      // Decrement total stock
+      await articuloRepository.updateStock(item.articuloId, -item.cantidad, updatedBy);
+    }
+
+    return confirmed;
+  }
+
+  async cancelEntrega(id: string, updatedBy?: string): Promise<Entrega> {
+    const entrega = await entregaRepository.findByIdWithRelations(id);
+    if (!entrega) {
+      throw new NotFoundError('Entrega');
+    }
+
+    if (entrega.estado === 'cancelada') {
+      throw new Error('La entrega ya esta cancelada');
+    }
+
+    const estadoAnterior = entrega.estado;
+
+    // Cancel entrega
+    const cancelled = await entregaRepository.cancel(id, updatedBy);
+
+    // Only restore stock if it was confirmed (stock was already decremented)
+    if (estadoAnterior === 'confirmada') {
+      for (const item of entrega.items) {
+        // Restore total stock
+        await articuloRepository.updateStock(item.articuloId, item.cantidad, updatedBy);
+      }
+    }
+    // If it was en_curso, stock was never decremented, so no need to restore
+
+    return cancelled;
   }
 
   // ============================================

@@ -41,7 +41,7 @@ export const paginationSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(1000).default(20),
   sortBy: z.string().default('nombre'),
-  sortOrder: z.enum(['asc', 'desc']).default('asc'),
+  sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });
 
 // ============================================
@@ -345,7 +345,24 @@ export const createEntregaSchema = z.object({
     .refine((val) => val.startsWith('#'), {
       message: 'El número de cotización debe comenzar con #',
     }),
+  purchaseOrder: z.string().max(50).optional().nullable(),
   items: z.array(createEntregaItemSchema).min(1, 'Debe agregar al menos un artículo'),
+  observaciones: z.string().max(500).optional().nullable(),
+  fechaEntrega: z.coerce.date().optional(),
+});
+
+export const updateEntregaSchema = z.object({
+  clienteId: uuidSchema.optional(),
+  numeroCotizacionInterna: z
+    .string()
+    .min(2, 'El número de cotización es requerido')
+    .max(50, 'Máximo 50 caracteres')
+    .refine((val) => val.startsWith('#'), {
+      message: 'El número de cotización debe comenzar con #',
+    })
+    .optional(),
+  purchaseOrder: z.string().max(50).optional().nullable(),
+  items: z.array(createEntregaItemSchema).min(1, 'Debe agregar al menos un artículo').optional(),
   observaciones: z.string().max(500).optional().nullable(),
   fechaEntrega: z.coerce.date().optional(),
 });

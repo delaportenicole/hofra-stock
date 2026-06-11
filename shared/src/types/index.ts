@@ -252,6 +252,8 @@ export interface ReposicionConRelaciones extends Reposicion {
 // ENTREGAS
 // ============================================
 
+export type EstadoEntrega = 'en_curso' | 'confirmada' | 'cancelada';
+
 export interface EntregaItem {
   id: string;
   entregaId: string;
@@ -271,6 +273,7 @@ export interface Entrega extends BaseEntity {
   purchaseOrder: string | null;
   observaciones: string | null;
   fechaEntrega: Date;
+  estado: EstadoEntrega;
 }
 
 export interface EntregaConRelaciones extends Entrega {
@@ -473,7 +476,6 @@ export interface CreateArticuloDto {
   marca?: string;
   sku?: string;
   etm?: string;
-  stockActual?: number;
   ubicacion?: string;
   costoInicialEstimado?: number;
   valorDolarCostoInicial?: number;
@@ -491,7 +493,6 @@ export interface UpdateArticuloDto {
   marca?: string;
   sku?: string;
   etm?: string;
-  stockActual?: number;
   ubicacion?: string;
   costoInicialEstimado?: number;
   valorDolarCostoInicial?: number;

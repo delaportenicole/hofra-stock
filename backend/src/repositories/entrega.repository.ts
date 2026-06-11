@@ -1,7 +1,7 @@
 import { query, queryOne, transaction } from '../config/database.js';
 import { BaseRepository, type FindOptions } from './base.repository.js';
 import { toCamelCase, type PaginatedResult } from '../types/index.js';
-import type { Entrega, EntregaConRelaciones, EntregaItem, EntregaItemConArticulo, CreateEntregaItemDto } from '@hofra/shared';
+import type { Entrega, EntregaConRelaciones, EntregaItem, EntregaItemConArticulo, CreateEntregaItemDto, EstadoEntrega } from '@hofra/shared';
 
 export class EntregaRepository extends BaseRepository<Entrega> {
   constructor() {
@@ -20,8 +20,8 @@ export class EntregaRepository extends BaseRepository<Entrega> {
     return transaction(async (client) => {
       // Create entrega header
       const entregaRows = await client.query<Record<string, unknown>>(
-        `INSERT INTO entregas (cliente_id, numero_cotizacion_interna, purchase_order, observaciones, fecha_entrega, created_by)
-         VALUES ($1, $2, $3, $4, $5, $6)
+        `INSERT INTO entregas (cliente_id, numero_cotizacion_interna, purchase_order, observaciones, fecha_entrega, estado, created_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING *`,
         [
           data.clienteId,
@@ -29,6 +29,7 @@ export class EntregaRepository extends BaseRepository<Entrega> {
           data.purchaseOrder || null,
           data.observaciones || null,
           data.fechaEntrega || new Date(),
+          'en_curso',
           data.createdBy || null,
         ]
       );
@@ -49,6 +50,87 @@ export class EntregaRepository extends BaseRepository<Entrega> {
         if (itemRows[0]) {
           items.push(toCamelCase<EntregaItem>(itemRows[0]));
         }
+      }
+
+      return { ...entrega, items };
+    });
+  }
+
+  async update(id: string, data: {
+    clienteId?: string;
+    numeroCotizacionInterna?: string;
+    purchaseOrder?: string | null;
+    observaciones?: string | null;
+    fechaEntrega?: Date;
+    items?: CreateEntregaItemDto[];
+  }, updatedBy?: string): Promise<Entrega & { items: EntregaItem[] }> {
+    return transaction(async (client) => {
+      // Build SET clauses for header
+      const setClauses: string[] = ['updated_at = NOW()'];
+      const values: unknown[] = [];
+      let paramIndex = 1;
+
+      if (data.clienteId !== undefined) {
+        setClauses.push(`cliente_id = $${paramIndex++}`);
+        values.push(data.clienteId);
+      }
+      if (data.numeroCotizacionInterna !== undefined) {
+        setClauses.push(`numero_cotizacion_interna = $${paramIndex++}`);
+        values.push(data.numeroCotizacionInterna);
+      }
+      if (data.purchaseOrder !== undefined) {
+        setClauses.push(`purchase_order = $${paramIndex++}`);
+        values.push(data.purchaseOrder);
+      }
+      if (data.observaciones !== undefined) {
+        setClauses.push(`observaciones = $${paramIndex++}`);
+        values.push(data.observaciones);
+      }
+      if (data.fechaEntrega !== undefined) {
+        setClauses.push(`fecha_entrega = $${paramIndex++}`);
+        values.push(data.fechaEntrega);
+      }
+      if (updatedBy) {
+        setClauses.push(`updated_by = $${paramIndex++}`);
+        values.push(updatedBy);
+      }
+
+      values.push(id);
+
+      const entregaRows = await client.query<Record<string, unknown>>(
+        `UPDATE entregas SET ${setClauses.join(', ')} WHERE id = $${paramIndex} AND deleted_at IS NULL RETURNING *`,
+        values
+      );
+
+      if (!entregaRows[0]) throw new Error('Failed to update entrega');
+
+      const entrega = toCamelCase<Entrega>(entregaRows[0]);
+
+      // If items are provided, replace all items
+      let items: EntregaItem[] = [];
+      if (data.items !== undefined) {
+        // Delete existing items
+        await client.query('DELETE FROM entrega_items WHERE entrega_id = $1', [id]);
+
+        // Create new items
+        for (const item of data.items) {
+          const itemRows = await client.query<Record<string, unknown>>(
+            `INSERT INTO entrega_items (entrega_id, articulo_id, cantidad)
+             VALUES ($1, $2, $3)
+             RETURNING *`,
+            [id, item.articuloId, item.cantidad]
+          );
+          if (itemRows[0]) {
+            items.push(toCamelCase<EntregaItem>(itemRows[0]));
+          }
+        }
+      } else {
+        // Get existing items
+        const existingItems = await client.query<Record<string, unknown>>(
+          'SELECT * FROM entrega_items WHERE entrega_id = $1',
+          [id]
+        );
+        items = existingItems.map(row => toCamelCase<EntregaItem>(row));
       }
 
       return { ...entrega, items };
@@ -205,10 +287,38 @@ export class EntregaRepository extends BaseRepository<Entrega> {
     };
   }
 
+  async confirm(id: string, updatedBy?: string): Promise<Entrega> {
+    const row = await queryOne<Record<string, unknown>>(
+      `UPDATE entregas
+       SET estado = 'confirmada', updated_at = NOW(), updated_by = $2
+       WHERE id = $1 AND deleted_at IS NULL AND estado = 'en_curso'
+       RETURNING *`,
+      [id, updatedBy || null]
+    );
+
+    if (!row) throw new Error('Entrega not found or not in en_curso state');
+
+    return toCamelCase<Entrega>(row);
+  }
+
+  async cancel(id: string, updatedBy?: string): Promise<Entrega> {
+    const row = await queryOne<Record<string, unknown>>(
+      `UPDATE entregas
+       SET estado = 'cancelada', updated_at = NOW(), updated_by = $2
+       WHERE id = $1 AND deleted_at IS NULL AND estado != 'cancelada'
+       RETURNING *`,
+      [id, updatedBy || null]
+    );
+
+    if (!row) throw new Error('Entrega not found or already cancelled');
+
+    return toCamelCase<Entrega>(row);
+  }
+
   async countToday(): Promise<number> {
     const result = await queryOne<{ count: string }>(
       `SELECT COUNT(*) as count FROM entregas
-       WHERE deleted_at IS NULL
+       WHERE deleted_at IS NULL AND estado = 'confirmada'
        AND fecha_entrega >= CURRENT_DATE
        AND fecha_entrega < CURRENT_DATE + INTERVAL '1 day'`
     );
@@ -219,7 +329,7 @@ export class EntregaRepository extends BaseRepository<Entrega> {
   async countThisMonth(): Promise<number> {
     const result = await queryOne<{ count: string }>(
       `SELECT COUNT(*) as count FROM entregas
-       WHERE deleted_at IS NULL
+       WHERE deleted_at IS NULL AND estado = 'confirmada'
        AND fecha_entrega >= DATE_TRUNC('month', CURRENT_DATE)
        AND fecha_entrega < DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month'`
     );
@@ -235,6 +345,7 @@ export class EntregaRepository extends BaseRepository<Entrega> {
       purchase_order: row.purchase_order,
       observaciones: row.observaciones,
       fecha_entrega: row.fecha_entrega,
+      estado: row.estado,
       created_at: row.created_at,
       updated_at: row.updated_at,
       deleted_at: row.deleted_at,

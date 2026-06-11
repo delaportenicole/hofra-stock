@@ -81,7 +81,7 @@ export class ArticuloService {
       marca: data.marca,
       sku: data.sku,
       etm: data.etm,
-      stockActual: data.stockActual,
+      stockActual: 0, // Stock inicial siempre es 0, se actualiza via reposiciones/entregas
       ubicacion: data.ubicacion,
       costoInicialEstimado: data.costoInicialEstimado,
       valorDolarCostoInicial: data.valorDolarCostoInicial,

@@ -17,6 +17,7 @@ import { ProveedorFormPage } from './pages/proveedores/ProveedorForm';
 import { EntregasListPage } from './pages/entregas/EntregasList';
 import { EntregaFormPage } from './pages/entregas/EntregaForm';
 import { EntregaDetailPage } from './pages/entregas/EntregaDetail';
+import { EntregaEditPage } from './pages/entregas/EntregaEdit';
 import { ReposicionesListPage } from './pages/reposiciones/ReposicionesList';
 import { ReposicionFormPage } from './pages/reposiciones/ReposicionForm';
 import { ReposicionDetailPage } from './pages/reposiciones/ReposicionDetail';
@@ -112,6 +113,7 @@ function App() {
         <Route path="entregas" element={<EntregasListPage />} />
         <Route path="entregas/nueva" element={<EntregaFormPage />} />
         <Route path="entregas/:id" element={<EntregaDetailPage />} />
+        <Route path="entregas/:id/editar" element={<EntregaEditPage />} />
 
         {/* Reposiciones */}
         <Route path="reposiciones" element={<ReposicionesListPage />} />
