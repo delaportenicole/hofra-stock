@@ -8,6 +8,7 @@ interface AuthState {
   refreshToken: string | null;
   permisos: string[];
   isAuthenticated: boolean;
+  _hasHydrated: boolean;
 
   // Actions
   setAuth: (usuario: UsuarioConRoles, tokens: AuthTokens, permisos: string[]) => void;
@@ -15,6 +16,7 @@ interface AuthState {
   clearAuth: () => void;
   hasPermission: (modulo: string, accion: string) => boolean;
   hasAnyPermission: (permisos: Array<{ modulo: string; accion: string }>) => boolean;
+  setHasHydrated: (state: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -25,6 +27,11 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
       permisos: [],
       isAuthenticated: false,
+      _hasHydrated: false,
+
+      setHasHydrated: (state) => {
+        set({ _hasHydrated: state });
+      },
 
       setAuth: (usuario, tokens, permisos) => {
         set({
@@ -74,6 +81,9 @@ export const useAuthStore = create<AuthState>()(
         permisos: state.permisos,
         isAuthenticated: state.isAuthenticated,
       }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );
