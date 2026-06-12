@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { ArrowLeft, Save, Package, DollarSign, Calculator } from 'lucide-react';
 import { stockService } from '../../services/stock.service';
 import { articulosService } from '../../services/articulos.service';
 import { proveedoresService } from '../../services/proveedores.service';
 import { FormField, Input, Select, Textarea } from '../../components/FormField';
+import { CurrencyInput } from '../../components/CurrencyInput';
 import { ArticuloCombobox } from '../../components/ArticuloCombobox';
 import { Badge, StockBadge } from '../../components/Badge';
 import { PageLoader } from '../../components/LoadingSpinner';
@@ -31,6 +32,7 @@ export function ReposicionFormPage() {
     handleSubmit,
     watch,
     setValue,
+    control,
     formState: { errors },
   } = useForm<FormData>({
     defaultValues: {
@@ -205,33 +207,43 @@ export function ReposicionFormPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField label="Costo Unitario por Artículo (ARS)" error={errors.costoReposicion} required>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  placeholder="0.00"
-                  {...register('costoReposicion', {
+                <Controller
+                  name="costoReposicion"
+                  control={control}
+                  rules={{
                     required: 'El costo es requerido',
-                    valueAsNumber: true,
                     min: { value: 0.01, message: 'El costo debe ser mayor a 0' },
-                  })}
-                  error={errors.costoReposicion}
+                  }}
+                  render={({ field }) => (
+                    <CurrencyInput
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      error={!!errors.costoReposicion}
+                      placeholder="0,00"
+                    />
+                  )}
                 />
                 <p className="text-xs text-gray-500 mt-1">Precio por unidad de artículo</p>
               </FormField>
 
               <FormField label="Valor Dolar Oficial" error={errors.valorDolarOficial} required>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  placeholder="0.00"
-                  {...register('valorDolarOficial', {
+                <Controller
+                  name="valorDolarOficial"
+                  control={control}
+                  rules={{
                     required: 'El valor del dolar es requerido',
-                    valueAsNumber: true,
                     min: { value: 0.01, message: 'El valor debe ser mayor a 0' },
-                  })}
-                  error={errors.valorDolarOficial}
+                  }}
+                  render={({ field }) => (
+                    <CurrencyInput
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      error={!!errors.valorDolarOficial}
+                      placeholder="1.200,00"
+                    />
+                  )}
                 />
               </FormField>
             </div>

@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { ArrowLeft, Save, Package, DollarSign, Calculator } from 'lucide-react';
 import { stockService } from '../../services/stock.service';
 import { proveedoresService } from '../../services/proveedores.service';
 import { FormField, Input, Select, Textarea } from '../../components/FormField';
+import { CurrencyInput } from '../../components/CurrencyInput';
 import { Badge } from '../../components/Badge';
 import { PageLoader } from '../../components/LoadingSpinner';
 import { getErrorMessage } from '../../services/api';
@@ -27,6 +28,7 @@ export function ReposicionEditPage() {
     handleSubmit,
     watch,
     reset,
+    control,
     formState: { errors },
   } = useForm<FormData>();
 
@@ -153,29 +155,35 @@ export function ReposicionEditPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField label="Costo Unitario por Artículo (ARS)" error={errors.costoReposicion}>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  placeholder="0.00"
-                  {...register('costoReposicion', {
-                    valueAsNumber: true,
-                  })}
-                  error={errors.costoReposicion}
+                <Controller
+                  name="costoReposicion"
+                  control={control}
+                  render={({ field }) => (
+                    <CurrencyInput
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      error={!!errors.costoReposicion}
+                      placeholder="0,00"
+                    />
+                  )}
                 />
                 <p className="text-xs text-gray-500 mt-1">Precio por unidad de artículo</p>
               </FormField>
 
               <FormField label="Valor Dolar Oficial" error={errors.valorDolarOficial}>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  placeholder="0.00"
-                  {...register('valorDolarOficial', {
-                    valueAsNumber: true,
-                  })}
-                  error={errors.valorDolarOficial}
+                <Controller
+                  name="valorDolarOficial"
+                  control={control}
+                  render={({ field }) => (
+                    <CurrencyInput
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      error={!!errors.valorDolarOficial}
+                      placeholder="1.200,00"
+                    />
+                  )}
                 />
               </FormField>
             </div>

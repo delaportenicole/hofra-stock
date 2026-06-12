@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm, useWatch, Controller } from 'react-hook-form';
 import { ArrowLeft, Save, Loader2, DollarSign, Plus } from 'lucide-react';
 import { articulosService } from '../../services/articulos.service';
 import { rubrosService } from '../../services/rubros.service';
@@ -8,6 +8,7 @@ import { proveedoresService } from '../../services/proveedores.service';
 import { presentacionesService } from '../../services/presentaciones.service';
 import { marcasService } from '../../services/marcas.service';
 import { FormField, Input, Select, Textarea, Checkbox, Combobox } from '../../components/FormField';
+import { CurrencyInput } from '../../components/CurrencyInput';
 import { ImageUpload } from '../../components/ImageUpload';
 import { PageLoader } from '../../components/LoadingSpinner';
 import { getErrorMessage } from '../../services/api';
@@ -362,30 +363,36 @@ export function ArticuloFormPage() {
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <FormField label="Costo Unitario (ARS)" error={errors.costoInicialEstimado}>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    {...register('costoInicialEstimado', {
-                      valueAsNumber: true,
-                      min: { value: 0, message: 'No puede ser negativo' },
-                    })}
-                    error={errors.costoInicialEstimado}
-                    placeholder="0.00"
+                  <Controller
+                    name="costoInicialEstimado"
+                    control={control}
+                    rules={{ min: { value: 0, message: 'No puede ser negativo' } }}
+                    render={({ field }) => (
+                      <CurrencyInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        error={!!errors.costoInicialEstimado}
+                        placeholder="0,00"
+                      />
+                    )}
                   />
                 </FormField>
 
                 <FormField label="Valor Dólar Oficial" error={errors.valorDolarCostoInicial}>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    {...register('valorDolarCostoInicial', {
-                      valueAsNumber: true,
-                      min: { value: 0, message: 'No puede ser negativo' },
-                    })}
-                    error={errors.valorDolarCostoInicial}
-                    placeholder="1200.00"
+                  <Controller
+                    name="valorDolarCostoInicial"
+                    control={control}
+                    rules={{ min: { value: 0, message: 'No puede ser negativo' } }}
+                    render={({ field }) => (
+                      <CurrencyInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        error={!!errors.valorDolarCostoInicial}
+                        placeholder="1.200,00"
+                      />
+                    )}
                   />
                 </FormField>
 
