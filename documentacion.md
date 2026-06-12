@@ -70,8 +70,13 @@ hofra-stock/
 Una entrega puede contener múltiples artículos, similar a un ticket de supermercado.
 
 #### Estructura
-- **Cabecera de Entrega**: clienteId, numeroCotizacionInterna, purchaseOrder, observaciones, fechaEntrega
+- **Cabecera de Entrega**: clienteId, numeroCotizacionInterna, purchaseOrder, observaciones, fechaEntrega, estado
 - **Items de Entrega**: articuloId, cantidad (uno o más por entrega)
+
+#### Estados
+- **`en_curso`**: Entrega creada pero no confirmada. El stock NO se descuenta.
+- **`confirmada`**: Entrega confirmada. El stock se descuenta usando método FIFO.
+- **`cancelada`**: Entrega cancelada. Si estaba confirmada, el stock se restaura.
 
 #### Campos por Entrega
 - **Cliente**: Obligatorio, se selecciona una vez
@@ -100,10 +105,14 @@ Una entrega puede contener múltiples artículos, similar a un ticket de superme
 - El foco se mueve al campo de cantidad para agilizar el ingreso
 
 #### Comportamiento
-- Descuenta automáticamente el stock de cada artículo usando **método FIFO**
-- El stock se descuenta de las reposiciones más antiguas primero
-- Validación de stock suficiente por cada artículo
-- Registro en auditoría
+- Al **crear**: La entrega queda en estado `en_curso`, el stock NO se modifica
+- Al **confirmar**: Descuenta automáticamente el stock de cada artículo usando **método FIFO**
+  - El stock se descuenta de las reposiciones más antiguas primero
+  - Validación de stock suficiente por cada artículo
+- Al **cancelar desde `en_curso`**: El stock NO se modifica
+- Al **cancelar desde `confirmada`**: El stock se restaura
+- **Edición**: Solo disponible para entregas en estado `en_curso`
+- Registro en auditoría para todas las operaciones
 
 ### 7. Reposiciones
 - **Campos**: articuloId, proveedorId, cantidad, stockDisponible, observaciones, fechaReposicion, costoReposicion (requerido), valorDolarOficial (requerido), costoReposicionDolares (autocalculado), fechaVencimiento, lotePartida, linkCompra, lugarCompra, estado
@@ -1282,6 +1291,11 @@ npm run db:seed          # Datos iniciales
 - [x] ~~Módulo de Sugerencias de mejoras al sistema~~ (completado)
 - [x] ~~Selección de artículos sin stock en Reposiciones~~ (completado)
 - [x] ~~Búsqueda en Reposiciones por código, nombre y descripción~~ (completado)
+- [x] ~~Stock Actual solo lectura (actualizado solo via reposiciones/entregas)~~ (completado)
+- [x] ~~Estados en Entregas (en_curso, confirmada, cancelada)~~ (completado)
+- [x] ~~Edición de Entregas en curso~~ (completado)
+- [x] ~~Fix SPA routing en Vercel (404 en nueva pestaña)~~ (completado)
+- [x] ~~Formato de moneda argentina en campos de costos~~ (completado)
 
 ---
 
@@ -1298,11 +1312,119 @@ npm run db:seed          # Datos iniciales
 
 ---
 
-*Documentación actualizada el 9 de junio de 2026*
+*Documentación actualizada el 12 de junio de 2026*
 
 ---
 
 ## Changelog Reciente
+
+### 12 de junio de 2026
+
+#### Stock Actual Solo Lectura
+- **Campo `stockActual` ya no es editable** en el formulario de artículos
+- Solo se actualiza automáticamente mediante reposiciones y entregas
+- Removido de `CreateArticuloDto` y `UpdateArticuloDto` en el shared package
+- En modo edición muestra el valor como texto con mensaje explicativo
+- **Archivos**:
+  - `frontend/src/pages/articulos/ArticuloForm.tsx` (campo read-only)
+  - `shared/src/types/index.ts` (removido de DTOs)
+
+#### Ordenamiento por Fecha en Entregas y Reposiciones
+- **Listas ordenadas de más reciente a más antigua** por defecto
+- Cambiado `sortOrder` default de 'asc' a 'desc' en `paginationSchema`
+- Entregas y Reposiciones ahora muestran los registros más nuevos primero
+- **Archivos**:
+  - `shared/src/validators/index.ts` (sortOrder default: 'desc')
+
+#### Columna SKU en Lista de Artículos
+- **Nueva columna "SKU"** agregada a la derecha de la columna "Código"
+- Muestra el SKU del artículo en formato monoespaciado
+- Si no hay SKU, muestra "-"
+- **Archivos**:
+  - `frontend/src/pages/articulos/ArticulosList.tsx` (nueva columna)
+
+#### Fix Vercel SPA Routing (404 en Nueva Pestaña)
+- **Agregado `vercel.json`** con rewrites para SPA
+- Soluciona error 404 al abrir enlaces en nueva pestaña en producción
+- Configuración:
+  ```json
+  {
+    "rewrites": [
+      { "source": "/api/(.*)", "destination": "/api" },
+      { "source": "/((?!api).*)", "destination": "/index.html" }
+    ]
+  }
+  ```
+- **Archivos**:
+  - `vercel.json` (nuevo)
+
+#### Estado en Entregas (Mismo que Reposiciones)
+- **Nuevo campo `estado`** en tabla `entregas` con valores: `en_curso`, `confirmada`, `cancelada`
+- **Flujo de estados**:
+  - Al crear entrega: estado `en_curso`, **stock NO se descuenta**
+  - Al confirmar: estado `confirmada`, **stock se descuenta (FIFO)**
+  - Al cancelar desde `en_curso`: estado `cancelada`, **stock NO se modifica**
+  - Al cancelar desde `confirmada`: estado `cancelada`, **stock se restaura**
+- **UI actualizada**:
+  - Badge de estado en lista y detalle de entregas
+  - Botones de acción: Confirmar, Cancelar, Editar (según estado)
+  - Mensajes de confirmación indicando impacto en stock
+- **Archivos**:
+  - `database/migrations/015_add_estado_entregas.sql` (nueva migración)
+  - `shared/src/types/index.ts` (EstadoEntrega, estado en Entrega)
+  - `shared/src/validators/index.ts` (updateEntregaSchema)
+  - `backend/src/repositories/entrega.repository.ts` (confirm, cancel, update)
+  - `backend/src/services/stock.service.ts` (confirmEntrega, cancelEntrega, updateEntrega)
+  - `backend/src/controllers/stock.controller.ts` (nuevos métodos)
+  - `backend/src/routes/stock.routes.ts` (nuevas rutas PUT, POST confirmar/cancelar)
+  - `frontend/src/pages/entregas/EntregasList.tsx` (columna estado, acciones)
+  - `frontend/src/pages/entregas/EntregaDetail.tsx` (badge estado, botones)
+  - `frontend/src/services/stock.service.ts` (confirmEntrega, cancelEntrega, updateEntrega)
+
+#### Edición de Entregas en Curso
+- **Nueva página `EntregaEdit`** para editar entregas con estado `en_curso`
+- Permite modificar: cliente, número de cotización, purchase order, artículos, cantidades, observaciones
+- Interfaz tipo carrito igual que el formulario de nueva entrega
+- Solo disponible para entregas en estado `en_curso`
+- Botón "Editar" en detalle y lista de entregas
+- **Archivos**:
+  - `frontend/src/pages/entregas/EntregaEdit.tsx` (nuevo)
+  - `frontend/src/App.tsx` (ruta /entregas/:id/editar)
+
+#### Fix Hidratación de Autenticación
+- **Soluciona redirección incorrecta al login** al abrir enlaces en nueva pestaña
+- Problema: Zustand `persist` hidrata asíncronamente, causando que `isAuthenticated` sea `false` antes de cargar localStorage
+- Solución: Agregado estado `_hasHydrated` que espera la hidratación antes de verificar auth
+- `ProtectedRoute` y `PublicRoute` muestran spinner mientras hidratan
+- **Archivos**:
+  - `frontend/src/stores/authStore.ts` (_hasHydrated, setHasHydrated, onRehydrateStorage)
+  - `frontend/src/App.tsx` (verificación de hasHydrated en rutas protegidas)
+
+#### Componente CurrencyInput (Formato Argentino)
+- **Nuevo componente `CurrencyInput`** para campos de costos y valores monetarios
+- Formatea números con formato argentino:
+  - **Puntos** como separador de miles (1.500.000)
+  - **Coma** como separador decimal (,43)
+- Auto-formatea al perder foco (blur)
+- Acepta entrada con puntos y comas
+- Almacena valor numérico real en el formulario
+- **Aplicado en**:
+  - Formulario de Artículos: Costo Inicial Estimado, Valor Dólar
+  - Formulario de Reposición: Costo Unitario, Valor Dólar
+  - Edición de Reposición: Costo Unitario, Valor Dólar
+- **Archivos**:
+  - `frontend/src/components/CurrencyInput.tsx` (nuevo)
+  - `frontend/src/pages/articulos/ArticuloForm.tsx` (usa CurrencyInput con Controller)
+  - `frontend/src/pages/reposiciones/ReposicionForm.tsx` (usa CurrencyInput)
+  - `frontend/src/pages/reposiciones/ReposicionEdit.tsx` (usa CurrencyInput)
+
+#### Migración Base de Datos
+- **015_add_estado_entregas.sql**: Agrega columna `estado` a tabla `entregas`
+  - Tipo: TEXT NOT NULL DEFAULT 'confirmada'
+  - Constraint: CHECK (estado IN ('en_curso', 'confirmada', 'cancelada'))
+  - Entregas existentes quedan como 'confirmada'
+
+---
 
 ### 9 de junio de 2026 (continuación)
 
