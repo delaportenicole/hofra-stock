@@ -198,12 +198,12 @@ export function EntregaEditPage() {
       const updateData = {
         clienteId: data.clienteId,
         numeroCotizacionInterna: `#${data.numeroCotizacion}`,
-        purchaseOrder: data.purchaseOrder || null,
+        purchaseOrder: data.purchaseOrder || undefined,
         items: cartItems.map(item => ({
           articuloId: item.articuloId,
           cantidad: item.cantidad,
         })),
-        observaciones: data.observaciones || null,
+        observaciones: data.observaciones || undefined,
       };
 
       await stockService.updateEntrega(id!, updateData);
