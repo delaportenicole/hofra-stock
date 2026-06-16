@@ -286,7 +286,7 @@ El sistema registra automáticamente las operaciones sobre:
 - **Entregas**: Creación de entregas (descuento de stock)
 - **Reposiciones**: Creación, actualización, confirmación y cancelación
 
-**NO se auditan**: Clientes, Proveedores, Configuraciones (Unidades, Presentaciones, Rubros), Usuarios, Roles.
+**NO se auditan**: Clientes, Proveedores, Configuraciones (Rubros, Marcas), Usuarios, Roles.
 
 #### Funcionalidades
 - **Listado de eventos** con fecha, usuario, acción y módulo afectado
@@ -358,25 +358,14 @@ Módulo centralizado para gestionar configuraciones del sistema: unidades de med
 
 #### Interfaz
 El módulo utiliza una interfaz con pestañas (tabs):
-- **Unidades de Medida**: Kg, Litro, Metro, Unidad, etc.
-- **Presentaciones**: Caja x 12, Pack x 6, Bolsa, etc.
 - **Rubros**: Categorías de artículos con prefijo para código automático
 - **Marcas**: Marcas de productos (Stanley, 3M, Bosch, etc.)
-
-#### Unidades de Medida
-- **Campos**: nombre, activo
-- CRUD completo vía modal
-- Se muestran solo las activas en dropdowns de artículos
-
-#### Presentaciones
-- **Campos**: nombre, descripción, activo
-- CRUD completo vía modal
-- Se muestran solo las activas en dropdowns de artículos
 
 #### Rubros
 - **Campos**: nombre, prefijo (solo letras), descripción, activo
 - CRUD completo vía modal
 - El prefijo se usa para generar códigos de artículos (ej: ELE-0001 para rubro "Electrónica" con prefijo "ELE")
+- **Actualización automática de códigos**: Al cambiar el prefijo, todos los artículos del rubro se actualizan
 - Se muestran solo los activos en dropdowns de artículos
 
 #### Marcas
@@ -389,20 +378,6 @@ El módulo utiliza una interfaz con pestañas (tabs):
   - Crear nueva marca con botón "+" si no existe
 - **Endpoint `findOrCreate`**: Crea la marca si no existe, o retorna la existente
 - Migración automática de marcas existentes desde artículos
-
-#### Datos Predeterminados
-
-**Unidades de Medida** (20):
-- Kilogramo, Gramo, Miligramo, Tonelada
-- Litro, Mililitro, Galón
-- Metro, Centímetro, Milímetro, Pulgada
-- Metro cuadrado, Metro cúbico
-- Unidad, Docena, Par, Ciento
-- Rollo, Bobina, Pieza
-
-**Presentaciones** (10):
-- Unidad, Caja x 6, Caja x 12, Caja x 24, Caja x 48
-- Pack x 3, Pack x 6, Bolsa, Sobre, Blister
 
 #### API
 
@@ -734,8 +709,6 @@ Todas las grillas del sistema ahora se ordenan **alfabéticamente de A-Z** en el
 | Artículos | `nombre` | A-Z |
 | Clientes | `razon_social` | A-Z |
 | Proveedores | `razon_social` | A-Z |
-| Unidades de Medida | `nombre` | A-Z |
-| Presentaciones | `nombre` | A-Z |
 | Rubros | `nombre` | A-Z |
 | Marcas | `nombre` | A-Z |
 
@@ -749,8 +722,6 @@ Todas las grillas del sistema ahora se ordenan **alfabéticamente de A-Z** en el
 **Frontend Services**:
 - `clientes.service.ts`: `getAll()` y `search()` con sortBy/sortOrder
 - `proveedores.service.ts`: `getAll()` y `search()` con sortBy/sortOrder
-- `unidadesMedida.service.ts`: `getAll()` con sortBy/sortOrder
-- `presentaciones.service.ts`: `getAll()` con sortBy/sortOrder
 - `rubros.service.ts`: `getAll()` con sortBy/sortOrder
 - `marcas.service.ts`: `getAll()` con sortBy/sortOrder
 - `articulos.service.ts`: `getAll()` con sortBy/sortOrder
@@ -759,7 +730,7 @@ Todas las grillas del sistema ahora se ordenan **alfabéticamente de A-Z** en el
 - `ClientesList.tsx`: Pasa `sortBy: 'razon_social', sortOrder: 'asc'`
 - `ProveedoresList.tsx`: Pasa `sortBy: 'razon_social', sortOrder: 'asc'`
 - `ArticulosList.tsx`: Pasa `sortBy: 'nombre', sortOrder: 'asc'`
-- `UnidadesList.tsx`: Las 4 funciones de carga pasan `sortBy: 'nombre', sortOrder: 'asc'`
+- `UnidadesList.tsx`: Las funciones de carga de Rubros y Marcas pasan `sortBy: 'nombre', sortOrder: 'asc'`
 
 **Backend**:
 - `shared/src/validators/index.ts`: `paginationSchema` con defaults de sorting
@@ -776,7 +747,7 @@ Todas las grillas del sistema incluyen paginación con selector de registros por
   - Entregas, Reposiciones
   - Usuarios, Roles
   - Auditoría
-  - Configuraciones (Unidades de Medida, Presentaciones, Rubros - cada tab con su paginación)
+  - Configuraciones (Rubros, Marcas - cada tab con su paginación)
 
 ### Filas Clickeables en Grillas
 Todas las grillas de datos permiten hacer click en cualquier parte de la fila para abrir el registro en una nueva pestaña:
@@ -790,7 +761,7 @@ El menú lateral (sidebar) puede colapsarse para mostrar solo iconos:
 - Botón de colapsar/expandir en la parte inferior del menú
 - Al colapsar, solo se muestran los iconos con tooltips
 - El contenido principal se ajusta automáticamente
-- Orden del menú: Dashboard, Artículos, Entregas, Reposiciones, Clientes, Proveedores, Rubros, Unidades
+- Orden del menú: Dashboard, Artículos, Entregas, Reposiciones, Clientes, Proveedores, Configuraciones
 - Sección de Administración separada: Usuarios, Roles, Auditoría
 
 ---
@@ -949,22 +920,19 @@ El menú lateral (sidebar) puede colapsarse para mostrar solo iconos:
    - `FormField.tsx`: Agregado componente `Combobox` con autocompletado y filtrado
 
 7. **Páginas de Configuraciones** (actualizadas):
-   - `UnidadesList.tsx`: Interfaz con cuatro pestañas (Unidades de Medida, Presentaciones, Rubros, Marcas)
-   - `UnidadMedidaModal.tsx`: Modal para crear/editar unidades de medida
-   - `PresentacionModal.tsx`: Modal para crear/editar presentaciones
+   - `UnidadesList.tsx`: Interfaz con dos pestañas (Rubros, Marcas)
    - `RubroModal.tsx`: Modal para crear/editar rubros (nombre, prefijo, descripción)
    - `MarcaModal.tsx`: Modal para crear/editar marcas
 
 8. **Servicios** (actualizados):
-   - `unidadesMedida.service.ts`: Llamadas API para unidades de medida
-   - `presentaciones.service.ts`: Llamadas API para presentaciones
    - `rubros.service.ts`: Llamadas API para rubros
+   - `marcas.service.ts`: Llamadas API para marcas
 
 9. **Rutas** (App.tsx):
    - Proveedores: `/proveedores`, `/proveedores/nuevo`, `/proveedores/:id/editar`
    - Reposiciones: `/reposiciones`, `/reposiciones/nueva`, `/reposiciones/:id`, `/reposiciones/:id/editar`
    - Entregas: `/entregas`, `/entregas/nueva`, `/entregas/:id`
-   - Configuraciones: `/configuraciones` (incluye Unidades de Medida, Presentaciones y Rubros como tabs)
+   - Configuraciones: `/configuraciones` (incluye Rubros y Marcas como tabs)
    - Usuarios: `/usuarios`, `/usuarios/nuevo`, `/usuarios/:id/editar`
    - Roles: `/roles`, `/roles/nuevo`, `/roles/:id/editar`
    - Auditoría: `/auditoria`
@@ -973,7 +941,7 @@ El menú lateral (sidebar) puede colapsarse para mostrar solo iconos:
     - Menú lateral organizado en secciones:
       - **Principal**: Dashboard, Artículos, Entregas, Reposiciones, Clientes, Proveedores, Configuraciones
       - **Administración**: Usuarios, Roles, Auditoría
-    - "Configuraciones" con icono de engranaje (Settings) - incluye Unidades, Presentaciones y Rubros
+    - "Configuraciones" con icono de engranaje (Settings) - incluye Rubros y Marcas
     - Sidebar colapsable con botón toggle redondo (ChevronLeft/ChevronRight)
     - Botón de colapsar posicionado a la altura del Dashboard, más pequeño y redondo
     - Al colapsar: solo se muestran iconos con tooltips
@@ -1058,8 +1026,6 @@ El menú lateral (sidebar) puede colapsarse para mostrar solo iconos:
       - Artículos: por `nombre`
       - Clientes: por `razon_social`
       - Proveedores: por `razon_social`
-      - Unidades de Medida: por `nombre`
-      - Presentaciones: por `nombre`
       - Rubros: por `nombre`
       - Marcas: por `nombre`
 
@@ -1255,10 +1221,8 @@ npm run db:seed          # Datos iniciales
 - [x] ~~Configurar Cloudinary para producción~~ (completado)
 - [ ] Agregar exportación a Excel/CSV
 - [ ] Implementar reportes
-- [ ] Conectar Unidades de Medida con formulario de Artículos (actualmente usa constantes UNIDADES)
 - [x] ~~Sistema de valuación de stock FIFO~~ (completado)
-- [x] ~~Presentaciones como dropdown en formulario de Artículos~~ (completado)
-- [x] ~~Módulo de Unidades de Medida y Presentaciones~~ (completado)
+- [x] ~~Módulo de Unidades de Medida y Presentaciones~~ (eliminado - ya no aplica)
 - [x] ~~Prefijo de rubro para códigos de artículos~~ (completado)
 - [x] ~~Filas clickeables en grillas~~ (completado)
 - [x] ~~Clarificación de costos unitarios vs totales en reposiciones~~ (completado)
@@ -1298,6 +1262,10 @@ npm run db:seed          # Datos iniciales
 - [x] ~~Formato de moneda argentina en campos de costos~~ (completado)
 - [x] ~~Eliminar campos Unidad y Descripción de Artículos~~ (completado)
 - [x] ~~Presentación convertido a campo de texto libre~~ (completado)
+- [x] ~~Reorganización del formulario de Artículos~~ (completado)
+- [x] ~~Eliminación de módulos Unidades de Medida y Presentaciones~~ (completado)
+- [x] ~~Actualización automática de códigos al cambiar prefijo de rubro~~ (completado)
+- [x] ~~Dashboard: Valuación por rubro en lugar de cantidad de artículos~~ (completado)
 
 ---
 
@@ -1328,20 +1296,57 @@ npm run db:seed          # Datos iniciales
 - **Campo `presentacion` convertido a texto libre** (ya no es dropdown)
 - Actualizados tipos, validadores, repositorios y componentes frontend
 - Búsqueda de artículos ahora busca por: código, nombre, SKU, ETM
+- **Migraciones ejecutadas**:
+  - `016_remove_unidad_descripcion.sql`: Elimina columnas `unidad` y `descripcion` de tabla `articulos`
+
+#### Reorganización del Formulario de Artículos
+- **Nuevo orden de campos**:
+  1. Nombre - Presentación
+  2. Rubro - Código
+  3. Proveedor - Stock Mínimo
+  4. Marca - SKU - ETM
+  5. Costo Inicial Estimado (sección completa)
+  6. Ubicación
+  7. Stock Actual (solo en edición, read-only)
+  8. Checkbox "Artículo activo" (solo en edición)
+
+#### Eliminación de Módulos Unidades de Medida y Presentaciones
+- **Módulo `Unidades de Medida` eliminado** completamente (backend + frontend)
+- **Módulo `Presentaciones` eliminado** completamente (backend + frontend)
+- **Constante `UNIDADES` eliminada** de shared/constants
+- **Página de Configuraciones** ahora solo tiene tabs: **Rubros** y **Marcas**
+- **Migraciones ejecutadas**:
+  - `017_drop_unidades_presentaciones_tables.sql`: Elimina tablas `unidades_medida` y `presentaciones`
+- **Archivos eliminados**:
+  - Backend: `unidadMedida.controller.ts`, `unidadMedida.service.ts`, `unidadMedida.repository.ts`, `unidadMedida.routes.ts`
+  - Backend: `presentacion.controller.ts`, `presentacion.service.ts`, `presentacion.repository.ts`, `presentacion.routes.ts`
+  - Frontend: `UnidadMedidaModal.tsx`, `PresentacionModal.tsx`
+  - Frontend: `unidadesMedida.service.ts`, `presentaciones.service.ts`
+
+#### Actualización Automática de Códigos al Cambiar Prefijo de Rubro
+- **Nuevo comportamiento**: Al modificar el prefijo de un rubro, todos los artículos de ese rubro actualizan su código automáticamente
+- **Ejemplo**: Si el prefijo cambia de "ELE" a "ELEC":
+  - Artículo con código "ELE1" → "ELEC1"
+  - Artículo con código "ELE25" → "ELEC25"
+- La operación se ejecuta en una **transacción** (atómica)
 - **Archivos modificados**:
-  - `shared/src/types/index.ts`
-  - `shared/src/validators/index.ts`
-  - `backend/src/repositories/articulo.repository.ts`
-  - `backend/src/repositories/entrega.repository.ts`
-  - `frontend/src/pages/articulos/ArticuloForm.tsx`
-  - `frontend/src/pages/articulos/ArticulosList.tsx`
-  - `frontend/src/pages/articulos/ArticuloDetail.tsx`
-  - `frontend/src/pages/entregas/EntregaForm.tsx`
-  - `frontend/src/pages/entregas/EntregaDetail.tsx`
-  - `frontend/src/pages/entregas/EntregaEdit.tsx`
-  - `frontend/src/pages/entregas/EntregasList.tsx`
-  - `frontend/src/pages/reposiciones/ReposicionDetail.tsx`
-  - `frontend/src/components/ArticuloCombobox.tsx`
+  - `backend/src/services/rubro.service.ts`
+
+#### Dashboard: Valuación por Rubro en lugar de Cantidad de Artículos
+- **Gráfico de torta** ahora muestra **valuación total del stock** por rubro (en ARS)
+- Antes mostraba cantidad de artículos por rubro
+- **Título cambiado**: "Artículos por Rubro" → "Valuación por Rubro"
+- **Valores formateados** como moneda con separadores de miles (ej: `$1.250.000`)
+- **Rubros sin stock valuado** (total = 0) se ocultan del gráfico
+- La valuación incluye:
+  - Stock de reposiciones confirmadas (cantidad × costo de reposición)
+  - Stock inicial estimado para artículos sin reposiciones
+- **Archivos modificados**:
+  - `backend/src/services/dashboard.service.ts` (método `getValuacionPorRubro`)
+  - `backend/src/controllers/dashboard.controller.ts`
+  - `backend/src/routes/dashboard.routes.ts` (endpoint renombrado a `/valuacion-por-rubro`)
+  - `frontend/src/services/dashboard.service.ts`
+  - `frontend/src/pages/Dashboard.tsx`
 
 ---
 
@@ -1580,7 +1585,7 @@ npm run db:seed          # Datos iniciales
 - Columna de imagen clickeable en tabla "Artículos a Entregar" del formulario de Nueva Entrega
 - Ordenamiento alfabético server-side en todas las grillas principales
 - Grillas de Clientes y Proveedores ordenadas por Razón Social (A-Z)
-- Grillas de Unidades de Medida, Presentaciones, Rubros y Marcas ordenadas por Nombre (A-Z)
+- Grillas de Rubros y Marcas ordenadas por Nombre (A-Z)
 - **Módulo de Reportes** agregado en Administración con 4 reportes:
   - Entregas por Cliente (ventas mensuales por cliente)
   - Reposiciones por Proveedor (compras mensuales por proveedor)
