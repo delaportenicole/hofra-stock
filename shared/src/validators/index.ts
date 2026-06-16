@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { UNIDADES } from '../constants/index.js';
 
 // ============================================
 // VALIDADORES COMUNES
@@ -244,11 +243,9 @@ const optionalUuid = z.preprocess(
 export const createArticuloSchema = z.object({
   codigo: z.string().min(1, 'El código es requerido').max(50),
   nombre: z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(200),
-  descripcion: z.string().max(500).optional().nullable(),
   rubroId: uuidSchema,
   proveedorId: optionalUuid,
   stockMinimo: z.coerce.number().int().min(0, 'El stock mínimo no puede ser negativo').default(0),
-  unidad: z.enum(UNIDADES as unknown as [string, ...string[]]),
   presentacion: z.string().max(100).optional().nullable(),
   marca: z.string().max(100).optional().nullable(),
   sku: z.string().max(100).optional().nullable(),
@@ -262,11 +259,9 @@ export const createArticuloSchema = z.object({
 export const updateArticuloSchema = z.object({
   codigo: z.string().min(1).max(50).optional(),
   nombre: z.string().min(2).max(200).optional(),
-  descripcion: z.string().max(500).optional().nullable(),
   rubroId: uuidSchema.optional(),
   proveedorId: optionalUuid,
   stockMinimo: z.coerce.number().int().min(0).optional(),
-  unidad: z.enum(UNIDADES as unknown as [string, ...string[]]).optional(),
   presentacion: z.string().max(100).optional().nullable(),
   marca: z.string().max(100).optional().nullable(),
   sku: z.string().max(100).optional().nullable(),

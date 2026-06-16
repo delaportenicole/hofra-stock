@@ -124,14 +124,7 @@ export function ArticulosListPage() {
       key: 'nombre',
       header: 'Nombre',
       render: (item: ArticuloConRelaciones) => (
-        <div>
-          <p className="font-medium">{item.nombre}</p>
-          {item.descripcion && (
-            <p className="text-sm text-gray-500 truncate max-w-xs">
-              {item.descripcion}
-            </p>
-          )}
-        </div>
+        <p className="font-medium">{item.nombre}</p>
       ),
     },
     {
@@ -147,10 +140,6 @@ export function ArticulosListPage() {
       render: (item: ArticuloConRelaciones) => (
         <StockBadge stock={item.stock} stockMinimo={item.stockMinimo} />
       ),
-    },
-    {
-      key: 'unidad',
-      header: 'Unidad',
     },
     {
       key: 'presentacion',
@@ -210,7 +199,7 @@ export function ArticulosListPage() {
               { key: 'rubro', header: 'Rubro', format: (v: unknown) => (v as { nombre: string })?.nombre || '' },
               { key: 'stock', header: 'Stock' },
               { key: 'stockMinimo', header: 'Stock Mínimo' },
-              { key: 'unidad', header: 'Unidad' },
+              { key: 'presentacion', header: 'Presentación' },
             ]}
           />
           <PermissionGuard modulo="articulos" accion="crear">
@@ -228,7 +217,7 @@ export function ArticulosListPage() {
           <SearchInput
             value={busqueda}
             onChange={setBusqueda}
-            placeholder="Buscar por código, nombre, SKU, ETM o descripción..."
+            placeholder="Buscar por código, nombre, SKU o ETM..."
           />
           <select
             value={rubroId}

@@ -209,9 +209,8 @@ export function ReposicionDetailPage() {
               <div className="flex-1">
                 <p className="font-mono text-sm text-gray-500">{reposicion.articulo.codigo}</p>
                 <p className="text-lg font-semibold">{reposicion.articulo.nombre}</p>
-                <div className="mt-2 flex items-center gap-4 text-sm text-gray-600">
+                <div className="mt-2 text-sm text-gray-600">
                   <span>Stock actual: <strong>{reposicion.articulo.stock}</strong></span>
-                  <span>Unidad: {reposicion.articulo.unidad}</span>
                 </div>
                 <Link
                   to={`/articulos/${reposicion.articuloId}`}

@@ -306,7 +306,6 @@ export function EntregaFormPage() {
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-16">Img</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Artículo</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unidad</th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Cant.</th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Costo Unit.</th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Subtotal</th>
@@ -338,7 +337,6 @@ export function EntregaFormPage() {
                       </td>
                       <td className="px-4 py-3 font-mono text-sm">{item.articulo.codigo}</td>
                       <td className="px-4 py-3 font-medium">{item.articulo.nombre}</td>
-                      <td className="px-4 py-3 text-sm text-gray-500">{item.articulo.unidad}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-center gap-2">
                           <button

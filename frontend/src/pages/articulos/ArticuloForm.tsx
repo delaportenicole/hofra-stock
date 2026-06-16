@@ -5,16 +5,14 @@ import { ArrowLeft, Save, Loader2, DollarSign, Plus } from 'lucide-react';
 import { articulosService } from '../../services/articulos.service';
 import { rubrosService } from '../../services/rubros.service';
 import { proveedoresService } from '../../services/proveedores.service';
-import { presentacionesService } from '../../services/presentaciones.service';
 import { marcasService } from '../../services/marcas.service';
-import { FormField, Input, Select, Textarea, Checkbox, Combobox } from '../../components/FormField';
+import { FormField, Input, Select, Checkbox, Combobox } from '../../components/FormField';
 import { CurrencyInput } from '../../components/CurrencyInput';
 import { ImageUpload } from '../../components/ImageUpload';
 import { PageLoader } from '../../components/LoadingSpinner';
 import { getErrorMessage } from '../../services/api';
-import { UNIDADES } from '@hofra/shared';
 import toast from 'react-hot-toast';
-import type { Rubro, Proveedor, Presentacion, Marca, CreateArticuloDto, UpdateArticuloDto } from '@hofra/shared';
+import type { Rubro, Proveedor, Marca, CreateArticuloDto, UpdateArticuloDto } from '@hofra/shared';
 
 type FormData = CreateArticuloDto & { activo?: boolean; valorDolarCostoInicial?: number; stockActual?: number };
 
@@ -28,7 +26,6 @@ export function ArticuloFormPage() {
   const [isGeneratingCodigo, setIsGeneratingCodigo] = useState(false);
   const [rubros, setRubros] = useState<Rubro[]>([]);
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
-  const [presentaciones, setPresentaciones] = useState<Presentacion[]>([]);
   const [marcas, setMarcas] = useState<Marca[]>([]);
   const [nuevaMarca, setNuevaMarca] = useState('');
   const [showNuevaMarcaInput, setShowNuevaMarcaInput] = useState(false);
@@ -97,12 +94,10 @@ export function ArticuloFormPage() {
     Promise.all([
       rubrosService.getActive(),
       proveedoresService.getActive(),
-      presentacionesService.getActive(),
       marcasService.getActive(),
-    ]).then(([rubrosData, proveedoresData, presentacionesData, marcasData]) => {
+    ]).then(([rubrosData, proveedoresData, marcasData]) => {
       setRubros(rubrosData);
       setProveedores(proveedoresData);
-      setPresentaciones(presentacionesData);
       setMarcas(marcasData);
     });
 
@@ -117,11 +112,9 @@ export function ArticuloFormPage() {
       reset({
         codigo: articulo.codigo,
         nombre: articulo.nombre,
-        descripcion: articulo.descripcion || undefined,
         rubroId: articulo.rubroId,
         proveedorId: articulo.proveedorId || undefined,
         stockMinimo: articulo.stockMinimo,
-        unidad: articulo.unidad,
         presentacion: articulo.presentacion || undefined,
         marca: articulo.marca || undefined,
         sku: articulo.sku || undefined,
@@ -248,7 +241,38 @@ export function ArticuloFormPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Form Fields */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Línea 1: Nombre - Presentación */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField label="Nombre" error={errors.nombre} required>
+                <Input
+                  {...register('nombre', {
+                    required: 'El nombre es requerido',
+                    minLength: { value: 2, message: 'Mínimo 2 caracteres' },
+                  })}
+                  error={errors.nombre}
+                  placeholder="Martillo carpintero 500g"
+                />
+              </FormField>
+
+              <FormField label="Presentación" error={errors.presentacion}>
+                <Input
+                  {...register('presentacion')}
+                  error={errors.presentacion}
+                  placeholder="Ej: Caja x 12, Pack x 6, Unidad..."
+                />
+              </FormField>
+            </div>
+
+            {/* Línea 2: Rubro - Código */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField label="Rubro" error={errors.rubroId} required>
+                <Select
+                  {...register('rubroId', { required: 'El rubro es requerido' })}
+                  error={errors.rubroId}
+                  options={rubros.map((r) => ({ value: r.id, label: r.nombre }))}
+                />
+              </FormField>
+
               <FormField label="Código" error={errors.codigo} required>
                 <div className="relative">
                   <Input
@@ -270,52 +294,10 @@ export function ArticuloFormPage() {
                   </p>
                 )}
               </FormField>
-
-              <FormField label="Unidad" error={errors.unidad} required>
-                <Select
-                  {...register('unidad', { required: 'La unidad es requerida' })}
-                  error={errors.unidad}
-                  options={UNIDADES.map((u) => ({ value: u, label: u }))}
-                />
-              </FormField>
-
-              <FormField label="Presentación" error={errors.presentacion}>
-                <Select
-                  {...register('presentacion')}
-                  error={errors.presentacion}
-                  options={presentaciones.map((p) => ({ value: p.nombre, label: p.nombre }))}
-                  placeholder="Seleccionar presentación"
-                />
-              </FormField>
             </div>
 
-            <FormField label="Nombre" error={errors.nombre} required>
-              <Input
-                {...register('nombre', {
-                  required: 'El nombre es requerido',
-                  minLength: { value: 2, message: 'Mínimo 2 caracteres' },
-                })}
-                error={errors.nombre}
-                placeholder="Martillo carpintero 500g"
-              />
-            </FormField>
-
-            <FormField label="Descripción" error={errors.descripcion}>
-              <Textarea
-                {...register('descripcion')}
-                placeholder="Descripción detallada del artículo..."
-              />
-            </FormField>
-
+            {/* Línea 3: Proveedor - Stock Mínimo */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField label="Rubro" error={errors.rubroId} required>
-                <Select
-                  {...register('rubroId', { required: 'El rubro es requerido' })}
-                  error={errors.rubroId}
-                  options={rubros.map((r) => ({ value: r.id, label: r.nombre }))}
-                />
-              </FormField>
-
               <FormField label="Proveedor" error={errors.proveedorId}>
                 <Select
                   {...register('proveedorId')}
@@ -324,10 +306,7 @@ export function ArticuloFormPage() {
                   placeholder="Sin proveedor asignado"
                 />
               </FormField>
-            </div>
 
-            {/* Campos de stock */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField label="Stock Mínimo" error={errors.stockMinimo}>
                 <Input
                   type="number"
@@ -340,22 +319,56 @@ export function ArticuloFormPage() {
                   placeholder="10"
                 />
               </FormField>
-
-              {isEditing && (
-                <FormField label="Stock Actual">
-                  <div className="flex items-center h-10 px-3 bg-gray-100 border border-gray-200 rounded-lg">
-                    <span className="text-gray-700 font-medium">
-                      {stockActual ?? 0}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Solo se actualiza mediante reposiciones y entregas
-                  </p>
-                </FormField>
-              )}
             </div>
 
-            {/* Costo Inicial Estimado */}
+            {/* Línea 4: Marca - SKU - ETM */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <FormField label="Marca" error={errors.marca}>
+                <div className="flex gap-2">
+                  <Combobox
+                    value={watchMarca || ''}
+                    onChange={(value) => setValue('marca', value)}
+                    options={marcas.map((m) => ({ value: m.nombre, label: m.nombre }))}
+                    placeholder="Buscar o escribir marca..."
+                    error={errors.marca}
+                    className="flex-1"
+                  />
+                  {watchMarca && !marcas.some((m) => m.nombre.toLowerCase() === watchMarca.toLowerCase()) && (
+                    <button
+                      type="button"
+                      onClick={() => handleAddMarca(watchMarca)}
+                      className="btn-primary px-3"
+                      title="Guardar nueva marca"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                {watchMarca && !marcas.some((m) => m.nombre.toLowerCase() === watchMarca.toLowerCase()) && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Marca nueva. Haga clic en + para guardarla.
+                  </p>
+                )}
+              </FormField>
+
+              <FormField label="SKU" error={errors.sku}>
+                <Input
+                  {...register('sku')}
+                  error={errors.sku}
+                  placeholder="Código SKU"
+                />
+              </FormField>
+
+              <FormField label="ETM" error={errors.etm}>
+                <Input
+                  {...register('etm')}
+                  error={errors.etm}
+                  placeholder="Código ETM"
+                />
+              </FormField>
+            </div>
+
+            {/* Línea 5: Costo Inicial Estimado */}
             <div className="bg-gray-50 rounded-lg p-4 space-y-4">
               <h3 className="text-sm font-medium text-gray-700">Costo Inicial Estimado (para valuación)</h3>
               <p className="text-xs text-gray-500">
@@ -413,53 +426,7 @@ export function ArticuloFormPage() {
               </div>
             </div>
 
-            {/* Campos adicionales */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormField label="Marca" error={errors.marca}>
-                <div className="flex gap-2">
-                  <Combobox
-                    value={watchMarca || ''}
-                    onChange={(value) => setValue('marca', value)}
-                    options={marcas.map((m) => ({ value: m.nombre, label: m.nombre }))}
-                    placeholder="Buscar o escribir marca..."
-                    error={errors.marca}
-                    className="flex-1"
-                  />
-                  {watchMarca && !marcas.some((m) => m.nombre.toLowerCase() === watchMarca.toLowerCase()) && (
-                    <button
-                      type="button"
-                      onClick={() => handleAddMarca(watchMarca)}
-                      className="btn-primary px-3"
-                      title="Guardar nueva marca"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-                {watchMarca && !marcas.some((m) => m.nombre.toLowerCase() === watchMarca.toLowerCase()) && (
-                  <p className="text-xs text-amber-600 mt-1">
-                    Marca nueva. Haga clic en + para guardarla.
-                  </p>
-                )}
-              </FormField>
-
-              <FormField label="SKU" error={errors.sku}>
-                <Input
-                  {...register('sku')}
-                  error={errors.sku}
-                  placeholder="Código SKU"
-                />
-              </FormField>
-
-              <FormField label="ETM" error={errors.etm}>
-                <Input
-                  {...register('etm')}
-                  error={errors.etm}
-                  placeholder="Código ETM"
-                />
-              </FormField>
-            </div>
-
+            {/* Ubicación */}
             <FormField label="Ubicación" error={errors.ubicacion}>
               <Input
                 {...register('ubicacion')}
@@ -467,6 +434,22 @@ export function ArticuloFormPage() {
                 placeholder="Ej: Estante A, Pasillo 3, etc."
               />
             </FormField>
+
+            {/* Stock Actual (solo en edición) */}
+            {isEditing && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField label="Stock Actual">
+                  <div className="flex items-center h-10 px-3 bg-gray-100 border border-gray-200 rounded-lg">
+                    <span className="text-gray-700 font-medium">
+                      {stockActual ?? 0}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Solo se actualiza mediante reposiciones y entregas
+                  </p>
+                </FormField>
+              </div>
+            )}
 
             {isEditing && (
               <div className="pt-4 border-t border-gray-200">

@@ -161,7 +161,7 @@ export function EntregasListPage() {
               <tr>
                 <td style="font-family: monospace;">${item.articulo.codigo}</td>
                 <td>${item.articulo.nombre}</td>
-                <td class="text-center">${item.cantidad} ${item.articulo.unidad || 'u'}</td>
+                <td class="text-center">${item.cantidad}</td>
                 <td class="text-right">$${(item.articulo.costoInicialEstimado || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td>
                 <td class="text-right">$${((item.articulo.costoInicialEstimado || 0) * item.cantidad).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td>
               </tr>

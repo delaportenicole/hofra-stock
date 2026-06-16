@@ -144,7 +144,6 @@ export function EntregaDetailPage() {
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Artículo</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unidad</th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Cantidad</th>
                   </tr>
                 </thead>
@@ -157,7 +156,6 @@ export function EntregaDetailPage() {
                     >
                       <td className="px-4 py-3 font-mono text-sm">{item.articulo.codigo}</td>
                       <td className="px-4 py-3 font-medium">{item.articulo.nombre}</td>
-                      <td className="px-4 py-3 text-sm text-gray-500">{item.articulo.unidad}</td>
                       <td className="px-4 py-3 text-center">
                         <Badge variant="danger">-{item.cantidad}</Badge>
                       </td>
@@ -166,7 +164,7 @@ export function EntregaDetailPage() {
                 </tbody>
                 <tfoot className="bg-gray-50 border-t border-gray-200">
                   <tr>
-                    <td colSpan={3} className="px-4 py-3 text-right font-medium text-gray-700">
+                    <td colSpan={2} className="px-4 py-3 text-right font-medium text-gray-700">
                       Total:
                     </td>
                     <td className="px-4 py-3 text-center">

@@ -146,18 +146,8 @@ export function ArticuloDetailPage() {
                 <dd className="font-medium">{articulo.nombre}</dd>
               </div>
 
-              {/* Línea 3: Descripción */}
-              <div>
-                <dt className="text-sm text-gray-500">Descripción</dt>
-                <dd>{articulo.descripcion || '-'}</dd>
-              </div>
-
-              {/* Línea 4: Unidad, Presentación, Estado */}
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <dt className="text-sm text-gray-500">Unidad</dt>
-                  <dd>{articulo.unidad}</dd>
-                </div>
+              {/* Línea 3: Presentación, Estado */}
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <dt className="text-sm text-gray-500">Presentación</dt>
                   <dd>{articulo.presentacion || '-'}</dd>
@@ -407,7 +397,6 @@ export function ArticuloDetailPage() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Stock</h3>
             <div className="text-center">
               <p className="text-4xl font-bold text-gray-900">{articulo.stock}</p>
-              <p className="text-sm text-gray-500 mt-1">{articulo.unidad}</p>
               <div className="mt-3">
                 <StockBadge stock={articulo.stock} stockMinimo={articulo.stockMinimo} />
               </div>

@@ -186,12 +186,10 @@ export interface Proveedor extends BaseEntity {
 export interface Articulo extends BaseEntity {
   codigo: string;
   nombre: string;
-  descripcion: string | null;
   rubroId: string;
   proveedorId: string | null;
   stock: number;
   stockMinimo: number;
-  unidad: string;
   presentacion: string | null;
   marca: string | null;
   sku: string | null;
@@ -264,7 +262,7 @@ export interface EntregaItem {
 }
 
 export interface EntregaItemConArticulo extends EntregaItem {
-  articulo: Pick<Articulo, 'id' | 'codigo' | 'nombre' | 'unidad' | 'costoInicialEstimado'>;
+  articulo: Pick<Articulo, 'id' | 'codigo' | 'nombre' | 'costoInicialEstimado'>;
 }
 
 export interface Entrega extends BaseEntity {
@@ -467,11 +465,9 @@ export interface UpdateProveedorDto {
 export interface CreateArticuloDto {
   codigo: string;
   nombre: string;
-  descripcion?: string;
   rubroId: string;
   proveedorId?: string;
   stockMinimo: number;
-  unidad: string;
   presentacion?: string;
   marca?: string;
   sku?: string;
@@ -484,11 +480,9 @@ export interface CreateArticuloDto {
 export interface UpdateArticuloDto {
   codigo?: string;
   nombre?: string;
-  descripcion?: string;
   rubroId?: string;
   proveedorId?: string;
   stockMinimo?: number;
-  unidad?: string;
   presentacion?: string;
   marca?: string;
   sku?: string;

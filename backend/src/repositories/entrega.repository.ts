@@ -159,7 +159,7 @@ export class EntregaRepository extends BaseRepository<Entrega> {
     const rows = await query<Record<string, unknown>>(
       `SELECT ei.*,
               a.id as articulo_id, a.codigo as articulo_codigo, a.nombre as articulo_nombre,
-              a.unidad as articulo_unidad, a.costo_inicial_estimado as articulo_costo_inicial_estimado
+              a.costo_inicial_estimado as articulo_costo_inicial_estimado
        FROM entrega_items ei
        INNER JOIN articulos a ON a.id = ei.articulo_id
        WHERE ei.entrega_id = $1
@@ -178,7 +178,6 @@ export class EntregaRepository extends BaseRepository<Entrega> {
         id: row.articulo_id as string,
         codigo: row.articulo_codigo as string,
         nombre: row.articulo_nombre as string,
-        unidad: row.articulo_unidad as string,
         costoInicialEstimado: row.articulo_costo_inicial_estimado as number | null,
       },
     }));

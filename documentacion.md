@@ -32,9 +32,9 @@ hofra-stock/
 - Sistema de permisos por roles
 
 ### 2. Artículos
-- **Campos**: código (autogenerado), nombre, descripción, rubro, proveedor, stock, stockMinimo, unidad, presentación, marca, SKU, ETM, stockActual, ubicación, imagen, costoInicialEstimado, valorDolarCostoInicial, costoInicialEstimadoUsd, activo
+- **Campos**: código (autogenerado), nombre, rubro, proveedor, stock, stockMinimo, presentación (texto libre), marca, SKU, ETM, stockActual, ubicación, imagen, costoInicialEstimado, valorDolarCostoInicial, costoInicialEstimadoUsd, activo
 - CRUD completo
-- **Búsqueda avanzada**: Permite buscar por código, nombre, SKU, ETM o descripción
+- **Búsqueda avanzada**: Permite buscar por código, nombre, SKU o ETM
 - Subida de imágenes (Cloudinary o local)
 - Historial de movimientos
 - **Valuación de stock** con detalle por capas (ver sección 11. Valuación FIFO)
@@ -1296,6 +1296,8 @@ npm run db:seed          # Datos iniciales
 - [x] ~~Edición de Entregas en curso~~ (completado)
 - [x] ~~Fix SPA routing en Vercel (404 en nueva pestaña)~~ (completado)
 - [x] ~~Formato de moneda argentina en campos de costos~~ (completado)
+- [x] ~~Eliminar campos Unidad y Descripción de Artículos~~ (completado)
+- [x] ~~Presentación convertido a campo de texto libre~~ (completado)
 
 ---
 
@@ -1312,11 +1314,36 @@ npm run db:seed          # Datos iniciales
 
 ---
 
-*Documentación actualizada el 12 de junio de 2026*
+*Documentación actualizada el 16 de junio de 2026*
 
 ---
 
 ## Changelog Reciente
+
+### 16 de junio de 2026
+
+#### Eliminación de campos Unidad y Descripción de Artículos
+- **Campo `unidad` eliminado** del módulo de Artículos
+- **Campo `descripcion` eliminado** del módulo de Artículos
+- **Campo `presentacion` convertido a texto libre** (ya no es dropdown)
+- Actualizados tipos, validadores, repositorios y componentes frontend
+- Búsqueda de artículos ahora busca por: código, nombre, SKU, ETM
+- **Archivos modificados**:
+  - `shared/src/types/index.ts`
+  - `shared/src/validators/index.ts`
+  - `backend/src/repositories/articulo.repository.ts`
+  - `backend/src/repositories/entrega.repository.ts`
+  - `frontend/src/pages/articulos/ArticuloForm.tsx`
+  - `frontend/src/pages/articulos/ArticulosList.tsx`
+  - `frontend/src/pages/articulos/ArticuloDetail.tsx`
+  - `frontend/src/pages/entregas/EntregaForm.tsx`
+  - `frontend/src/pages/entregas/EntregaDetail.tsx`
+  - `frontend/src/pages/entregas/EntregaEdit.tsx`
+  - `frontend/src/pages/entregas/EntregasList.tsx`
+  - `frontend/src/pages/reposiciones/ReposicionDetail.tsx`
+  - `frontend/src/components/ArticuloCombobox.tsx`
+
+---
 
 ### 12 de junio de 2026
 

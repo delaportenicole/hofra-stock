@@ -37,11 +37,9 @@ export class ArticuloRepository extends BaseRepository<Articulo> {
   async create(data: {
     codigo: string;
     nombre: string;
-    descripcion?: string | null;
     rubroId: string;
     proveedorId?: string | null;
     stockMinimo?: number;
-    unidad: string;
     presentacion?: string | null;
     marca?: string | null;
     sku?: string | null;
@@ -61,17 +59,15 @@ export class ArticuloRepository extends BaseRepository<Articulo> {
         : null;
 
     const row = await queryOne<Record<string, unknown>>(
-      `INSERT INTO articulos (codigo, nombre, descripcion, rubro_id, proveedor_id, stock_minimo, unidad, presentacion, marca, sku, etm, stock, stock_actual, numero_cotizacion_interna, ubicacion, costo_inicial_estimado, valor_dolar_costo_inicial, costo_inicial_estimado_usd, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+      `INSERT INTO articulos (codigo, nombre, rubro_id, proveedor_id, stock_minimo, presentacion, marca, sku, etm, stock, stock_actual, numero_cotizacion_interna, ubicacion, costo_inicial_estimado, valor_dolar_costo_inicial, costo_inicial_estimado_usd, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
        RETURNING *`,
       [
         data.codigo,
         data.nombre,
-        data.descripcion || null,
         data.rubroId,
         data.proveedorId || null,
         data.stockMinimo || 0,
-        data.unidad,
         data.presentacion || null,
         data.marca || null,
         data.sku || null,
@@ -97,11 +93,9 @@ export class ArticuloRepository extends BaseRepository<Articulo> {
     data: Partial<{
       codigo: string;
       nombre: string;
-      descripcion: string | null;
       rubroId: string;
       proveedorId: string | null;
       stockMinimo: number;
-      unidad: string;
       presentacion: string | null;
       marca: string | null;
       sku: string | null;
@@ -127,10 +121,6 @@ export class ArticuloRepository extends BaseRepository<Articulo> {
       sets.push(`nombre = $${paramIndex++}`);
       values.push(data.nombre);
     }
-    if (data.descripcion !== undefined) {
-      sets.push(`descripcion = $${paramIndex++}`);
-      values.push(data.descripcion);
-    }
     if (data.rubroId !== undefined) {
       sets.push(`rubro_id = $${paramIndex++}`);
       values.push(data.rubroId);
@@ -142,10 +132,6 @@ export class ArticuloRepository extends BaseRepository<Articulo> {
     if (data.stockMinimo !== undefined) {
       sets.push(`stock_minimo = $${paramIndex++}`);
       values.push(data.stockMinimo);
-    }
-    if (data.unidad !== undefined) {
-      sets.push(`unidad = $${paramIndex++}`);
-      values.push(data.unidad);
     }
     if (data.presentacion !== undefined) {
       sets.push(`presentacion = $${paramIndex++}`);
@@ -275,7 +261,7 @@ export class ArticuloRepository extends BaseRepository<Articulo> {
 
     if (filtros.busqueda) {
       conditions.push(
-        `(a.nombre ILIKE $${paramIndex} OR a.codigo ILIKE $${paramIndex} OR a.descripcion ILIKE $${paramIndex} OR a.sku ILIKE $${paramIndex} OR a.etm ILIKE $${paramIndex})`
+        `(a.nombre ILIKE $${paramIndex} OR a.codigo ILIKE $${paramIndex} OR a.sku ILIKE $${paramIndex} OR a.etm ILIKE $${paramIndex})`
       );
       values.push(`%${filtros.busqueda}%`);
       paramIndex++;
@@ -357,12 +343,10 @@ export class ArticuloRepository extends BaseRepository<Articulo> {
       id: row.id,
       codigo: row.codigo,
       nombre: row.nombre,
-      descripcion: row.descripcion,
       rubro_id: row.rubro_id,
       proveedor_id: row.proveedor_id,
       stock: row.stock,
       stock_minimo: row.stock_minimo,
-      unidad: row.unidad,
       presentacion: row.presentacion,
       marca: row.marca,
       sku: row.sku,

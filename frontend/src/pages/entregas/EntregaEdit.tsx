@@ -81,7 +81,6 @@ export function EntregaEditPage() {
             id: item.articuloId,
             codigo: item.articulo.codigo,
             nombre: item.articulo.nombre,
-            unidad: item.articulo.unidad,
             stock: 0,
             costoInicialEstimado: item.articulo.costoInicialEstimado,
           } as ArticuloConRelaciones,
