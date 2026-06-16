@@ -151,8 +151,8 @@ export function DataTable<T>({
   }
 
   return (
-    <div className="card">
-      <div className="table-container overflow-x-auto">
+    <div className="card overflow-hidden">
+      <div className="table-container">
         <table className="table">
           <thead>
             <tr>
