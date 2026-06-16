@@ -168,7 +168,7 @@ export class ReposicionRepository extends BaseRepository<Reposicion> {
       `SELECT r.*,
               a.id as articulo_id, a.codigo as articulo_codigo, a.nombre as articulo_nombre,
               a.stock as articulo_stock, a.stock_minimo as articulo_stock_minimo,
-              a.unidad as articulo_unidad, a.imagen_url as articulo_imagen_url,
+              a.imagen_url as articulo_imagen_url,
               p.id as prov_id, p.razon_social as proveedor_razon_social,
               p.nombre_fantasia as proveedor_nombre_fantasia, p.cuit as proveedor_cuit
        FROM reposiciones r
@@ -195,8 +195,7 @@ export class ReposicionRepository extends BaseRepository<Reposicion> {
       const searchTerm = `%${busqueda}%`;
       whereClause += ` AND (
         a.codigo ILIKE $${paramIndex} OR
-        a.nombre ILIKE $${paramIndex} OR
-        a.descripcion ILIKE $${paramIndex}
+        a.nombre ILIKE $${paramIndex}
       )`;
       params.push(searchTerm);
       paramIndex++;
@@ -209,7 +208,7 @@ export class ReposicionRepository extends BaseRepository<Reposicion> {
         `SELECT r.*,
                 a.id as articulo_id, a.codigo as articulo_codigo, a.nombre as articulo_nombre,
                 a.stock as articulo_stock, a.stock_minimo as articulo_stock_minimo,
-                a.unidad as articulo_unidad, a.imagen_url as articulo_imagen_url,
+                a.imagen_url as articulo_imagen_url,
                 p.id as prov_id, p.razon_social as proveedor_razon_social,
                 p.nombre_fantasia as proveedor_nombre_fantasia, p.cuit as proveedor_cuit
          FROM reposiciones r
@@ -247,7 +246,7 @@ export class ReposicionRepository extends BaseRepository<Reposicion> {
       `SELECT r.*,
               a.id as articulo_id, a.codigo as articulo_codigo, a.nombre as articulo_nombre,
               a.stock as articulo_stock, a.stock_minimo as articulo_stock_minimo,
-              a.unidad as articulo_unidad, a.imagen_url as articulo_imagen_url,
+              a.imagen_url as articulo_imagen_url,
               p.id as prov_id, p.razon_social as proveedor_razon_social,
               p.nombre_fantasia as proveedor_nombre_fantasia, p.cuit as proveedor_cuit
        FROM reposiciones r
@@ -271,7 +270,7 @@ export class ReposicionRepository extends BaseRepository<Reposicion> {
         `SELECT r.*,
                 a.id as articulo_id, a.codigo as articulo_codigo, a.nombre as articulo_nombre,
                 a.stock as articulo_stock, a.stock_minimo as articulo_stock_minimo,
-                a.unidad as articulo_unidad, a.imagen_url as articulo_imagen_url,
+                a.imagen_url as articulo_imagen_url,
                 p.id as prov_id, p.razon_social as proveedor_razon_social,
                 p.nombre_fantasia as proveedor_nombre_fantasia, p.cuit as proveedor_cuit
          FROM reposiciones r
@@ -353,12 +352,10 @@ export class ReposicionRepository extends BaseRepository<Reposicion> {
         id: row.articulo_id as string,
         codigo: row.articulo_codigo as string,
         nombre: row.articulo_nombre as string,
-        descripcion: null,
         rubroId: '',
         proveedorId: null,
         stock: (row.articulo_stock as number) || 0,
         stockMinimo: (row.articulo_stock_minimo as number) || 0,
-        unidad: (row.articulo_unidad as string) || 'Unidad',
         presentacion: null,
         marca: null,
         sku: null,

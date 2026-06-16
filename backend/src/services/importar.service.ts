@@ -149,11 +149,9 @@ class ImportarService {
         await articuloRepository.create({
           codigo,
           nombre: row.nombre.trim(),
-          descripcion: null,
           rubroId: rubro.id,
           proveedorId: null,
           stockMinimo,
-          unidad: 'Unidad',
           presentacion: null,
           marca: marcaNombre,
           sku: row.sku?.trim() || null,

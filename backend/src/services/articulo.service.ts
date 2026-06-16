@@ -72,11 +72,9 @@ export class ArticuloService {
     return articuloRepository.create({
       codigo: data.codigo,
       nombre: data.nombre,
-      descripcion: data.descripcion,
       rubroId: data.rubroId,
       proveedorId: data.proveedorId,
       stockMinimo: data.stockMinimo,
-      unidad: data.unidad,
       presentacion: data.presentacion,
       marca: data.marca,
       sku: data.sku,
