@@ -278,7 +278,7 @@ export function EntregasListPage() {
           </button>
 
           {openMenuId === item.id && (
-            <div className="absolute right-0 z-10 mt-1 w-44 bg-white rounded-md shadow-lg border border-gray-200">
+            <div className="absolute right-0 z-50 mt-1 w-44 bg-white rounded-md shadow-lg border border-gray-200">
               <Link
                 to={`/entregas/${item.id}`}
                 className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
