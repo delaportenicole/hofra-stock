@@ -49,7 +49,7 @@ export function DashboardPage() {
   if (isLoading) return <PageLoader />;
   if (!data) return <div>Error cargando datos</div>;
 
-  const { stats, movimientosRecientes, articulosStockBajo, stockPorRubro, movimientosPorMes } = data;
+  const { stats, movimientosRecientes, articulosStockBajo, valuacionPorRubro, movimientosPorMes } = data;
 
   return (
     <div className="space-y-6">
@@ -112,27 +112,29 @@ export function DashboardPage() {
           </ResponsiveContainer>
         </div>
 
-        {/* Stock por Rubro */}
+        {/* Valuación por Rubro */}
         <div className="card p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Artículos por Rubro
+            Valuación por Rubro
           </h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
-                data={stockPorRubro}
+                data={valuacionPorRubro.filter(r => r.total > 0)}
                 dataKey="total"
                 nameKey="rubro"
                 cx="50%"
                 cy="50%"
                 outerRadius={100}
-                label={({ rubro, total }) => `${rubro}: ${total}`}
+                label={({ rubro, total }) => `${rubro}: $${Math.round(total).toLocaleString('es-AR')}`}
               >
-                {stockPorRubro.map((_, index) => (
+                {valuacionPorRubro.filter(r => r.total > 0).map((_, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip />
+              <Tooltip
+                formatter={(value: number) => [`$${Math.round(value).toLocaleString('es-AR')}`, 'Valuación']}
+              />
             </PieChart>
           </ResponsiveContainer>
         </div>

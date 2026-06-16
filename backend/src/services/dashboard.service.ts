@@ -183,21 +183,54 @@ export class DashboardService {
     }));
   }
 
-  async getStockPorRubro(): Promise<Array<{ rubro: string; total: number }>> {
+  async getValuacionPorRubro(): Promise<Array<{ rubro: string; total: number }>> {
+    // Get valuation from confirmed replenishments by rubro
     const rows = await query<{ rubro: string; total: string }>(
-      `SELECT
-        r.nombre as rubro,
-        COUNT(a.id) as total
-       FROM rubros r
-       LEFT JOIN articulos a ON a.rubro_id = r.id AND a.deleted_at IS NULL AND a.activo = true
-       WHERE r.deleted_at IS NULL AND r.activo = true
-       GROUP BY r.id, r.nombre
-       ORDER BY total DESC`
+      `WITH reposiciones_valuacion AS (
+        SELECT
+          a.rubro_id,
+          COALESCE(SUM(rep.stock_disponible * rep.costo_reposicion), 0) as valuacion
+        FROM articulos a
+        LEFT JOIN reposiciones rep ON rep.articulo_id = a.id
+          AND rep.deleted_at IS NULL
+          AND rep.estado = 'confirmada'
+          AND rep.stock_disponible > 0
+        WHERE a.deleted_at IS NULL AND a.activo = true
+        GROUP BY a.rubro_id
+      ),
+      stock_inicial_valuacion AS (
+        SELECT
+          a.rubro_id,
+          COALESCE(SUM(
+            CASE
+              WHEN a.costo_inicial_estimado IS NOT NULL
+              THEN GREATEST(0, a.stock - COALESCE(r.stock_con_reposicion, 0)) * a.costo_inicial_estimado
+              ELSE 0
+            END
+          ), 0) as valuacion
+        FROM articulos a
+        LEFT JOIN (
+          SELECT articulo_id, SUM(stock_disponible) as stock_con_reposicion
+          FROM reposiciones
+          WHERE deleted_at IS NULL AND estado = 'confirmada'
+          GROUP BY articulo_id
+        ) r ON r.articulo_id = a.id
+        WHERE a.deleted_at IS NULL AND a.activo = true
+        GROUP BY a.rubro_id
+      )
+      SELECT
+        rub.nombre as rubro,
+        COALESCE(rv.valuacion, 0) + COALESCE(siv.valuacion, 0) as total
+      FROM rubros rub
+      LEFT JOIN reposiciones_valuacion rv ON rv.rubro_id = rub.id
+      LEFT JOIN stock_inicial_valuacion siv ON siv.rubro_id = rub.id
+      WHERE rub.deleted_at IS NULL AND rub.activo = true
+      ORDER BY total DESC`
     );
 
     return rows.map((row) => ({
       rubro: row.rubro,
-      total: parseInt(row.total, 10),
+      total: parseFloat(row.total) || 0,
     }));
   }
 

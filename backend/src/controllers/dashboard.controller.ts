@@ -32,9 +32,9 @@ export class DashboardController {
     }
   }
 
-  async getStockPorRubro(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getValuacionPorRubro(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const data = await dashboardService.getStockPorRubro();
+      const data = await dashboardService.getValuacionPorRubro();
       sendSuccess(res, data);
     } catch (error) {
       next(error);
@@ -53,12 +53,12 @@ export class DashboardController {
 
   async getAll(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const [stats, movimientosRecientes, articulosStockBajo, stockPorRubro, movimientosPorMes] =
+      const [stats, movimientosRecientes, articulosStockBajo, valuacionPorRubro, movimientosPorMes] =
         await Promise.all([
           dashboardService.getStats(),
           dashboardService.getMovimientosRecientes(10),
           dashboardService.getArticulosStockBajo(10),
-          dashboardService.getStockPorRubro(),
+          dashboardService.getValuacionPorRubro(),
           dashboardService.getMovimientosPorMes(6),
         ]);
 
@@ -66,7 +66,7 @@ export class DashboardController {
         stats,
         movimientosRecientes,
         articulosStockBajo,
-        stockPorRubro,
+        valuacionPorRubro,
         movimientosPorMes,
       });
     } catch (error) {
