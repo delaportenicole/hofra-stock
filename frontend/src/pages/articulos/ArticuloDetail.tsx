@@ -70,7 +70,10 @@ export function ArticuloDetailPage() {
     ...historial!.entregas.map((e) => ({
       id: e.id,
       tipo: 'entrega' as const,
-      cantidad: e.items.reduce((sum, item) => sum + item.cantidad, 0),
+      // Solo contar los items de ESTE artículo, no el total de la entrega
+      cantidad: e.items
+        .filter((item) => item.articuloId === id)
+        .reduce((sum, item) => sum + item.cantidad, 0),
       fecha: new Date(e.fechaEntrega),
       tercero: e.cliente.razonSocial,
       observaciones: e.observaciones,
