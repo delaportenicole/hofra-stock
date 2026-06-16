@@ -109,25 +109,6 @@ export interface Rubro extends BaseEntity {
 }
 
 // ============================================
-// UNIDADES DE MEDIDA
-// ============================================
-
-export interface UnidadMedida extends BaseEntity {
-  nombre: string;
-  activo: boolean;
-}
-
-// ============================================
-// PRESENTACIONES
-// ============================================
-
-export interface Presentacion extends BaseEntity {
-  nombre: string;
-  descripcion: string | null;
-  activo: boolean;
-}
-
-// ============================================
 // MARCAS
 // ============================================
 
@@ -530,26 +511,6 @@ export interface CreateEntregaDto {
   items: CreateEntregaItemDto[];
   observaciones?: string;
   fechaEntrega?: Date;
-}
-
-export interface CreateUnidadMedidaDto {
-  nombre: string;
-}
-
-export interface UpdateUnidadMedidaDto {
-  nombre?: string;
-  activo?: boolean;
-}
-
-export interface CreatePresentacionDto {
-  nombre: string;
-  descripcion?: string;
-}
-
-export interface UpdatePresentacionDto {
-  nombre?: string;
-  descripcion?: string;
-  activo?: boolean;
 }
 
 export interface CreateRolDto {

@@ -136,34 +136,6 @@ export const updateRubroSchema = z.object({
 });
 
 // ============================================
-// UNIDADES DE MEDIDA
-// ============================================
-
-export const createUnidadMedidaSchema = z.object({
-  nombre: z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(50),
-});
-
-export const updateUnidadMedidaSchema = z.object({
-  nombre: z.string().min(2).max(50).optional(),
-  activo: z.boolean().optional(),
-});
-
-// ============================================
-// PRESENTACIONES
-// ============================================
-
-export const createPresentacionSchema = z.object({
-  nombre: z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(100),
-  descripcion: z.string().max(255).optional().nullable(),
-});
-
-export const updatePresentacionSchema = z.object({
-  nombre: z.string().min(2).max(100).optional(),
-  descripcion: z.string().max(255).optional().nullable(),
-  activo: z.boolean().optional(),
-});
-
-// ============================================
 // MARCAS
 // ============================================
 
@@ -399,10 +371,6 @@ export type ArticuloFiltrosInput = z.infer<typeof articuloFiltrosSchema>;
 export type CreateReposicionInput = z.infer<typeof createReposicionSchema>;
 export type UpdateReposicionInput = z.infer<typeof updateReposicionSchema>;
 export type CreateEntregaInput = z.infer<typeof createEntregaSchema>;
-export type CreateUnidadMedidaInput = z.infer<typeof createUnidadMedidaSchema>;
-export type UpdateUnidadMedidaInput = z.infer<typeof updateUnidadMedidaSchema>;
-export type CreatePresentacionInput = z.infer<typeof createPresentacionSchema>;
-export type UpdatePresentacionInput = z.infer<typeof updatePresentacionSchema>;
 export type CreateMarcaInput = z.infer<typeof createMarcaSchema>;
 export type UpdateMarcaInput = z.infer<typeof updateMarcaSchema>;
 export type AuditLogFiltrosInput = z.infer<typeof auditLogFiltrosSchema>;
