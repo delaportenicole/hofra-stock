@@ -44,25 +44,6 @@ export const ROLES = {
 export type RolNombre = (typeof ROLES)[keyof typeof ROLES];
 
 // ============================================
-// UNIDADES DE MEDIDA
-// ============================================
-
-export const UNIDADES = [
-  'Unidad',
-  'Kg',
-  'Lt',
-  'Mt',
-  'Caja',
-  'Pack',
-  'Rollo',
-  'Bolsa',
-  'Bidón',
-  'Par',
-] as const;
-
-export type Unidad = (typeof UNIDADES)[number];
-
-// ============================================
 // RUBROS INICIALES
 // ============================================
 
