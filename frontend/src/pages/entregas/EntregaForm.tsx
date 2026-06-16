@@ -277,7 +277,7 @@ export function EntregaFormPage() {
 
           {selectedArticulo && (
             <p className="mt-2 text-sm text-gray-500">
-              Stock disponible: {availableStock} {selectedArticulo.unidad}
+              Stock disponible: {availableStock}
               {selectedArticulo.costoInicialEstimado && (
                 <span className="ml-2">• Costo: ${selectedArticulo.costoInicialEstimado.toLocaleString('es-AR')}</span>
               )}

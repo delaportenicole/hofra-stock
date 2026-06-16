@@ -325,7 +325,7 @@ export function EntregaEditPage() {
 
           {selectedArticulo && (
             <p className="mt-2 text-sm text-gray-500">
-              Stock disponible: {availableStock} {selectedArticulo.unidad}
+              Stock disponible: {availableStock}
             </p>
           )}
         </div>
