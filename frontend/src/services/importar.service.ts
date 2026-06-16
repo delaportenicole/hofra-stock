@@ -2,19 +2,27 @@ import api from './api';
 
 export interface ImportArticuloRow {
   nombre: string;
+  marca: string | null;
+  codigo: string | null;
   sku: string | null;
-  categoria: string;
+  etm: string | null;
+  presentacion: string | null;
   stockActual: number;
   stockMinimo: number;
-  marca: string | null;
+  costoInicial: number | null;
+  proveedor: string | null;
+  rubro: string;
+  ubicacion: string | null;
 }
 
 export interface PreviewResult {
   rows: ImportArticuloRow[];
   rubrosToCreate: string[];
   marcasToCreate: string[];
+  proveedoresToCreate: string[];
   existingRubros: string[];
   existingMarcas: string[];
+  existingProveedores: string[];
 }
 
 export interface ImportResult {
@@ -25,6 +33,7 @@ export interface ImportResult {
   errors: Array<{ row: number; error: string }>;
   rubrosCreated: string[];
   marcasCreated: string[];
+  proveedoresCreated: string[];
 }
 
 export const importarService = {

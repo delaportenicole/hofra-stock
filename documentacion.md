@@ -337,6 +337,71 @@ GET /api/audit                    # Lista paginada con filtros
 
 **Nota**: El filtrado por entidades se realiza en el backend para garantizar paginación correcta.
 
+---
+
+### 13. Importación de Artículos
+
+Módulo para importar artículos masivamente desde archivos Excel.
+
+#### Acceso
+- Menú lateral: **Importar** (sección Operaciones)
+- URL: `/importar`
+- Requiere permiso: `articulos:crear`
+
+#### Formato del Archivo Excel
+
+| Columna | Campo | Notas |
+|---------|-------|-------|
+| A - Nombre | nombre | **Requerido** |
+| B - Marca | marca | Se crea automáticamente si no existe |
+| C - Codigo | codigo | Opcional, se genera automáticamente si está vacío |
+| D - SKU | sku | |
+| E - ETM | etm | |
+| F - Presentacion | presentacion | |
+| G - Stock Actual | stockActual | |
+| H - Stock Mínimo | stockMinimo | Si es 0, el artículo se crea como **inactivo** |
+| I - Costo Inicial | costoInicialEstimado | En pesos argentinos |
+| J - Proveedor | proveedor | Se crea automáticamente si no existe |
+| K - Rubro | rubro | **Requerido**, se crea automáticamente si no existe |
+| L - Ubicacion | ubicacion | |
+
+#### Flujo de Importación
+
+1. **Subir archivo**: Arrastrar o seleccionar archivo Excel (.xlsx, .xls)
+2. **Preview**: El sistema muestra:
+   - Cantidad de artículos a importar
+   - Rubros que se crearán (nuevos)
+   - Marcas que se crearán (nuevas)
+   - Proveedores que se crearán (nuevos)
+   - Vista previa de los datos en tabla
+3. **Confirmar importación**: Procesa los artículos en lotes de 20
+4. **Resultado**: Muestra resumen con:
+   - Total procesados
+   - Importados exitosamente
+   - Omitidos (errores)
+   - Rubros, marcas y proveedores creados
+   - Lista de errores si los hay
+
+#### Reglas de Importación
+
+- **Nombre vacío**: El artículo se omite
+- **Rubro vacío**: El artículo se omite
+- **Stock negativo**: Se convierte a 0
+- **Stock Mínimo = 0**: El artículo se crea como **inactivo** (`activo = false`)
+- **Código no proporcionado**: Se genera automáticamente basado en el prefijo del rubro
+- **Código proporcionado**: Se usa el código del Excel tal cual
+
+#### API
+```
+POST /api/importar/preview    # Vista previa de importación
+POST /api/importar/execute    # Ejecutar importación
+```
+
+#### Archivos
+- `backend/src/services/importar.service.ts`
+- `frontend/src/pages/importar/ImportarPage.tsx`
+- `frontend/src/services/importar.service.ts`
+
 #### Archivos
 **Backend**:
 - `backend/src/middlewares/audit.ts`: Middleware de auditoría con captura de estado anterior/nuevo
@@ -1266,6 +1331,7 @@ npm run db:seed          # Datos iniciales
 - [x] ~~Eliminación de módulos Unidades de Medida y Presentaciones~~ (completado)
 - [x] ~~Actualización automática de códigos al cambiar prefijo de rubro~~ (completado)
 - [x] ~~Dashboard: Valuación por rubro en lugar de cantidad de artículos~~ (completado)
+- [x] ~~Importación de artículos con nuevo formato de columnas~~ (completado)
 
 ---
 
@@ -1347,6 +1413,31 @@ npm run db:seed          # Datos iniciales
   - `backend/src/routes/dashboard.routes.ts` (endpoint renombrado a `/valuacion-por-rubro`)
   - `frontend/src/services/dashboard.service.ts`
   - `frontend/src/pages/Dashboard.tsx`
+
+#### Importación de Artículos: Nuevo Formato de Columnas
+- **Nuevo mapeo de columnas** para importación desde Excel:
+  | Columna | Campo | Notas |
+  |---------|-------|-------|
+  | A - Nombre | nombre | Requerido |
+  | B - Marca | marca | Se crea si no existe |
+  | C - Codigo | codigo | Opcional, se genera automáticamente si vacío |
+  | D - SKU | sku | |
+  | E - ETM | etm | |
+  | F - Presentacion | presentacion | |
+  | G - Stock Actual | stockActual | |
+  | H - Stock Mínimo | stockMinimo | Si es 0, artículo se crea como inactivo |
+  | I - Costo Inicial | costoInicialEstimado | |
+  | J - Proveedor | proveedorId | Se crea si no existe |
+  | K - Rubro | rubroId | Requerido, se crea si no existe |
+  | L - Ubicacion | ubicacion | |
+
+- **Nueva regla**: Si `Stock Mínimo = 0`, el artículo se crea con `activo = false`
+- **Código personalizado**: Si se proporciona código, se usa; si no, se genera automáticamente
+- **Preview mejorado**: Muestra proveedores a crear además de rubros y marcas
+- **Archivos modificados**:
+  - `backend/src/services/importar.service.ts`
+  - `frontend/src/pages/importar/ImportarPage.tsx`
+  - `frontend/src/services/importar.service.ts`
 
 ---
 

@@ -29,6 +29,7 @@ export function ImportarPage() {
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as unknown[][];
 
         // Skip header row and parse data
+        // Column order: Nombre, Marca, Codigo, SKU, ETM, Presentacion, Stock Actual, Stock Mínimo, Costo Inicial, Proveedor, Rubro, Ubicacion
         const rows: ImportArticuloRow[] = [];
         for (let i = 1; i < jsonData.length; i++) {
           const row = jsonData[i];
@@ -39,11 +40,17 @@ export function ImportarPage() {
 
           rows.push({
             nombre,
-            sku: row[1] ? String(row[1]).trim() : null,
-            categoria: String(row[2] || '').trim(),
-            stockActual: Number(row[3]) || 0,
-            stockMinimo: Number(row[4]) || 0,
-            marca: row[5] ? String(row[5]).trim() : null,
+            marca: row[1] ? String(row[1]).trim() : null,
+            codigo: row[2] ? String(row[2]).trim() : null,
+            sku: row[3] ? String(row[3]).trim() : null,
+            etm: row[4] ? String(row[4]).trim() : null,
+            presentacion: row[5] ? String(row[5]).trim() : null,
+            stockActual: Number(row[6]) || 0,
+            stockMinimo: Number(row[7]) || 0,
+            costoInicial: row[8] ? Number(row[8]) : null,
+            proveedor: row[9] ? String(row[9]).trim() : null,
+            rubro: String(row[10] || '').trim(),
+            ubicacion: row[11] ? String(row[11]).trim() : null,
           });
         }
 
@@ -106,6 +113,7 @@ export function ImportarPage() {
       errors: [],
       rubrosCreated: [],
       marcasCreated: [],
+      proveedoresCreated: [],
     };
 
     try {
@@ -122,7 +130,7 @@ export function ImportarPage() {
           row: e.row + i // Adjust row number for batch offset
         })));
 
-        // Only add unique rubros and marcas
+        // Only add unique rubros, marcas and proveedores
         batchResult.rubrosCreated.forEach(r => {
           if (!aggregatedResult.rubrosCreated.includes(r)) {
             aggregatedResult.rubrosCreated.push(r);
@@ -131,6 +139,11 @@ export function ImportarPage() {
         batchResult.marcasCreated.forEach(m => {
           if (!aggregatedResult.marcasCreated.includes(m)) {
             aggregatedResult.marcasCreated.push(m);
+          }
+        });
+        batchResult.proveedoresCreated.forEach(p => {
+          if (!aggregatedResult.proveedoresCreated.includes(p)) {
+            aggregatedResult.proveedoresCreated.push(p);
           }
         });
 
@@ -224,17 +237,24 @@ export function ImportarPage() {
             <table className="text-sm text-gray-600 w-full">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-1">Columna Excel</th>
+                  <th className="text-left py-1">Columna</th>
                   <th className="text-left py-1">Campo Artículo</th>
+                  <th className="text-left py-1">Notas</th>
                 </tr>
               </thead>
               <tbody>
-                <tr><td className="py-1">Descripción y Marca</td><td>Nombre</td></tr>
-                <tr><td className="py-1">SKU</td><td>SKU</td></tr>
-                <tr><td className="py-1">Categoria</td><td>Rubro (se crea si no existe)</td></tr>
-                <tr><td className="py-1">Stock Actual</td><td>Stock Actual</td></tr>
-                <tr><td className="py-1">Stock Mínimo</td><td>Stock Mínimo</td></tr>
-                <tr><td className="py-1">Marca</td><td>Marca (se crea si no existe)</td></tr>
+                <tr><td className="py-1">A - Nombre</td><td>Nombre</td><td className="text-gray-400">Requerido</td></tr>
+                <tr><td className="py-1">B - Marca</td><td>Marca</td><td className="text-gray-400">Se crea si no existe</td></tr>
+                <tr><td className="py-1">C - Codigo</td><td>Código</td><td className="text-gray-400">Opcional, se genera si vacío</td></tr>
+                <tr><td className="py-1">D - SKU</td><td>SKU</td><td></td></tr>
+                <tr><td className="py-1">E - ETM</td><td>ETM</td><td></td></tr>
+                <tr><td className="py-1">F - Presentacion</td><td>Presentación</td><td></td></tr>
+                <tr><td className="py-1">G - Stock Actual</td><td>Stock Actual</td><td></td></tr>
+                <tr><td className="py-1">H - Stock Mínimo</td><td>Stock Mínimo</td><td className="text-gray-400">Si es 0, artículo inactivo</td></tr>
+                <tr><td className="py-1">I - Costo Inicial</td><td>Costo Inicial</td><td></td></tr>
+                <tr><td className="py-1">J - Proveedor</td><td>Proveedor</td><td className="text-gray-400">Se crea si no existe</td></tr>
+                <tr><td className="py-1">K - Rubro</td><td>Rubro</td><td className="text-gray-400">Requerido, se crea si no existe</td></tr>
+                <tr><td className="py-1">L - Ubicacion</td><td>Ubicación</td><td></td></tr>
               </tbody>
             </table>
           </div>
@@ -260,7 +280,7 @@ export function ImportarPage() {
             </div>
 
             {/* Summary cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               <div className="p-4 bg-blue-50 rounded-lg">
                 <p className="text-sm text-blue-600">Artículos a importar</p>
                 <p className="text-2xl font-bold text-blue-700">{parsedRows.length}</p>
@@ -284,6 +304,16 @@ export function ImportarPage() {
                   </p>
                 )}
               </div>
+              <div className="p-4 bg-green-50 rounded-lg">
+                <p className="text-sm text-green-600">Proveedores a crear</p>
+                <p className="text-2xl font-bold text-green-700">{preview.proveedoresToCreate.length}</p>
+                {preview.proveedoresToCreate.length > 0 && (
+                  <p className="text-xs text-green-600 mt-1 truncate">
+                    {preview.proveedoresToCreate.slice(0, 5).join(', ')}
+                    {preview.proveedoresToCreate.length > 5 && ` +${preview.proveedoresToCreate.length - 5} más`}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Preview table */}
@@ -291,40 +321,62 @@ export function ImportarPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50 sticky top-0">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mín.</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Marca</th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rubro</th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Proveedor</th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mín.</th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Marca</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {parsedRows.map((row, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 text-sm text-gray-500">{idx + 1}</td>
-                      <td className="px-4 py-2 text-sm text-gray-900 max-w-xs truncate">{row.nombre}</td>
-                      <td className="px-4 py-2 text-sm text-gray-600">{row.sku || '-'}</td>
-                      <td className="px-4 py-2 text-sm">
+                    <tr key={idx} className={`hover:bg-gray-50 ${row.stockMinimo === 0 ? 'bg-gray-50 opacity-75' : ''}`}>
+                      <td className="px-3 py-2 text-sm text-gray-500">{idx + 1}</td>
+                      <td className="px-3 py-2 text-sm text-gray-900 max-w-xs truncate">
+                        {row.nombre}
+                        {row.stockMinimo === 0 && (
+                          <span className="ml-2 text-xs text-gray-400">(inactivo)</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-sm text-gray-600">
+                        {row.codigo || <span className="text-gray-400 italic">auto</span>}
+                      </td>
+                      <td className="px-3 py-2 text-sm">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                          preview.rubrosToCreate.includes(row.categoria)
+                          preview.rubrosToCreate.includes(row.rubro)
                             ? 'bg-amber-100 text-amber-800'
                             : 'bg-gray-100 text-gray-800'
                         }`}>
-                          {row.categoria}
-                          {preview.rubrosToCreate.includes(row.categoria) && ' (nuevo)'}
+                          {row.rubro}
+                          {preview.rubrosToCreate.includes(row.rubro) && ' (nuevo)'}
                         </span>
                       </td>
-                      <td className="px-4 py-2 text-sm text-gray-600">
+                      <td className="px-3 py-2 text-sm">
+                        {row.proveedor ? (
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                            preview.proveedoresToCreate.includes(row.proveedor)
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {row.proveedor}
+                            {preview.proveedoresToCreate.includes(row.proveedor) && ' (nuevo)'}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-sm text-gray-600">
                         {row.stockActual < 0 ? (
                           <span className="text-red-600">{row.stockActual} → 0</span>
                         ) : (
                           row.stockActual
                         )}
                       </td>
-                      <td className="px-4 py-2 text-sm text-gray-600">{row.stockMinimo}</td>
-                      <td className="px-4 py-2 text-sm">
+                      <td className="px-3 py-2 text-sm text-gray-600">{row.stockMinimo}</td>
+                      <td className="px-3 py-2 text-sm">
                         {row.marca ? (
                           <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                             preview.marcasToCreate.includes(row.marca)
@@ -435,6 +487,19 @@ export function ImportarPage() {
                 {result.marcasCreated.map((marca, idx) => (
                   <span key={idx} className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-sm">
                     {marca}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {result.proveedoresCreated.length > 0 && (
+            <div className="mb-4 p-4 bg-green-50 rounded-lg">
+              <p className="font-medium text-green-800 mb-2">Proveedores creados:</p>
+              <div className="flex flex-wrap gap-2">
+                {result.proveedoresCreated.map((proveedor, idx) => (
+                  <span key={idx} className="px-2 py-1 bg-green-100 text-green-800 rounded text-sm">
+                    {proveedor}
                   </span>
                 ))}
               </div>
