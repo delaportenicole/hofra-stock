@@ -4,6 +4,14 @@ import { z } from 'zod';
 // VALIDADORES COMUNES
 // ============================================
 
+// Schema para parsear booleanos desde query strings ("true"/"false")
+export const booleanStringSchema = z
+  .union([z.boolean(), z.string()])
+  .transform((val) => {
+    if (typeof val === 'boolean') return val;
+    return val === 'true';
+  });
+
 export const uuidSchema = z.string().uuid('ID inválido');
 
 export const emailSchema = z
@@ -249,8 +257,8 @@ export const articuloFiltrosSchema = z.object({
   busqueda: z.string().optional(),
   rubroId: uuidSchema.optional(),
   proveedorId: uuidSchema.optional(),
-  stockBajo: z.coerce.boolean().optional(),
-  activo: z.coerce.boolean().optional(),
+  stockBajo: booleanStringSchema.optional(),
+  activo: booleanStringSchema.optional(),
 });
 
 // ============================================
