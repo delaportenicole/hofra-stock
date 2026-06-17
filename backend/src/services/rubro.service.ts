@@ -73,7 +73,7 @@ export class RubroService {
     if (prefijoChanged && existingPrefijo) {
       await execute(
         `UPDATE articulos
-         SET codigo = $1 || SUBSTRING(codigo FROM $2),
+         SET codigo = $1 || SUBSTRING(codigo FROM $2::int),
              updated_by = $3
          WHERE rubro_id = $4
            AND deleted_at IS NULL
