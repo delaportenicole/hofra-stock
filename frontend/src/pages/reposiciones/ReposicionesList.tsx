@@ -259,6 +259,7 @@ export function ReposicionesListPage() {
         onLimitChange={setLimit}
         getRowHref={(item) => `/reposiciones/${item.id}`}
         emptyMessage="No hay reposiciones registradas"
+        minRows={10}
       />
     </div>
   );

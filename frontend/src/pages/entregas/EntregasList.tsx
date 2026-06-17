@@ -359,6 +359,7 @@ export function EntregasListPage() {
         onLimitChange={setLimit}
         getRowHref={(item) => `/entregas/${item.id}`}
         emptyMessage="No hay entregas registradas"
+        minRows={10}
       />
     </div>
   );

@@ -38,7 +38,11 @@ interface DataTableProps<T> {
   getRowHref?: (item: T) => string;
   emptyMessage?: string;
   defaultSort?: SortConfig;
+  minRows?: number; // Minimum number of rows to show (for consistent height)
 }
+
+// Approximate row height in pixels (for minRows calculation)
+const ROW_HEIGHT = 53;
 
 export function DataTable<T>({
   columns,
@@ -52,6 +56,7 @@ export function DataTable<T>({
   getRowHref,
   emptyMessage = 'No hay datos para mostrar',
   defaultSort,
+  minRows,
 }: DataTableProps<T>) {
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(defaultSort || null);
 
@@ -150,9 +155,12 @@ export function DataTable<T>({
     );
   }
 
+  // Calculate minimum height for the table container
+  const minHeight = minRows ? minRows * ROW_HEIGHT : undefined;
+
   return (
     <div className="card overflow-hidden">
-      <div className="table-container">
+      <div className="table-container" style={minHeight ? { minHeight: `${minHeight}px` } : undefined}>
         <table className="table">
           <thead>
             <tr>
