@@ -53,7 +53,8 @@ export class RubroService {
 
     // Check if prefix is changing
     const newPrefijo = data.prefijo?.toUpperCase();
-    const prefijoChanged = newPrefijo && newPrefijo !== existing.prefijo;
+    const existingPrefijo = existing.prefijo || '';
+    const prefijoChanged = newPrefijo && newPrefijo !== existingPrefijo;
 
     if (prefijoChanged) {
       // Update rubro and all article codes in a transaction
@@ -84,21 +85,23 @@ export class RubroService {
 
         // Update all article codes: replace old prefix with new prefix
         // Example: ELE1 -> ELEC1, ELE25 -> ELEC25
-        await client.execute(
-          `UPDATE articulos
-           SET codigo = $1 || SUBSTRING(codigo FROM $2),
-               updated_by = $3
-           WHERE rubro_id = $4
-             AND deleted_at IS NULL
-             AND codigo LIKE $5`,
-          [
-            newPrefijo,
-            existing.prefijo.length + 1,
-            updatedBy || null,
-            id,
-            existing.prefijo + '%',
-          ]
-        );
+        if (existingPrefijo) {
+          await client.execute(
+            `UPDATE articulos
+             SET codigo = $1 || SUBSTRING(codigo FROM $2),
+                 updated_by = $3
+             WHERE rubro_id = $4
+               AND deleted_at IS NULL
+               AND codigo LIKE $5`,
+            [
+              newPrefijo,
+              existingPrefijo.length + 1,
+              updatedBy || null,
+              id,
+              existingPrefijo + '%',
+            ]
+          );
+        }
 
         // Import toCamelCase inline to avoid circular dependency issues
         const result: Rubro = {
