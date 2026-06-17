@@ -1332,6 +1332,9 @@ npm run db:seed          # Datos iniciales
 - [x] ~~Actualización automática de códigos al cambiar prefijo de rubro~~ (completado)
 - [x] ~~Dashboard: Valuación por rubro en lugar de cantidad de artículos~~ (completado)
 - [x] ~~Importación de artículos con nuevo formato de columnas~~ (completado)
+- [x] ~~Límite de importación aumentado a 10mb~~ (completado)
+- [x] ~~Fix historial de movimientos: cantidad por artículo específico~~ (completado)
+- [x] ~~Scripts de limpieza de base de datos~~ (completado)
 
 ---
 
@@ -1348,7 +1351,7 @@ npm run db:seed          # Datos iniciales
 
 ---
 
-*Documentación actualizada el 16 de junio de 2026*
+*Documentación actualizada el 17 de junio de 2026*
 
 ---
 
@@ -1438,6 +1441,32 @@ npm run db:seed          # Datos iniciales
   - `backend/src/services/importar.service.ts`
   - `frontend/src/pages/importar/ImportarPage.tsx`
   - `frontend/src/services/importar.service.ts`
+
+#### Límite de Body JSON Aumentado para Importaciones Grandes
+- **Límite de JSON aumentado** de 100kb (default) a **10mb**
+- Permite importar archivos Excel con miles de filas
+- **Archivo modificado**:
+  - `backend/src/app.ts` (línea `express.json({ limit: '10mb' })`)
+
+#### Fix: Historial de Movimientos muestra cantidad del artículo específico
+- **Problema**: En la vista de detalle de artículo, el historial de movimientos mostraba el total de items de cada entrega, no la cantidad del artículo actual
+- **Solución**: Filtrar los items de la entrega por `articuloId` antes de sumar
+- **Ejemplo**: Si una entrega tiene 3 artículos (A: 5u, B: 10u, C: 3u), al ver el artículo A, ahora muestra "-5" en vez de "-18"
+- **Archivo modificado**:
+  - `frontend/src/pages/articulos/ArticuloDetail.tsx`
+
+#### Scripts de Limpieza de Base de Datos
+- **Nuevos scripts** para limpiar datos de la base de datos:
+  - `database/scripts/clean_database.sql`: Limpia TODO incluyendo usuarios
+  - `database/scripts/clean_database_keep_users.sql`: Limpia datos operativos, mantiene usuarios y roles
+- Útiles para resetear el sistema en desarrollo/testing
+
+### 17 de junio de 2026
+
+#### Nota sobre Sistema FIFO
+- El sistema usa **FIFO (First In, First Out)** basado en la **fecha de confirmación** de la reposición
+- **No usa FEFO** (First Expiring, First Out) - la fecha de vencimiento es solo informativa
+- Al entregar stock, se descuenta primero de las reposiciones más antiguas (por fecha de confirmación)
 
 ---
 
