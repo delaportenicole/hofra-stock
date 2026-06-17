@@ -29,6 +29,7 @@ export function ArticulosListPage() {
   const [busqueda, setBusqueda] = useState(searchParams.get('busqueda') || '');
   const [rubroId, setRubroId] = useState(searchParams.get('rubroId') || '');
   const [stockBajo, setStockBajo] = useState(searchParams.get('stockBajo') === 'true');
+  const [estadoFiltro, setEstadoFiltro] = useState<string>(searchParams.get('activo') || '');
 
   const debouncedBusqueda = useDebounce(busqueda, 300);
 
@@ -38,7 +39,7 @@ export function ArticulosListPage() {
 
   useEffect(() => {
     loadArticulos();
-  }, [page, limit, debouncedBusqueda, rubroId, stockBajo]);
+  }, [page, limit, debouncedBusqueda, rubroId, stockBajo, estadoFiltro]);
 
   const loadArticulos = async () => {
     setIsLoading(true);
@@ -49,6 +50,7 @@ export function ArticulosListPage() {
         busqueda: debouncedBusqueda || undefined,
         rubroId: rubroId || undefined,
         stockBajo: stockBajo || undefined,
+        activo: estadoFiltro === '' ? undefined : estadoFiltro === 'true',
         sortBy: 'nombre',
         sortOrder: 'asc',
       };
@@ -213,7 +215,7 @@ export function ArticulosListPage() {
 
       {/* Filters */}
       <div className="card p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <SearchInput
             value={busqueda}
             onChange={setBusqueda}
@@ -230,6 +232,15 @@ export function ArticulosListPage() {
                 {rubro.nombre}
               </option>
             ))}
+          </select>
+          <select
+            value={estadoFiltro}
+            onChange={(e) => setEstadoFiltro(e.target.value)}
+            className="input"
+          >
+            <option value="">Todos los estados</option>
+            <option value="true">Activos</option>
+            <option value="false">Inactivos</option>
           </select>
           <label className="flex items-center gap-2">
             <input
