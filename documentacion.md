@@ -1351,11 +1351,46 @@ npm run db:seed          # Datos iniciales
 
 ---
 
-*Documentación actualizada el 17 de junio de 2026*
+*Documentación actualizada el 18 de junio de 2026*
 
 ---
 
 ## Changelog Reciente
+
+### 18 de junio de 2026
+
+#### Altura Mínima en Grillas de Entregas y Reposiciones
+- **Nueva prop `minRows`** en componente `DataTable`
+- Garantiza altura mínima equivalente a 10 filas cuando hay pocos registros
+- Evita que el menú dropdown de acciones se corte o se vea mal
+- **Archivos modificados**:
+  - `frontend/src/components/DataTable.tsx` (prop minRows, ROW_HEIGHT)
+  - `frontend/src/pages/entregas/EntregasList.tsx` (minRows={10})
+  - `frontend/src/pages/reposiciones/ReposicionesList.tsx` (minRows={10})
+
+#### Filtro por Estado en Listado de Artículos
+- **Nuevo dropdown** para filtrar artículos por estado
+- Opciones: Todos los estados, Activos, Inactivos
+- Se integra con los filtros existentes (búsqueda, rubro, stock bajo)
+- **Archivos modificados**:
+  - `frontend/src/pages/articulos/ArticulosList.tsx`
+
+#### Fix: Parsing de Booleanos en Query Strings
+- **Problema**: `z.coerce.boolean()` convertía el string `"false"` a `true`
+- **Solución**: Nuevo schema `booleanStringSchema` que parsea correctamente `"true"`/`"false"`
+- Aplicado a filtros de artículos (`stockBajo`, `activo`)
+- **Archivos modificados**:
+  - `shared/src/validators/index.ts` (booleanStringSchema, articuloFiltrosSchema)
+
+#### Fix: Actualización de Prefijo en Rubros
+- **Problema**: Error de servidor al editar el prefijo de un rubro
+- **Causa**: PostgreSQL no interpretaba correctamente el parámetro numérico en `SUBSTRING FROM`
+- **Solución**: Agregar cast explícito `$2::int` en la query SQL
+- Simplificado el código eliminando la transacción compleja
+- **Archivos modificados**:
+  - `backend/src/services/rubro.service.ts`
+
+---
 
 ### 16 de junio de 2026
 
