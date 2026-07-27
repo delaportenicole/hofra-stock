@@ -363,6 +363,7 @@ export class ReposicionRepository extends BaseRepository<Reposicion> {
         stockActual: (row.articulo_stock as number) || 0,
         numeroCotizacionInterna: null,
         ubicacion: null,
+        url: null,
         imagenUrl: (row.articulo_imagen_url as string) || null,
         imagenPublicId: null,
         costoInicialEstimado: null,

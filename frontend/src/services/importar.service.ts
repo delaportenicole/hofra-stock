@@ -10,7 +10,9 @@ export interface ImportArticuloRow {
   stockActual: number;
   stockMinimo: number;
   costoInicial: number | null;
+  costoInicialUsd: number | null;
   proveedor: string | null;
+  url: string | null;
   rubro: string;
   ubicacion: string | null;
 }

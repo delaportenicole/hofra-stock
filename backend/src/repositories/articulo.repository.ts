@@ -47,20 +47,23 @@ export class ArticuloRepository extends BaseRepository<Articulo> {
     stockActual?: number;
     numeroCotizacionInterna?: number | null;
     ubicacion?: string | null;
+    url?: string | null;
     costoInicialEstimado?: number | null;
     valorDolarCostoInicial?: number | null;
+    costoInicialEstimadoUsd?: number | null;
     createdBy?: string;
   }): Promise<Articulo> {
     const stockValue = data.stockActual || 0;
-    // Auto-calculate USD cost if both ARS cost and dollar value are provided
+    // Use provided USD cost, or auto-calculate if both ARS cost and dollar value are provided
     const costoInicialEstimadoUsd =
-      data.costoInicialEstimado && data.valorDolarCostoInicial
+      data.costoInicialEstimadoUsd ??
+      (data.costoInicialEstimado && data.valorDolarCostoInicial
         ? data.costoInicialEstimado / data.valorDolarCostoInicial
-        : null;
+        : null);
 
     const row = await queryOne<Record<string, unknown>>(
-      `INSERT INTO articulos (codigo, nombre, rubro_id, proveedor_id, stock_minimo, presentacion, marca, sku, etm, stock, stock_actual, numero_cotizacion_interna, ubicacion, costo_inicial_estimado, valor_dolar_costo_inicial, costo_inicial_estimado_usd, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+      `INSERT INTO articulos (codigo, nombre, rubro_id, proveedor_id, stock_minimo, presentacion, marca, sku, etm, stock, stock_actual, numero_cotizacion_interna, ubicacion, url, costo_inicial_estimado, valor_dolar_costo_inicial, costo_inicial_estimado_usd, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
        RETURNING *`,
       [
         data.codigo,
@@ -76,6 +79,7 @@ export class ArticuloRepository extends BaseRepository<Articulo> {
         stockValue,
         data.numeroCotizacionInterna || null,
         data.ubicacion || null,
+        data.url || null,
         data.costoInicialEstimado || null,
         data.valorDolarCostoInicial || null,
         costoInicialEstimadoUsd,
@@ -103,6 +107,7 @@ export class ArticuloRepository extends BaseRepository<Articulo> {
       stockActual: number;
       numeroCotizacionInterna: number | null;
       ubicacion: string | null;
+      url: string | null;
       costoInicialEstimado: number | null;
       valorDolarCostoInicial: number | null;
       activo: boolean;
@@ -162,6 +167,10 @@ export class ArticuloRepository extends BaseRepository<Articulo> {
     if (data.ubicacion !== undefined) {
       sets.push(`ubicacion = $${paramIndex++}`);
       values.push(data.ubicacion);
+    }
+    if (data.url !== undefined) {
+      sets.push(`url = $${paramIndex++}`);
+      values.push(data.url);
     }
     if (data.costoInicialEstimado !== undefined) {
       sets.push(`costo_inicial_estimado = $${paramIndex++}`);
@@ -354,6 +363,7 @@ export class ArticuloRepository extends BaseRepository<Articulo> {
       stock_actual: row.stock_actual,
       numero_cotizacion_interna: row.numero_cotizacion_interna,
       ubicacion: row.ubicacion,
+      url: row.url,
       costo_inicial_estimado: row.costo_inicial_estimado,
       valor_dolar_costo_inicial: row.valor_dolar_costo_inicial,
       costo_inicial_estimado_usd: row.costo_inicial_estimado_usd,

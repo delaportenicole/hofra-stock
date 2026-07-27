@@ -29,7 +29,7 @@ export function ImportarPage() {
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as unknown[][];
 
         // Skip header row and parse data
-        // Column order: Nombre, Marca, Codigo, SKU, ETM, Presentacion, Stock Actual, Stock Mínimo, Costo Inicial, Proveedor, Rubro, Ubicacion
+        // Column order: Nombre, Marca, Codigo, SKU, ETM, Presentacion, Stock Actual, Stock Mínimo, Costo Inicial, Costo USD, Proveedor, URL, Rubro, Ubicacion
         const rows: ImportArticuloRow[] = [];
         for (let i = 1; i < jsonData.length; i++) {
           const row = jsonData[i];
@@ -48,9 +48,11 @@ export function ImportarPage() {
             stockActual: Number(row[6]) || 0,
             stockMinimo: Number(row[7]) || 0,
             costoInicial: row[8] ? Number(row[8]) : null,
-            proveedor: row[9] ? String(row[9]).trim() : null,
-            rubro: String(row[10] || '').trim(),
-            ubicacion: row[11] ? String(row[11]).trim() : null,
+            costoInicialUsd: row[9] ? Number(row[9]) : null,
+            proveedor: row[10] ? String(row[10]).trim() : null,
+            url: row[11] ? String(row[11]).trim() : null,
+            rubro: String(row[12] || '').trim(),
+            ubicacion: row[13] ? String(row[13]).trim() : null,
           });
         }
 
@@ -251,10 +253,12 @@ export function ImportarPage() {
                 <tr><td className="py-1">F - Presentacion</td><td>Presentación</td><td></td></tr>
                 <tr><td className="py-1">G - Stock Actual</td><td>Stock Actual</td><td></td></tr>
                 <tr><td className="py-1">H - Stock Mínimo</td><td>Stock Mínimo</td><td className="text-gray-400">Si es 0, artículo inactivo</td></tr>
-                <tr><td className="py-1">I - Costo Inicial</td><td>Costo Inicial</td><td></td></tr>
-                <tr><td className="py-1">J - Proveedor</td><td>Proveedor</td><td className="text-gray-400">Se crea si no existe</td></tr>
-                <tr><td className="py-1">K - Rubro</td><td>Rubro</td><td className="text-gray-400">Requerido, se crea si no existe</td></tr>
-                <tr><td className="py-1">L - Ubicacion</td><td>Ubicación</td><td></td></tr>
+                <tr><td className="py-1">I - Costo Inicial</td><td>Costo Inicial (ARS)</td><td></td></tr>
+                <tr><td className="py-1">J - Costo USD</td><td>Costo Inicial (USD)</td><td></td></tr>
+                <tr><td className="py-1">K - Proveedor</td><td>Proveedor</td><td className="text-gray-400">Se crea si no existe</td></tr>
+                <tr><td className="py-1">L - URL</td><td>URL</td><td className="text-gray-400">Link de referencia del producto</td></tr>
+                <tr><td className="py-1">M - Rubro</td><td>Rubro</td><td className="text-gray-400">Requerido, se crea si no existe</td></tr>
+                <tr><td className="py-1">N - Ubicacion</td><td>Ubicación</td><td></td></tr>
               </tbody>
             </table>
           </div>

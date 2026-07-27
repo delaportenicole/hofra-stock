@@ -178,6 +178,7 @@ export interface Articulo extends BaseEntity {
   stockActual: number;
   numeroCotizacionInterna: number | null;
   ubicacion: string | null;
+  url: string | null;
   imagenUrl: string | null;
   imagenPublicId: string | null;
   costoInicialEstimado: number | null;

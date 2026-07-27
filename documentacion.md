@@ -32,7 +32,7 @@ hofra-stock/
 - Sistema de permisos por roles
 
 ### 2. Artículos
-- **Campos**: código (autogenerado), nombre, rubro, proveedor, stock, stockMinimo, presentación (texto libre), marca, SKU, ETM, stockActual, ubicación, imagen, costoInicialEstimado, valorDolarCostoInicial, costoInicialEstimadoUsd, activo
+- **Campos**: código (autogenerado), nombre, rubro, proveedor, stock, stockMinimo, presentación (texto libre), marca, SKU, ETM, stockActual, ubicación, url, imagen, costoInicialEstimado, valorDolarCostoInicial, costoInicialEstimadoUsd, activo
 - CRUD completo
 - **Búsqueda avanzada**: Permite buscar por código, nombre, SKU o ETM
 - Subida de imágenes (Cloudinary o local)
@@ -361,9 +361,11 @@ Módulo para importar artículos masivamente desde archivos Excel.
 | G - Stock Actual | stockActual | |
 | H - Stock Mínimo | stockMinimo | Si es 0, el artículo se crea como **inactivo** |
 | I - Costo Inicial | costoInicialEstimado | En pesos argentinos |
-| J - Proveedor | proveedor | Se crea automáticamente si no existe |
-| K - Rubro | rubro | **Requerido**, se crea automáticamente si no existe |
-| L - Ubicacion | ubicacion | |
+| J - Costo USD | costoInicialEstimadoUsd | Costo inicial en dólares |
+| K - Proveedor | proveedor | Se crea automáticamente si no existe |
+| L - URL | url | Link de referencia del producto (ej: Mercado Libre) |
+| M - Rubro | rubro | **Requerido**, se crea automáticamente si no existe |
+| N - Ubicacion | ubicacion | |
 
 #### Flujo de Importación
 
@@ -1749,3 +1751,41 @@ npm run db:seed          # Datos iniciales
 - Resumen anual para comparación rápida entre meses
 - Exportación a CSV de todos los reportes
 - Filas expandibles para ver detalle de cada registro
+
+---
+
+### 27 de julio de 2026
+
+#### Campo URL en Artículos
+- **Nuevo campo `url`** en tabla `articulos` para almacenar links de referencia del producto (ej: Mercado Libre)
+- Campo tipo TEXT, opcional
+- **Migración**: `database/migrations/018_add_url_articulos.sql`
+
+#### Importación de Artículos: Nuevo Formato de Columnas
+- **Columna J - Costo USD**: Permite importar el costo inicial en dólares directamente
+- **Columna L - URL**: Permite importar la URL de referencia del producto
+- **Nuevo orden de columnas**:
+  | Columna | Campo |
+  |---------|-------|
+  | A | Nombre |
+  | B | Marca |
+  | C | Codigo |
+  | D | SKU |
+  | E | ETM |
+  | F | Presentacion |
+  | G | Stock Actual |
+  | H | Stock Mínimo |
+  | I | Costo Inicial (ARS) |
+  | J | Costo USD |
+  | K | Proveedor |
+  | L | URL |
+  | M | Rubro |
+  | N | Ubicacion |
+
+#### Archivos Modificados
+- `shared/src/types/index.ts` - Campo `url` en tipo Articulo
+- `backend/src/repositories/articulo.repository.ts` - Soporte para campo `url` en create/update
+- `backend/src/repositories/reposicion.repository.ts` - Campo `url` en mapeo
+- `backend/src/services/importar.service.ts` - Interface con campos `url` y `costoInicialUsd`
+- `frontend/src/services/importar.service.ts` - Interface actualizada
+- `frontend/src/pages/importar/ImportarPage.tsx` - Nuevo mapeo de columnas y tabla de formato

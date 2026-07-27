@@ -15,7 +15,9 @@ export interface ImportArticuloRow {
   stockActual: number;
   stockMinimo: number;
   costoInicial: number | null;
+  costoInicialUsd: number | null;
   proveedor: string | null;
+  url: string | null;
   rubro: string;
   ubicacion: string | null;
 }
@@ -200,7 +202,9 @@ class ImportarService {
           etm: row.etm?.trim() || null,
           stockActual,
           ubicacion: row.ubicacion?.trim() || null,
+          url: row.url?.trim() || null,
           costoInicialEstimado: row.costoInicial || null,
+          costoInicialEstimadoUsd: row.costoInicialUsd || null,
           valorDolarCostoInicial: null,
           createdBy: userId,
         });
