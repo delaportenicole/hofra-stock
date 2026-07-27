@@ -121,6 +121,7 @@ export function ArticuloFormPage() {
         etm: articulo.etm || undefined,
         stockActual: articulo.stockActual || 0,
         ubicacion: articulo.ubicacion || undefined,
+        url: articulo.url || undefined,
         costoInicialEstimado: articulo.costoInicialEstimado || undefined,
         valorDolarCostoInicial: articulo.valorDolarCostoInicial || undefined,
         activo: articulo.activo,
@@ -426,14 +427,24 @@ export function ArticuloFormPage() {
               </div>
             </div>
 
-            {/* Ubicación */}
-            <FormField label="Ubicación" error={errors.ubicacion}>
-              <Input
-                {...register('ubicacion')}
-                error={errors.ubicacion}
-                placeholder="Ej: Estante A, Pasillo 3, etc."
-              />
-            </FormField>
+            {/* Ubicación y URL */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField label="Ubicación" error={errors.ubicacion}>
+                <Input
+                  {...register('ubicacion')}
+                  error={errors.ubicacion}
+                  placeholder="Ej: Estante A, Pasillo 3, etc."
+                />
+              </FormField>
+
+              <FormField label="URL" error={errors.url}>
+                <Input
+                  {...register('url')}
+                  error={errors.url}
+                  placeholder="https://www.ejemplo.com/producto"
+                />
+              </FormField>
+            </div>
 
             {/* Stock Actual (solo en edición) */}
             {isEditing && (

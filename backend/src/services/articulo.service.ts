@@ -81,6 +81,7 @@ export class ArticuloService {
       etm: data.etm,
       stockActual: 0, // Stock inicial siempre es 0, se actualiza via reposiciones/entregas
       ubicacion: data.ubicacion,
+      url: data.url,
       costoInicialEstimado: data.costoInicialEstimado,
       valorDolarCostoInicial: data.valorDolarCostoInicial,
       createdBy,

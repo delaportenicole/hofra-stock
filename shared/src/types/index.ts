@@ -455,6 +455,7 @@ export interface CreateArticuloDto {
   sku?: string;
   etm?: string;
   ubicacion?: string;
+  url?: string;
   costoInicialEstimado?: number;
   valorDolarCostoInicial?: number;
 }
@@ -470,6 +471,7 @@ export interface UpdateArticuloDto {
   sku?: string;
   etm?: string;
   ubicacion?: string;
+  url?: string;
   costoInicialEstimado?: number;
   valorDolarCostoInicial?: number;
   activo?: boolean;
