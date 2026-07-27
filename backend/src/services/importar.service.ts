@@ -227,18 +227,18 @@ class ImportarService {
   }
 
   private generatePrefix(categoria: string): string {
-    // Generate a 3-letter prefix from the category name
+    // Generate a 2-letter prefix from the category name
     const cleaned = categoria
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '') // Remove accents
       .replace(/[^a-zA-Z]/g, '') // Keep only letters
       .toUpperCase();
 
-    if (cleaned.length >= 3) {
-      return cleaned.substring(0, 3);
+    if (cleaned.length >= 2) {
+      return cleaned.substring(0, 2);
     }
     // Pad with X if too short
-    return cleaned.padEnd(3, 'X');
+    return cleaned.padEnd(2, 'X');
   }
 }
 
