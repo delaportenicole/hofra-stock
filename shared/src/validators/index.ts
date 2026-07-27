@@ -232,7 +232,7 @@ export const createArticuloSchema = z.object({
   etm: z.string().max(100).optional().nullable(),
   stockActual: z.coerce.number().int().min(0, 'El stock actual no puede ser negativo').default(0),
   ubicacion: z.string().max(200).optional().nullable(),
-  url: z.string().url('La URL no es válida').optional().nullable().or(z.literal('')),
+  url: z.string().max(2000).optional().nullable(),
   costoInicialEstimado: z.coerce.number().min(0, 'El costo no puede ser negativo').optional().nullable(),
   valorDolarCostoInicial: z.coerce.number().positive('El valor del dólar debe ser mayor a 0').optional().nullable(),
 });
@@ -249,7 +249,7 @@ export const updateArticuloSchema = z.object({
   etm: z.string().max(100).optional().nullable(),
   stockActual: z.coerce.number().int().min(0).optional(),
   ubicacion: z.string().max(200).optional().nullable(),
-  url: z.string().url('La URL no es válida').optional().nullable().or(z.literal('')),
+  url: z.string().max(2000).optional().nullable(),
   costoInicialEstimado: z.coerce.number().min(0).optional().nullable(),
   valorDolarCostoInicial: z.coerce.number().positive('El valor del dólar debe ser mayor a 0').optional().nullable(),
   activo: z.boolean().optional(),
