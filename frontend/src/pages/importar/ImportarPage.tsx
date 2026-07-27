@@ -31,6 +31,19 @@ export function ImportarPage() {
         // Skip header row and parse data
         // Column order: Nombre, Marca, Codigo, SKU, ETM, Presentacion, Stock Actual, Stock Mínimo, Costo Inicial, Costo USD, Proveedor, URL, Rubro, Ubicacion
         const rows: ImportArticuloRow[] = [];
+
+        // Helper function to parse currency values (removes $, USD, commas, etc.)
+        const parseCurrency = (value: unknown): number | null => {
+          if (value === null || value === undefined || value === '') return null;
+          if (typeof value === 'number') return value;
+          // Remove currency symbols, spaces, and convert comma decimal separator
+          const cleaned = String(value)
+            .replace(/[$USD\s]/gi, '')
+            .replace(/,/g, '');
+          const num = parseFloat(cleaned);
+          return isNaN(num) ? null : num;
+        };
+
         for (let i = 1; i < jsonData.length; i++) {
           const row = jsonData[i];
           if (!row || row.length === 0) continue;
@@ -47,8 +60,8 @@ export function ImportarPage() {
             presentacion: row[5] ? String(row[5]).trim() : null,
             stockActual: Number(row[6]) || 0,
             stockMinimo: Number(row[7]) || 0,
-            costoInicial: row[8] ? Number(row[8]) : null,
-            costoInicialUsd: row[9] ? Number(row[9]) : null,
+            costoInicial: parseCurrency(row[8]),
+            costoInicialUsd: parseCurrency(row[9]),
             proveedor: row[10] ? String(row[10]).trim() : null,
             url: row[11] ? String(row[11]).trim() : null,
             rubro: String(row[12] || '').trim(),

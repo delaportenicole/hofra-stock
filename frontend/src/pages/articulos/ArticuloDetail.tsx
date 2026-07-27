@@ -227,6 +227,24 @@ export function ArticuloDetailPage() {
                       <dd>{articulo.ubicacion || '-'}</dd>
                     </div>
                   </div>
+
+                  {/* Línea 4: URL */}
+                  {articulo.url && (
+                    <div>
+                      <dt className="text-sm text-gray-500">URL</dt>
+                      <dd>
+                        <a
+                          href={articulo.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-primary-600 hover:text-primary-800 hover:underline"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          <span className="truncate max-w-md">{articulo.url}</span>
+                        </a>
+                      </dd>
+                    </div>
+                  )}
                 </dl>
               )}
             </div>
