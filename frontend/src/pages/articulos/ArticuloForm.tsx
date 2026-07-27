@@ -32,6 +32,7 @@ export function ArticuloFormPage() {
   const [imagenUrl, setImagenUrl] = useState<string | null>(null);
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [costoUsdGuardado, setCostoUsdGuardado] = useState<number | null>(null);
 
   const {
     register,
@@ -55,11 +56,11 @@ export function ArticuloFormPage() {
   // Observar stock actual (solo lectura)
   const stockActual = useWatch({ control, name: 'stockActual' });
 
-  // Calcular costo en USD
+  // Calcular costo en USD (usa valor guardado si existe, sino calcula)
   const costoInicialEstimadoUsd =
     costoInicialEstimado && valorDolarCostoInicial
       ? costoInicialEstimado / valorDolarCostoInicial
-      : null;
+      : costoUsdGuardado;
 
   const generateCodigo = useCallback(async (rubroId: string) => {
     if (!rubroId || isEditing) return;
@@ -127,6 +128,7 @@ export function ArticuloFormPage() {
         activo: articulo.activo,
       });
       setImagenUrl(articulo.imagenUrl);
+      setCostoUsdGuardado(articulo.costoInicialEstimadoUsd || null);
     } catch (error) {
       toast.error(getErrorMessage(error));
       navigate('/articulos');
