@@ -304,6 +304,7 @@ export interface AuditLogFiltros {
 
 export interface DashboardStats {
   totalArticulos: number;
+  totalArticulosEnSistema: number;
   articulosStockBajo: number;
   entregasMes: number;
   reposicionesMes: number;

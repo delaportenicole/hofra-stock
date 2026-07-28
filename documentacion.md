@@ -1789,3 +1789,18 @@ npm run db:seed          # Datos iniciales
 - `backend/src/services/importar.service.ts` - Interface con campos `url` y `costoInicialUsd`
 - `frontend/src/services/importar.service.ts` - Interface actualizada
 - `frontend/src/pages/importar/ImportarPage.tsx` - Nuevo mapeo de columnas y tabla de formato
+
+---
+
+### 28 de julio de 2026
+
+#### Dashboard: Mostrar Artículos Activos y Total
+- **Nueva tarjeta de artículos** que muestra ambos contadores:
+  - **Artículos Activos**: Artículos con `activo = true` (antes era el único valor mostrado)
+  - **X en sistema**: Total de artículos incluyendo inactivos
+- Permite ver la diferencia entre artículos activos y el total en el sistema
+
+#### Archivos Modificados
+- `shared/src/types/index.ts` - Nuevo campo `totalArticulosEnSistema` en `DashboardStats`
+- `backend/src/services/dashboard.service.ts` - Query adicional para contar todos los artículos
+- `frontend/src/pages/Dashboard.tsx` - Nuevo componente `ArticulosCard` para mostrar ambos valores

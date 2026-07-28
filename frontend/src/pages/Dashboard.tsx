@@ -57,11 +57,9 @@ export function DashboardPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatCard
-          title="Total Artículos"
-          value={stats.totalArticulos}
-          icon={Package}
-          color="blue"
+        <ArticulosCard
+          activos={stats.totalArticulos}
+          total={stats.totalArticulosEnSistema}
         />
         <StatCard
           title="Stock Bajo"
@@ -291,6 +289,30 @@ function ValuacionCard({ title, valueARS, valueUSD }: ValuacionCardProps) {
         </div>
         <div className="p-3 rounded-lg bg-green-50 text-green-600">
           <DollarSign className="w-6 h-6" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface ArticulosCardProps {
+  activos: number;
+  total: number;
+}
+
+function ArticulosCard({ activos, total }: ArticulosCardProps) {
+  return (
+    <div className="card p-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-gray-500">Artículos Activos</p>
+          <p className="text-3xl font-bold text-gray-900 mt-1">{activos}</p>
+          <p className="text-sm text-gray-500 mt-1">
+            {total} en sistema
+          </p>
+        </div>
+        <div className="p-3 rounded-lg bg-blue-50 text-blue-600">
+          <Package className="w-6 h-6" />
         </div>
       </div>
     </div>

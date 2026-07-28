@@ -6,13 +6,17 @@ import type { DashboardStats, MovimientoReciente, ArticuloStockBajo } from '@hof
 export class DashboardService {
   async getStats(): Promise<DashboardStats> {
     const [
-      articulos,
+      articulosActivos,
+      articulosTotales,
       articulosStockBajo,
       stockStats,
       valuacion,
     ] = await Promise.all([
       queryOne<{ count: string }>(
         `SELECT COUNT(*) as count FROM articulos WHERE deleted_at IS NULL AND activo = true`
+      ),
+      queryOne<{ count: string }>(
+        `SELECT COUNT(*) as count FROM articulos WHERE deleted_at IS NULL`
       ),
       queryOne<{ count: string }>(
         `SELECT COUNT(*) as count FROM articulos
@@ -23,7 +27,8 @@ export class DashboardService {
     ]);
 
     return {
-      totalArticulos: parseInt(articulos?.count || '0', 10),
+      totalArticulos: parseInt(articulosActivos?.count || '0', 10),
+      totalArticulosEnSistema: parseInt(articulosTotales?.count || '0', 10),
       articulosStockBajo: parseInt(articulosStockBajo?.count || '0', 10),
       entregasMes: stockStats.entregasMes,
       reposicionesMes: stockStats.reposicionesMes,
