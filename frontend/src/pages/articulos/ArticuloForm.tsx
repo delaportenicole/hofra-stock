@@ -92,19 +92,24 @@ export function ArticuloFormPage() {
   }, []);
 
   useEffect(() => {
-    Promise.all([
-      rubrosService.getActive(),
-      proveedoresService.getActive(),
-      marcasService.getActive(),
-    ]).then(([rubrosData, proveedoresData, marcasData]) => {
+    const loadData = async () => {
+      // First load dropdown options
+      const [rubrosData, proveedoresData, marcasData] = await Promise.all([
+        rubrosService.getActive(),
+        proveedoresService.getActive(),
+        marcasService.getActive(),
+      ]);
       setRubros(rubrosData);
       setProveedores(proveedoresData);
       setMarcas(marcasData);
-    });
 
-    if (isEditing) {
-      loadArticulo();
-    }
+      // Then load article if editing
+      if (isEditing) {
+        await loadArticulo();
+      }
+    };
+
+    loadData();
   }, [id]);
 
   const loadArticulo = async () => {
