@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Edit, ArrowUpFromLine, ArrowDownToLine, Package, AlertTriangle, ExternalLink, DollarSign, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Edit, ArrowUpFromLine, ArrowDownToLine, Package, AlertTriangle, ExternalLink, DollarSign } from 'lucide-react';
 import { format, isPast, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { articulosService, type ArticuloHistorial } from '../../services/articulos.service';
@@ -30,7 +30,6 @@ export function ArticuloDetailPage() {
   const [historial, setHistorial] = useState<ArticuloHistorial | null>(null);
   const [valuacion, setValuacion] = useState<ValuacionStock | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [moreInfoExpanded, setMoreInfoExpanded] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -162,92 +161,80 @@ export function ArticuloDetailPage() {
               </div>
             </dl>
 
-            {/* Sección expandible - Más Info */}
-            <div className="mt-4 border-t pt-4">
-              <button
-                onClick={() => setMoreInfoExpanded(!moreInfoExpanded)}
-                className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <ChevronDown className={`w-4 h-4 transition-transform ${moreInfoExpanded ? 'rotate-180' : ''}`} />
-                Más Info
-              </button>
-
-              {moreInfoExpanded && (
-                <dl className="space-y-4 mt-4">
-                  {/* Línea 1: Stock Actual, Stock Mínimo, Costo Inicial Estimado */}
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <dt className="text-sm text-gray-500">Stock Actual</dt>
-                      <dd className="font-semibold text-lg">{articulo.stock}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm text-gray-500">Stock Mínimo</dt>
-                      <dd>{articulo.stockMinimo}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm text-gray-500">Costo Inicial Estimado</dt>
-                      <dd>
-                        {articulo.costoInicialEstimado ? (
-                          <div className="space-y-0.5">
-                            <div>${articulo.costoInicialEstimado.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</div>
-                            {articulo.costoInicialEstimadoUsd && (
-                              <div className="text-xs text-gray-500">
-                                USD {articulo.costoInicialEstimadoUsd.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-                                {articulo.valorDolarCostoInicial && (
-                                  <span className="ml-1">(TC: ${articulo.valorDolarCostoInicial})</span>
-                                )}
-                              </div>
+            {/* Información adicional */}
+            <dl className="space-y-4 mt-4 border-t pt-4">
+              {/* Línea 1: Stock Actual, Stock Mínimo, Costo Inicial Estimado */}
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <dt className="text-sm text-gray-500">Stock Actual</dt>
+                  <dd className="font-semibold text-lg">{articulo.stock}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm text-gray-500">Stock Mínimo</dt>
+                  <dd>{articulo.stockMinimo}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm text-gray-500">Costo Inicial Estimado</dt>
+                  <dd>
+                    {articulo.costoInicialEstimado ? (
+                      <div className="space-y-0.5">
+                        <div>${articulo.costoInicialEstimado.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</div>
+                        {articulo.costoInicialEstimadoUsd && (
+                          <div className="text-xs text-gray-500">
+                            USD {articulo.costoInicialEstimadoUsd.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                            {articulo.valorDolarCostoInicial && (
+                              <span className="ml-1">(TC: ${articulo.valorDolarCostoInicial})</span>
                             )}
                           </div>
-                        ) : '-'}
-                      </dd>
-                    </div>
-                  </div>
+                        )}
+                      </div>
+                    ) : '-'}
+                  </dd>
+                </div>
+              </div>
 
-                  {/* Línea 2: Rubro, Proveedor */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <dt className="text-sm text-gray-500">Rubro</dt>
-                      <dd><Badge variant="primary">{articulo.rubro.nombre}</Badge></dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm text-gray-500">Proveedor</dt>
-                      <dd>{articulo.proveedor?.razonSocial || '-'}</dd>
-                    </div>
-                  </div>
+              {/* Línea 2: Rubro, Proveedor */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <dt className="text-sm text-gray-500">Rubro</dt>
+                  <dd><Badge variant="primary">{articulo.rubro.nombre}</Badge></dd>
+                </div>
+                <div>
+                  <dt className="text-sm text-gray-500">Proveedor</dt>
+                  <dd>{articulo.proveedor?.razonSocial || '-'}</dd>
+                </div>
+              </div>
 
-                  {/* Línea 3: Marca, Ubicación */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <dt className="text-sm text-gray-500">Marca</dt>
-                      <dd>{articulo.marca || '-'}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm text-gray-500">Ubicación</dt>
-                      <dd>{articulo.ubicacion || '-'}</dd>
-                    </div>
-                  </div>
+              {/* Línea 3: Marca, Ubicación */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <dt className="text-sm text-gray-500">Marca</dt>
+                  <dd>{articulo.marca || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm text-gray-500">Ubicación</dt>
+                  <dd>{articulo.ubicacion || '-'}</dd>
+                </div>
+              </div>
 
-                  {/* Línea 4: URL */}
-                  {articulo.url && (
-                    <div>
-                      <dt className="text-sm text-gray-500">URL</dt>
-                      <dd>
-                        <a
-                          href={articulo.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-primary-600 hover:text-primary-800 hover:underline"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          <span className="truncate max-w-md">{articulo.url}</span>
-                        </a>
-                      </dd>
-                    </div>
-                  )}
-                </dl>
+              {/* Línea 4: URL */}
+              {articulo.url && (
+                <div>
+                  <dt className="text-sm text-gray-500">URL</dt>
+                  <dd>
+                    <a
+                      href={articulo.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-primary-600 hover:text-primary-800 hover:underline"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      <span className="truncate max-w-md">{articulo.url}</span>
+                    </a>
+                  </dd>
+                </div>
               )}
-            </div>
+            </dl>
           </div>
 
           {/* Stock por Reposicion (solo confirmadas) */}
