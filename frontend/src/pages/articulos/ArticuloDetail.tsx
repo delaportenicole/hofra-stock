@@ -178,12 +178,12 @@ export function ArticuloDetailPage() {
                   <dd>
                     {articulo.costoInicialEstimado ? (
                       <div className="space-y-0.5">
-                        <div>${articulo.costoInicialEstimado.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</div>
+                        <div>${Number(articulo.costoInicialEstimado).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                         {articulo.costoInicialEstimadoUsd && (
                           <div className="text-xs text-gray-500">
-                            USD {articulo.costoInicialEstimadoUsd.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                            USD {Number(articulo.costoInicialEstimadoUsd).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             {articulo.valorDolarCostoInicial && (
-                              <span className="ml-1">(TC: ${articulo.valorDolarCostoInicial})</span>
+                              <span className="ml-1">(TC: ${Number(articulo.valorDolarCostoInicial).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</span>
                             )}
                           </div>
                         )}
