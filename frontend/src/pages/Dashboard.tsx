@@ -15,17 +15,12 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
 } from 'recharts';
 import { dashboardService, type DashboardData } from '../services/dashboard.service';
 import { PageLoader } from '../components/LoadingSpinner';
 import { Badge } from '../components/Badge';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-
-const COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
 export function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -115,25 +110,28 @@ export function DashboardPage() {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             Valuación por Rubro
           </h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={valuacionPorRubro.filter(r => r.total > 0)}
-                dataKey="total"
-                nameKey="rubro"
-                cx="50%"
-                cy="50%"
-                outerRadius={100}
-                label={({ rubro, total }) => `${rubro}: $${Math.round(total).toLocaleString('es-AR')}`}
-              >
-                {valuacionPorRubro.filter(r => r.total > 0).map((_, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
+          <ResponsiveContainer width="100%" height={Math.max(300, valuacionPorRubro.filter(r => r.total > 0).length * 40)}>
+            <BarChart
+              data={valuacionPorRubro.filter(r => r.total > 0).sort((a, b) => b.total - a.total)}
+              layout="vertical"
+              margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                type="number"
+                tickFormatter={(value) => `$${(value / 1000000).toFixed(1)}M`}
+              />
+              <YAxis
+                type="category"
+                dataKey="rubro"
+                width={90}
+                tick={{ fontSize: 12 }}
+              />
               <Tooltip
                 formatter={(value: number) => [`$${Math.round(value).toLocaleString('es-AR')}`, 'Valuación']}
               />
-            </PieChart>
+              <Bar dataKey="total" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+            </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
