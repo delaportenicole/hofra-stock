@@ -5,7 +5,7 @@ import { format, isPast, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { articulosService, type ArticuloHistorial } from '../../services/articulos.service';
 import { PageLoader } from '../../components/LoadingSpinner';
-import { Badge, StockBadge, StatusBadge } from '../../components/Badge';
+import { Badge, StatusBadge } from '../../components/Badge';
 import { PermissionGuard } from '../../components/PermissionGuard';
 import { getErrorMessage } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -402,12 +402,19 @@ export function ArticuloDetailPage() {
         <div className="space-y-6">
           {/* Stock Card */}
           <div className="card p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Stock</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Stock Actual</h3>
             <div className="text-center">
-              <p className="text-4xl font-bold text-gray-900">{articulo.stock}</p>
-              <div className="mt-3">
-                <StockBadge stock={articulo.stock} stockMinimo={articulo.stockMinimo} />
-              </div>
+              <p className={`text-4xl font-bold ${
+                articulo.stock === 0 ? 'text-red-600' :
+                articulo.stock <= articulo.stockMinimo ? 'text-yellow-600' :
+                'text-gray-900'
+              }`}>{articulo.stock}</p>
+              {articulo.stock === 0 && (
+                <p className="text-sm text-red-600 mt-2">Sin stock</p>
+              )}
+              {articulo.stock > 0 && articulo.stock <= articulo.stockMinimo && (
+                <p className="text-sm text-yellow-600 mt-2">Stock bajo (mín: {articulo.stockMinimo})</p>
+              )}
             </div>
 
             <div className="mt-6 grid grid-cols-2 gap-3">
