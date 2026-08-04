@@ -16,7 +16,7 @@ interface UsePaginationReturn {
 }
 
 export function usePagination(options: UsePaginationOptions = {}): UsePaginationReturn {
-  const { initialPage = 1, initialLimit = 10 } = options;
+  const { initialPage = 1, initialLimit = 500 } = options;
 
   const [page, setPageState] = useState(initialPage);
   const [limit, setLimitState] = useState(initialLimit);

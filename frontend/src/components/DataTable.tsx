@@ -19,7 +19,7 @@ export interface SortConfig {
   direction: SortDirection;
 }
 
-const LIMIT_OPTIONS = [10, 50, 100];
+const LIMIT_OPTIONS = [100, 500, 1000];
 
 interface DataTableProps<T> {
   columns: Column<T>[];

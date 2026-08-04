@@ -503,9 +503,9 @@ export function AuditoriaListPage() {
                 onChange={(e) => setLimit(Number(e.target.value))}
                 className="text-sm border border-gray-300 rounded px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
-                <option value={10}>10</option>
-                <option value={50}>50</option>
                 <option value={100}>100</option>
+                <option value={500}>500</option>
+                <option value={1000}>1000</option>
               </select>
               <span className="text-sm text-gray-500">por página</span>
             </div>

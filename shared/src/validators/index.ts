@@ -46,7 +46,7 @@ export const telefonoSchema = z
 
 export const paginationSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(1000).default(20),
+  limit: z.coerce.number().int().positive().max(1000).default(500),
   sortBy: z.string().default('nombre'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });
