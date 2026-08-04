@@ -464,29 +464,6 @@ export function ArticuloDetailPage() {
                   </div>
                 )}
 
-                {/* Desglose */}
-                <div className="border-t pt-3 space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Stock con reposición:</span>
-                    <span className="font-medium">{valuacion.stockConCosto} unidades</span>
-                  </div>
-                  {valuacion.stockSinCosto > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Stock inicial (estimado):</span>
-                      <span className="font-medium">{valuacion.stockSinCosto} unidades</span>
-                    </div>
-                  )}
-                  {valuacion.stockSinCosto > 0 && !valuacion.costoInicialEstimado && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mt-2">
-                      <p className="text-xs text-yellow-700">
-                        Hay {valuacion.stockSinCosto} unidades sin costo asignado.
-                        <Link to={`/articulos/${articulo.id}/editar`} className="ml-1 underline">
-                          Asignar costo inicial estimado
-                        </Link>
-                      </p>
-                    </div>
-                  )}
-                </div>
 
                 {/* Capas de Stock */}
                 {valuacion.capas.length > 0 && (
