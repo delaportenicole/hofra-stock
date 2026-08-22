@@ -27,6 +27,7 @@ const MODULO_LABELS: Record<string, string> = {
   usuarios: 'Usuarios',
   roles: 'Roles',
   auditoria: 'Auditoría',
+  solicitudes_cotizacion: 'Solicitudes de Cotización',
 };
 
 // Traducciones de acciones

@@ -20,6 +20,7 @@ import {
   BarChart3,
   Key,
   Lightbulb,
+  ClipboardList,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
@@ -37,6 +38,7 @@ interface NavItem {
 const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, permiso: { modulo: 'dashboard', accion: 'leer' } },
   { name: 'Artículos', href: '/articulos', icon: Package, permiso: { modulo: 'articulos', accion: 'leer' } },
+  { name: 'Solicitudes de Cotización', href: '/solicitudes-cotizacion', icon: ClipboardList, permiso: { modulo: 'solicitudes_cotizacion', accion: 'leer' } },
   { name: 'Entregas', href: '/entregas', icon: ArrowUpFromLine, permiso: { modulo: 'entregas', accion: 'leer' } },
   { name: 'Reposiciones', href: '/reposiciones', icon: ArrowDownToLine, permiso: { modulo: 'reposiciones', accion: 'leer' } },
   { name: 'Clientes', href: '/clientes', icon: Building2, permiso: { modulo: 'clientes', accion: 'leer' } },

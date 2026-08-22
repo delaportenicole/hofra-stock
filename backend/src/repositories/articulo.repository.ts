@@ -17,6 +17,15 @@ export class ArticuloRepository extends BaseRepository<Articulo> {
     return row ? toCamelCase<Articulo>(row) : null;
   }
 
+  async findByEtm(etm: string): Promise<Articulo | null> {
+    const row = await queryOne<Record<string, unknown>>(
+      `SELECT * FROM articulos WHERE etm ILIKE $1 AND deleted_at IS NULL AND activo = true LIMIT 1`,
+      [etm.trim()]
+    );
+
+    return row ? toCamelCase<Articulo>(row) : null;
+  }
+
   async findByIdWithRelations(id: string): Promise<ArticuloConRelaciones | null> {
     const row = await queryOne<Record<string, unknown>>(
       `SELECT a.*,

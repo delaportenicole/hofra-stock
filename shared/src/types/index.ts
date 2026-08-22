@@ -262,6 +262,50 @@ export interface EntregaConRelaciones extends Entrega {
 }
 
 // ============================================
+// SOLICITUDES DE COTIZACIÓN
+// ============================================
+
+export type EstadoSolicitudCotizacion = 'en_revision' | 'cotizada' | 'cancelada';
+
+export type MatchConfianza = 'etm' | 'nombre' | 'sin_match';
+
+export type EstadoItemCotizacion = 'pendiente' | 'aceptado' | 'a_comprar';
+
+export interface SolicitudCotizacionItem {
+  id: string;
+  solicitudId: string;
+  orden: number;
+  etmSolicitado: string | null;
+  descripcionSolicitada: string;
+  marcaSolicitada: string | null;
+  cantidadSolicitada: number;
+  articuloId: string | null;
+  matchConfianza: MatchConfianza | null;
+  estadoItem: EstadoItemCotizacion;
+  precioUnitario: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SolicitudCotizacionItemConArticulo extends SolicitudCotizacionItem {
+  articulo: Pick<Articulo, 'id' | 'codigo' | 'nombre' | 'marca' | 'etm' | 'sku' | 'costoInicialEstimado' | 'stockActual'> | null;
+}
+
+export interface SolicitudCotizacion extends BaseEntity {
+  clienteId: string;
+  numeroReferenciaCliente: string | null;
+  nombreArchivo: string | null;
+  fechaSolicitud: Date;
+  estado: EstadoSolicitudCotizacion;
+  observaciones: string | null;
+}
+
+export interface SolicitudCotizacionConRelaciones extends SolicitudCotizacion {
+  cliente: Cliente;
+  items: SolicitudCotizacionItemConArticulo[];
+}
+
+// ============================================
 // AUDITORÍA
 // ============================================
 
@@ -515,6 +559,33 @@ export interface CreateEntregaDto {
   items: CreateEntregaItemDto[];
   observaciones?: string;
   fechaEntrega?: Date;
+}
+
+export interface CreateSolicitudCotizacionItemDto {
+  orden: number;
+  etmSolicitado?: string | null;
+  descripcionSolicitada: string;
+  marcaSolicitada?: string | null;
+  cantidadSolicitada: number;
+}
+
+export interface CreateSolicitudCotizacionDto {
+  clienteId: string;
+  numeroReferenciaCliente?: string | null;
+  nombreArchivo?: string | null;
+  observaciones?: string | null;
+  items: CreateSolicitudCotizacionItemDto[];
+}
+
+export interface UpdateSolicitudCotizacionDto {
+  numeroReferenciaCliente?: string | null;
+  observaciones?: string | null;
+}
+
+export interface UpdateSolicitudCotizacionItemDto {
+  articuloId?: string | null;
+  estadoItem?: EstadoItemCotizacion;
+  precioUnitario?: number | null;
 }
 
 export interface CreateRolDto {

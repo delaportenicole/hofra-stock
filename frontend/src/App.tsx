@@ -22,6 +22,9 @@ import { ReposicionesListPage } from './pages/reposiciones/ReposicionesList';
 import { ReposicionFormPage } from './pages/reposiciones/ReposicionForm';
 import { ReposicionDetailPage } from './pages/reposiciones/ReposicionDetail';
 import { ReposicionEditPage } from './pages/reposiciones/ReposicionEdit';
+import { SolicitudesCotizacionListPage } from './pages/solicitudesCotizacion/SolicitudesCotizacionList';
+import { SolicitudCotizacionUploadPage } from './pages/solicitudesCotizacion/SolicitudCotizacionUpload';
+import { SolicitudCotizacionDetailPage } from './pages/solicitudesCotizacion/SolicitudCotizacionDetail';
 import { UnidadesListPage } from './pages/unidades/UnidadesList';
 import { UsuariosListPage } from './pages/usuarios/UsuariosList';
 import { UsuarioFormPage } from './pages/usuarios/UsuarioForm';
@@ -140,6 +143,11 @@ function App() {
         <Route path="reposiciones/nueva" element={<ReposicionFormPage />} />
         <Route path="reposiciones/:id" element={<ReposicionDetailPage />} />
         <Route path="reposiciones/:id/editar" element={<ReposicionEditPage />} />
+
+        {/* Solicitudes de Cotización */}
+        <Route path="solicitudes-cotizacion" element={<SolicitudesCotizacionListPage />} />
+        <Route path="solicitudes-cotizacion/nueva" element={<SolicitudCotizacionUploadPage />} />
+        <Route path="solicitudes-cotizacion/:id" element={<SolicitudCotizacionDetailPage />} />
 
         {/* Configuraciones */}
         <Route path="configuraciones" element={<UnidadesListPage />} />

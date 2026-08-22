@@ -25,6 +25,10 @@ const ENTITY_CONFIG: Record<string, { table: string; columns: string[] }> = {
     table: 'reposiciones',
     columns: ['id', 'articulo_id', 'proveedor_id', 'cantidad', 'stock_disponible', 'costo_reposicion', 'valor_dolar_oficial', 'costo_reposicion_dolares', 'fecha_vencimiento', 'lote_partida', 'link_compra', 'lugar_compra', 'estado', 'observaciones', 'fecha_reposicion'],
   },
+  solicitudes_cotizacion: {
+    table: 'solicitudes_cotizacion',
+    columns: ['id', 'cliente_id', 'numero_referencia_cliente', 'nombre_archivo', 'estado', 'observaciones', 'fecha_solicitud'],
+  },
 };
 
 // Fetch entity data by ID for capturing previous state

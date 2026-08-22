@@ -345,6 +345,37 @@ export const updateEntregaSchema = z.object({
 });
 
 // ============================================
+// SOLICITUDES DE COTIZACIÓN
+// ============================================
+
+export const createSolicitudCotizacionItemSchema = z.object({
+  orden: z.coerce.number().int().nonnegative(),
+  etmSolicitado: z.string().max(100).optional().nullable(),
+  descripcionSolicitada: z.string().min(1, 'La descripción es requerida').max(500),
+  marcaSolicitada: z.string().max(100).optional().nullable(),
+  cantidadSolicitada: z.coerce.number().int().positive('La cantidad debe ser mayor a 0'),
+});
+
+export const createSolicitudCotizacionSchema = z.object({
+  clienteId: uuidSchema,
+  numeroReferenciaCliente: z.string().max(100).optional().nullable(),
+  nombreArchivo: z.string().max(255).optional().nullable(),
+  observaciones: z.string().max(1000).optional().nullable(),
+  items: z.array(createSolicitudCotizacionItemSchema).min(1, 'Debe incluir al menos un ítem'),
+});
+
+export const updateSolicitudCotizacionSchema = z.object({
+  numeroReferenciaCliente: z.string().max(100).optional().nullable(),
+  observaciones: z.string().max(1000).optional().nullable(),
+});
+
+export const updateSolicitudCotizacionItemSchema = z.object({
+  articuloId: uuidSchema.optional().nullable(),
+  estadoItem: z.enum(['pendiente', 'aceptado', 'a_comprar']).optional(),
+  precioUnitario: z.coerce.number().nonnegative('El precio no puede ser negativo').optional().nullable(),
+});
+
+// ============================================
 // AUDITORÍA
 // ============================================
 

@@ -13,6 +13,7 @@ export const MODULOS = {
   ENTREGAS: 'entregas',
   AUDITORIA: 'auditoria',
   DASHBOARD: 'dashboard',
+  SOLICITUDES_COTIZACION: 'solicitudes_cotizacion',
 } as const;
 
 export type Modulo = (typeof MODULOS)[keyof typeof MODULOS];
