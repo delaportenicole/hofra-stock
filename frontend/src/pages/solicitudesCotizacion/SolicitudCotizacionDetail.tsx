@@ -56,7 +56,7 @@ const itemEstadoVariants = {
 } as const;
 
 function buildMercadoLibreUrl(item: SolicitudCotizacionItemConArticulo): string {
-  const query = item.etmSolicitado || `${item.marcaSolicitada ?? ''} ${item.descripcionSolicitada}`.trim();
+  const query = `${item.marcaSolicitada ?? ''} ${item.descripcionSolicitada}`.trim();
   return `https://listado.mercadolibre.com.ar/${encodeURIComponent(query)}`;
 }
 
