@@ -16,6 +16,14 @@ interface FormData {
   numeroReferenciaCliente?: string;
 }
 
+function normalizarHeader(texto: string): string {
+  return texto
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toUpperCase();
+}
+
 export function SolicitudCotizacionUploadPage() {
   const navigate = useNavigate();
 
@@ -52,7 +60,26 @@ export function SolicitudCotizacionUploadPage() {
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as unknown[][];
 
-        // Columnas fijas: A - ETM, B - Descripción, C - Cantidad, D - Marca
+        if (jsonData.length === 0) {
+          setParseError('El archivo está vacío');
+          return;
+        }
+
+        // Buscamos las columnas por nombre de encabezado (no por posición fija),
+        // porque distintos archivos traen columnas extra intercaladas (Precio, Moneda, Modelo, etc.)
+        const headers = (jsonData[0] as unknown[]).map((h) => normalizarHeader(String(h ?? '')));
+        const etmIdx = headers.findIndex((h) => h === 'ETM');
+        const descIdx = headers.findIndex((h) => h === 'DESCRIPCION');
+        const cantidadIdx = headers.findIndex((h) => h === 'CANTIDAD');
+        const marcaIdx = headers.findIndex((h) => h === 'MARCA');
+
+        if (descIdx === -1 || cantidadIdx === -1) {
+          setParseError('El archivo debe tener columnas "Descripcion" y "Cantidad" en la primera fila');
+          setItems([]);
+          setFileName(null);
+          return;
+        }
+
         const rows: CreateSolicitudCotizacionItemDto[] = [];
         let skipped = 0;
 
@@ -60,8 +87,8 @@ export function SolicitudCotizacionUploadPage() {
           const row = jsonData[i];
           if (!row || row.length === 0) continue;
 
-          const descripcion = String(row[1] || '').trim();
-          const cantidad = Number(row[2]);
+          const descripcion = String(row[descIdx] || '').trim();
+          const cantidad = Number(row[cantidadIdx]);
 
           if (!descripcion || !cantidad || cantidad <= 0) {
             skipped++;
@@ -70,15 +97,15 @@ export function SolicitudCotizacionUploadPage() {
 
           rows.push({
             orden: rows.length,
-            etmSolicitado: row[0] ? String(row[0]).trim() : null,
+            etmSolicitado: etmIdx !== -1 && row[etmIdx] ? String(row[etmIdx]).trim() : null,
             descripcionSolicitada: descripcion,
-            marcaSolicitada: row[3] ? String(row[3]).trim() : null,
+            marcaSolicitada: marcaIdx !== -1 && row[marcaIdx] ? String(row[marcaIdx]).trim() : null,
             cantidadSolicitada: Math.trunc(cantidad),
           });
         }
 
         if (rows.length === 0) {
-          setParseError('El archivo no contiene filas válidas (revisá que tenga Descripción y Cantidad)');
+          setParseError('El archivo no contiene filas válidas (revisá que tenga Descripción y Cantidad cargadas)');
           setItems([]);
           setFileName(null);
           return;
@@ -195,18 +222,22 @@ export function SolicitudCotizacionUploadPage() {
 
             <div className="mt-4 p-4 bg-gray-50 rounded-lg">
               <h3 className="font-medium text-gray-900 mb-2 text-sm">Formato esperado del archivo:</h3>
+              <p className="text-sm text-gray-600 mb-2">
+                La primera fila debe tener los nombres de columna. Se buscan por nombre, así que
+                no importa el orden ni si hay otras columnas de por medio (Precio, Modelo, etc.):
+              </p>
               <table className="text-sm text-gray-600 w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-1">Columna</th>
+                    <th className="text-left py-1">Encabezado</th>
                     <th className="text-left py-1">Campo</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr><td className="py-1">A</td><td>ETM</td></tr>
-                  <tr><td className="py-1">B</td><td>Descripción (requerido)</td></tr>
-                  <tr><td className="py-1">C</td><td>Cantidad (requerido)</td></tr>
-                  <tr><td className="py-1">D</td><td>Marca</td></tr>
+                  <tr><td className="py-1">ETM</td><td>ETM</td></tr>
+                  <tr><td className="py-1">DESCRIPCION</td><td>Descripción (requerido)</td></tr>
+                  <tr><td className="py-1">CANTIDAD</td><td>Cantidad (requerido)</td></tr>
+                  <tr><td className="py-1">MARCA</td><td>Marca</td></tr>
                 </tbody>
               </table>
             </div>
