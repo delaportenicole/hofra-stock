@@ -373,6 +373,7 @@ export const updateSolicitudCotizacionItemSchema = z.object({
   articuloId: uuidSchema.optional().nullable(),
   estadoItem: z.enum(['pendiente', 'aceptado', 'a_comprar']).optional(),
   precioUnitario: z.coerce.number().nonnegative('El precio no puede ser negativo').optional().nullable(),
+  urlExterna: z.string().trim().url('La URL no es válida').max(2000).optional().nullable(),
 });
 
 // ============================================

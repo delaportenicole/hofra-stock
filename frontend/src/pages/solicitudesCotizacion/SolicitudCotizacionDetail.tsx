@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ArrowLeft, Check, Search, ExternalLink, Printer, XCircle, FileCheck, Package } from 'lucide-react';
+import { ArrowLeft, Check, Search, ExternalLink, Printer, XCircle, FileCheck, Package, X, Link2 } from 'lucide-react';
 import { solicitudesCotizacionService } from '../../services/solicitudesCotizacion.service';
 import { articulosService } from '../../services/articulos.service';
 import { ArticuloCombobox } from '../../components/ArticuloCombobox';
@@ -56,8 +56,7 @@ const itemEstadoVariants = {
 } as const;
 
 function buildMercadoLibreUrl(item: SolicitudCotizacionItemConArticulo): string {
-  const query = `${item.marcaSolicitada ?? ''} ${item.descripcionSolicitada}`.trim();
-  return `https://listado.mercadolibre.com.ar/${encodeURIComponent(query)}`;
+  return `https://listado.mercadolibre.com.ar/${encodeURIComponent(item.descripcionSolicitada.trim())}`;
 }
 
 export function SolicitudCotizacionDetailPage() {
@@ -70,6 +69,8 @@ export function SolicitudCotizacionDetailPage() {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [savingItemId, setSavingItemId] = useState<string | null>(null);
   const [precios, setPrecios] = useState<Record<string, number | undefined>>({});
+  const [pastingUrlItemId, setPastingUrlItemId] = useState<string | null>(null);
+  const [urlDrafts, setUrlDrafts] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (id) loadData(id);
@@ -102,6 +103,10 @@ export function SolicitudCotizacionDetailPage() {
     try {
       const updated = await solicitudesCotizacionService.updateItem(id, itemId, data);
       setSolicitud(updated);
+      const updatedItem = updated.items.find((i) => i.id === itemId);
+      if (updatedItem) {
+        setPrecios((prev) => ({ ...prev, [itemId]: updatedItem.precioUnitario ?? undefined }));
+      }
     } catch (error) {
       toast.error(getErrorMessage(error));
     } finally {
@@ -111,20 +116,57 @@ export function SolicitudCotizacionDetailPage() {
 
   const handleAceptar = (item: SolicitudCotizacionItemConArticulo) => {
     if (!item.articuloId) return;
-    applyUpdate(item.id, { estadoItem: 'aceptado' });
+    applyUpdate(item.id, {
+      estadoItem: 'aceptado',
+      // Si el artículo tiene un costo cargado y todavía no se fijó un precio, lo usamos como punto de partida
+      ...(item.precioUnitario == null && item.articulo?.costoInicialEstimado != null
+        ? { precioUnitario: item.articulo.costoInicialEstimado }
+        : {}),
+    });
   };
 
   const handleSeleccionarArticulo = (item: SolicitudCotizacionItemConArticulo, articulo: ArticuloConRelaciones | null) => {
     if (!articulo) return;
     setEditingItemId(null);
-    applyUpdate(item.id, { articuloId: articulo.id, estadoItem: 'aceptado' });
+    applyUpdate(item.id, {
+      articuloId: articulo.id,
+      estadoItem: 'aceptado',
+      ...(item.precioUnitario == null && articulo.costoInicialEstimado != null
+        ? { precioUnitario: articulo.costoInicialEstimado }
+        : {}),
+    });
+  };
+
+  const handleQuitarAceptacion = (item: SolicitudCotizacionItemConArticulo) => {
+    // Deshace la aceptación (vuelve a "pendiente") sin perder la sugerencia,
+    // para poder aceptarla de nuevo o buscar otro artículo distinto.
+    applyUpdate(item.id, { estadoItem: 'pendiente' });
   };
 
   const handleBuscarMercadoLibre = (item: SolicitudCotizacionItemConArticulo) => {
     window.open(buildMercadoLibreUrl(item), '_blank', 'noopener,noreferrer');
-    if (item.estadoItem !== 'a_comprar') {
+    // Si ya hay un artículo sugerido/coincidente, abrir Mercado Libre es solo para
+    // comparar precio: no debe pisar la sugerencia ni sacarle la posibilidad de Aceptar.
+    // Solo se marca "a comprar" cuando realmente no hay ningún artículo matcheado.
+    if (!item.articuloId && item.estadoItem !== 'a_comprar') {
       applyUpdate(item.id, { estadoItem: 'a_comprar' });
     }
+  };
+
+  const handleGuardarUrlExterna = (item: SolicitudCotizacionItemConArticulo) => {
+    const url = (urlDrafts[item.id] || '').trim();
+    if (!url) return;
+    applyUpdate(item.id, { urlExterna: url });
+    setPastingUrlItemId(null);
+  };
+
+  const handleAceptarUrlExterna = (item: SolicitudCotizacionItemConArticulo) => {
+    applyUpdate(item.id, { estadoItem: 'a_comprar' });
+  };
+
+  const handleDeclinarUrlExterna = (item: SolicitudCotizacionItemConArticulo) => {
+    applyUpdate(item.id, { urlExterna: null });
+    setUrlDrafts((prev) => ({ ...prev, [item.id]: '' }));
   };
 
   const handlePrecioBlur = (item: SolicitudCotizacionItemConArticulo) => {
@@ -273,6 +315,7 @@ export function SolicitudCotizacionDetailPage() {
               <tr>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs">Solicitado</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs">Sugerido</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs">Aceptado</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs">Acciones</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs">Precio Unit.</th>
                 <th className="px-3 py-3 text-right font-medium text-gray-500 uppercase text-xs">Subtotal</th>
@@ -296,7 +339,7 @@ export function SolicitudCotizacionDetailPage() {
                     </td>
 
                     <td className="px-3 py-3 max-w-xs">
-                      {item.matchConfianza && (
+                      {item.matchConfianza && item.articulo && (
                         <Badge variant={confianzaVariants[item.matchConfianza]} className="mb-1">
                           {confianzaLabels[item.matchConfianza]}
                         </Badge>
@@ -313,6 +356,52 @@ export function SolicitudCotizacionDetailPage() {
                         <p className="text-gray-400 flex items-center gap-1">
                           <Package className="w-4 h-4" /> Sin coincidencia
                         </p>
+                      )}
+                    </td>
+
+                    <td className="px-3 py-3 max-w-xs">
+                      {item.estadoItem === 'aceptado' && item.articulo ? (
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="font-medium text-green-700">{item.articulo.nombre}</p>
+                            <p className="text-xs text-gray-500 font-mono">
+                              {item.articulo.codigo}
+                              {item.articulo.marca && ` · ${item.articulo.marca}`}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleQuitarAceptacion(item)}
+                            disabled={disabled}
+                            title="Quitar para elegir otro artículo"
+                            className="flex-shrink-0 text-gray-400 hover:text-red-600 disabled:opacity-50"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : item.estadoItem === 'a_comprar' && item.urlExterna ? (
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="font-medium text-amber-700">Compra externa</p>
+                            <a
+                              href={item.urlExterna}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-primary-700 underline break-all"
+                            >
+                              Ver publicación
+                            </a>
+                          </div>
+                          <button
+                            onClick={() => handleQuitarAceptacion(item)}
+                            disabled={disabled}
+                            title="Quitar para elegir otro artículo"
+                            className="flex-shrink-0 text-gray-400 hover:text-red-600 disabled:opacity-50"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">-</span>
                       )}
                     </td>
 
@@ -350,6 +439,64 @@ export function SolicitudCotizacionDetailPage() {
                           >
                             <ExternalLink className="w-4 h-4" /> Buscar en Mercado Libre
                           </button>
+
+                          {item.estadoItem !== 'aceptado' && (
+                            <>
+                              {item.urlExterna && item.estadoItem !== 'a_comprar' ? (
+                                <div className="mt-1 p-2 bg-amber-50 border border-amber-200 rounded">
+                                  <a
+                                    href={item.urlExterna}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-primary-700 underline break-all"
+                                  >
+                                    {item.urlExterna}
+                                  </a>
+                                  <div className="flex gap-3 mt-1">
+                                    <button
+                                      onClick={() => handleAceptarUrlExterna(item)}
+                                      disabled={disabled}
+                                      className="flex items-center gap-1 text-xs text-green-700 hover:text-green-800 disabled:opacity-50"
+                                    >
+                                      <Check className="w-3 h-3" /> Aceptar
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeclinarUrlExterna(item)}
+                                      disabled={disabled}
+                                      className="flex items-center gap-1 text-xs text-red-600 hover:text-red-700 disabled:opacity-50"
+                                    >
+                                      <X className="w-3 h-3" /> Declinar
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : pastingUrlItemId === item.id ? (
+                                <div className="flex gap-1 mt-1">
+                                  <input
+                                    type="text"
+                                    autoFocus
+                                    value={urlDrafts[item.id] || ''}
+                                    onChange={(e) => setUrlDrafts((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleGuardarUrlExterna(item)}
+                                    placeholder="Pegar URL del producto..."
+                                    className="input text-xs py-1"
+                                  />
+                                  <button onClick={() => handleGuardarUrlExterna(item)} className="btn-secondary text-xs px-2 py-1">
+                                    Guardar
+                                  </button>
+                                </div>
+                              ) : (
+                                !(item.estadoItem === 'a_comprar' && item.urlExterna) && (
+                                  <button
+                                    onClick={() => setPastingUrlItemId(item.id)}
+                                    disabled={disabled}
+                                    className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-50"
+                                  >
+                                    <Link2 className="w-4 h-4" /> Pegar URL de producto
+                                  </button>
+                                )
+                              )}
+                            </>
+                          )}
                         </div>
                       )}
                     </td>
@@ -377,7 +524,7 @@ export function SolicitudCotizacionDetailPage() {
             </tbody>
             <tfoot className="bg-gray-50">
               <tr>
-                <td colSpan={4} className="px-3 py-3 text-right font-semibold">Total</td>
+                <td colSpan={5} className="px-3 py-3 text-right font-semibold">Total</td>
                 <td className="px-3 py-3 text-right font-semibold whitespace-nowrap">${total.toLocaleString('es-AR')}</td>
                 <td></td>
               </tr>

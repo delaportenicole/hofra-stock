@@ -283,6 +283,7 @@ export interface SolicitudCotizacionItem {
   matchConfianza: MatchConfianza | null;
   estadoItem: EstadoItemCotizacion;
   precioUnitario: number | null;
+  urlExterna: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -586,6 +587,7 @@ export interface UpdateSolicitudCotizacionItemDto {
   articuloId?: string | null;
   estadoItem?: EstadoItemCotizacion;
   precioUnitario?: number | null;
+  urlExterna?: string | null;
 }
 
 export interface CreateRolDto {

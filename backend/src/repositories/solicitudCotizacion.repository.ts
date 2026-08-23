@@ -136,7 +136,12 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
 
   async updateItem(
     itemId: string,
-    data: { articuloId?: string | null; estadoItem?: EstadoItemCotizacion; precioUnitario?: number | null }
+    data: {
+      articuloId?: string | null;
+      estadoItem?: EstadoItemCotizacion;
+      precioUnitario?: number | null;
+      urlExterna?: string | null;
+    }
   ): Promise<SolicitudCotizacionItem | null> {
     const sets: string[] = ['updated_at = NOW()'];
     const values: unknown[] = [];
@@ -153,6 +158,10 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
     if (data.precioUnitario !== undefined) {
       sets.push(`precio_unitario = $${paramIndex++}`);
       values.push(data.precioUnitario);
+    }
+    if (data.urlExterna !== undefined) {
+      sets.push(`url_externa = $${paramIndex++}`);
+      values.push(data.urlExterna);
     }
 
     values.push(itemId);
@@ -217,6 +226,7 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       matchConfianza: row.match_confianza as MatchConfianza | null,
       estadoItem: row.estado_item as EstadoItemCotizacion,
       precioUnitario: row.precio_unitario !== null ? Number(row.precio_unitario) : null,
+      urlExterna: row.url_externa as string | null,
       createdAt: row.created_at as Date,
       updatedAt: row.updated_at as Date,
       articulo: row.articulo_id_full
