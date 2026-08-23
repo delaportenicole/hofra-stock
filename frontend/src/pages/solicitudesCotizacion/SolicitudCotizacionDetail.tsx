@@ -281,6 +281,12 @@ export function SolicitudCotizacionDetailPage() {
     solicitud.estado === 'en_revision' &&
     solicitud.items.every((item) => item.estadoItem !== 'pendiente' && item.precioUnitario !== null && item.precioUnitario !== undefined);
 
+  const totalItems = solicitud.items.length;
+  const conCoincidencia = solicitud.items.filter((item) => item.matchConfianza === 'etm' || item.matchConfianza === 'nombre').length;
+  const sinCoincidencia = totalItems - conCoincidencia;
+  const aceptados = solicitud.items.filter((item) => item.estadoItem !== 'pendiente').length;
+  const pendientesRevision = totalItems - aceptados;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -305,6 +311,25 @@ export function SolicitudCotizacionDetailPage() {
             <p className="text-gray-500">Referencia del Cliente</p>
             <p className="font-medium">{solicitud.numeroReferenciaCliente || '-'}</p>
           </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="p-4 bg-green-50 rounded-lg">
+          <p className="text-sm text-green-600">Con Coincidencia</p>
+          <p className="text-2xl font-bold text-green-700">{conCoincidencia}</p>
+        </div>
+        <div className="p-4 bg-red-50 rounded-lg">
+          <p className="text-sm text-red-600">Sin Coincidencia</p>
+          <p className="text-2xl font-bold text-red-700">{sinCoincidencia}</p>
+        </div>
+        <div className="p-4 bg-blue-50 rounded-lg">
+          <p className="text-sm text-blue-600">Aceptados</p>
+          <p className="text-2xl font-bold text-blue-700">{aceptados}</p>
+        </div>
+        <div className="p-4 bg-amber-50 rounded-lg">
+          <p className="text-sm text-amber-600">Pendientes de Revisión</p>
+          <p className="text-2xl font-bold text-amber-700">{pendientesRevision}</p>
         </div>
       </div>
 

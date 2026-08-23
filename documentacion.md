@@ -244,7 +244,7 @@ Módulo de gestión de roles y sus permisos asociados.
 
 #### Estructura de Permisos
 Los permisos se organizan por **módulo** y **acción**:
-- **Módulos**: dashboard, articulos, rubros, clientes, proveedores, entregas, reposiciones, usuarios, roles, auditoria
+- **Módulos**: dashboard, articulos, rubros, clientes, proveedores, entregas, reposiciones, usuarios, roles, auditoria, solicitudes_cotizacion
 - **Acciones**: leer, crear, actualizar, eliminar
 
 #### Interfaz de Selección de Permisos
@@ -633,6 +633,115 @@ GET /api/reportes/resumen-mensual?anio=2026
 
 ---
 
+### 16. Solicitudes de Cotización
+
+Módulo para procesar archivos de solicitud de cotización que envían los clientes: matchea automáticamente cada ítem pedido contra el catálogo propio, permite revisar/corregir esa sugerencia y termina generando una cotización imprimible para responder al cliente.
+
+#### Acceso
+- Menú lateral: **Solicitudes de Cotización** (sección principal, junto a Artículos)
+- URL: `/solicitudes-cotizacion`
+- Requiere permiso: `solicitudes_cotizacion:leer` (crear/actualizar/eliminar también existen como permisos separados)
+
+#### Flujo General
+1. **Subir archivo**: El usuario sube un Excel del cliente y selecciona el Cliente destinatario (obligatorio) y un N° de Referencia del Cliente (opcional)
+2. **Matching automático**: El backend intenta encontrar, para cada fila, el artículo correspondiente en el catálogo propio
+3. **Revisión ítem por ítem**: Pantalla de detalle donde se ve lo *solicitado* vs. lo *sugerido*, y se decide qué hacer con cada ítem
+4. **Precio y cotización**: Se carga el precio de venta unitario por ítem y se marca la solicitud como Cotizada
+5. **Impresión**: Se genera un comprobante de cotización para el cliente (sin exponer código interno ni costos)
+
+#### Formato del Archivo Excel
+Las columnas se detectan **por nombre de encabezado** en la primera fila (no por posición fija), para tolerar archivos con columnas extra intercaladas (Precio, Moneda, Modelo, Descripción en Inglés, etc.):
+
+| Encabezado | Campo | Notas |
+|------------|-------|-------|
+| ETM | etmSolicitado | Opcional, se usa para matchear contra el ETM del catálogo |
+| DESCRIPCION | descripcionSolicitada | **Requerido** |
+| CANTIDAD | cantidadSolicitada | **Requerido**, debe ser mayor a 0 |
+| MARCA | marcaSolicitada | Opcional |
+
+Filas sin Descripción o sin Cantidad válida se omiten (se informa la cantidad de filas omitidas).
+
+#### Algoritmo de Matching (heurístico)
+Por cada ítem del archivo, en `backend/src/services/solicitudCotizacion.service.ts`:
+1. **Por ETM**: si el ítem trae ETM, se busca una coincidencia exacta (case-insensitive) contra `articulos.etm`. Si hay match → confianza `etm`
+2. **Por nombre**: si no matcheó por ETM, se tokeniza la descripción (se descartan palabras cortas y stopwords) y se buscan artículos candidatos por esos tokens; se puntúa cada candidato por cantidad de palabras coincidentes en su nombre + bono si la marca coincide. Si supera un umbral mínimo → confianza `nombre`
+3. **Sin match**: si ningún candidato supera el umbral → `sin_match`, el ítem queda sin artículo sugerido
+
+El matching es solo una *sugerencia*: nunca se acepta automáticamente, siempre requiere una decisión manual en la pantalla de revisión.
+
+#### Estados de la Solicitud
+- **`en_revision`**: Recién creada, se están revisando/decidiendo los ítems
+- **`cotizada`**: Todos los ítems fueron decididos y tienen precio cargado; ya se puede imprimir la cotización final
+- **`cancelada`**: Solicitud cancelada, ya no se puede editar
+
+#### Estados por Ítem
+- **`pendiente`**: Recién matcheado, sin decisión del usuario
+- **`aceptado`**: El usuario confirmó un artículo (la sugerencia del sistema o uno elegido a mano), o aceptó una URL externa como opción de compra
+- **`a_comprar`**: Se decidió comprarlo afuera del catálogo (vía Mercado Libre o una URL pegada), sin artículo interno asociado
+
+#### Pantalla de Revisión (por cada ítem)
+- **Solicitado**: ETM, descripción, marca y cantidad tal como vinieron en el archivo (solo lectura)
+- **Sugerido**: artículo matcheado por el sistema (código, nombre, marca, stock) con badge de confianza ("Coincide por ETM" / "Coincide por nombre"), o "Sin coincidencia"
+- **Aceptado**: una vez confirmada una decisión, muestra el artículo del catálogo aceptado (en verde) o la compra externa aceptada (en ámbar, con link "Ver publicación"), con un botón **✕** para deshacer la decisión (vuelve a `pendiente` sin perder la sugerencia ni la URL) y poder elegir otra opción
+- **Acciones disponibles** (mientras el ítem no esté aceptado):
+  - **Aceptar sugerencia**: confirma el artículo matcheado por el sistema
+  - **Buscar otro artículo**: abre un combobox para elegir manualmente otro artículo del catálogo (permite artículos sin stock, ya que es para cotizar, no para descontar stock)
+  - **Buscar en Mercado Libre**: abre en una pestaña nueva una búsqueda en Mercado Libre armada solo con la **descripción** del ítem (no se usa marca ni ETM, para no ensuciar los resultados). Si el ítem no tiene ningún artículo matcheado, además lo marca como `a_comprar`; si ya hay una sugerencia del catálogo, es solo para comparar precio y no le pisa la sugerencia
+  - **Pegar URL de producto**: permite pegar el link de un producto externo (ej. una publicación de Mercado Libre) como opción de compra para ese ítem. Una vez guardada la URL, se puede **Aceptar** (marca el ítem como `a_comprar`, guarda la URL) o **Declinar** (la descarta)
+- **Precio Unitario**: campo editable por ítem. Al aceptar un artículo del catálogo que tiene costo cargado (`costoInicialEstimado`) y el ítem todavía no tiene precio, se prellena con ese valor como punto de partida — siempre se puede sobreescribir a mano. La URL externa **no** trae precio automático; se carga siempre a mano
+- **Subtotal**: cantidad × precio unitario (calculado)
+
+#### Marcar como Cotizada
+Solo se habilita cuando **todos** los ítems dejaron de estar `pendiente` y **todos** tienen precio unitario cargado. El backend valida esto antes de permitir el cambio de estado (`POST /solicitudes-cotizacion/:id/marcar-cotizada`).
+
+#### Impresión de la Cotización
+Botón "Imprimir Cotización" (mismo mecanismo que el comprobante de Entregas: HTML generado + `window.print()`). El documento muestra Descripción, Marca, Cantidad, Precio Unitario y Subtotal por ítem más el total — **no** incluye código interno, costos ni referencias a si el ítem viene de stock o se compra externamente, porque el documento va dirigido al cliente.
+
+#### Sobre la Búsqueda en Mercado Libre
+La API pública de Mercado Libre dejó de permitir búsquedas y consultas de productos sin autenticación OAuth desde abril de 2025 (confirmado: tanto `GET /sites/{site}/search` como `GET /items/{id}` devuelven 403 sin token). Por eso:
+- La búsqueda abre Mercado Libre en una **pestaña nueva** con la búsqueda armada (no hay resultados embebidos en el sistema)
+- **Embeber la página de Mercado Libre en un iframe no es viable**: el sitio manda headers `X-Frame-Options`/`Content-Security-Policy` que lo bloquean explícitamente, y ni siquiera el scraping server-side funciona (también devuelve 403, ML bloquea tráfico automatizado)
+- El precio y la foto de un producto externo **no se traen automáticamente**: por eso el flujo de "Pegar URL" requiere cargar el precio a mano. Automatizarlo requeriría dar de alta una app en developers.mercadolibre.com.ar, autorizarla con una cuenta de ML y manejar tokens OAuth en el backend — quedó como mejora futura, no implementada
+
+#### Modelo de Datos
+
+| Tabla | Campo | Notas |
+|-------|-------|-------|
+| solicitudes_cotizacion | `cliente_id`, `numero_referencia_cliente`, `nombre_archivo`, `fecha_solicitud`, `estado`, `observaciones` | Cabecera |
+| solicitud_cotizacion_items | `solicitud_id`, `orden`, `etm_solicitado`, `descripcion_solicitada`, `marca_solicitada`, `cantidad_solicitada`, `articulo_id`, `match_confianza`, `estado_item`, `precio_unitario`, `url_externa` | Detalle |
+
+#### API
+```
+GET    /api/solicitudes-cotizacion                      # Lista paginada con filtros (estado, clienteId, busqueda)
+GET    /api/solicitudes-cotizacion/:id                   # Ver detalle con items y matching
+POST   /api/solicitudes-cotizacion                       # Crear solicitud (corre el matching automático por ítem)
+PUT    /api/solicitudes-cotizacion/:id                    # Actualizar cabecera (referencia, observaciones)
+PUT    /api/solicitudes-cotizacion/:id/items/:itemId     # Actualizar un ítem (artículo, estado, precio, URL externa)
+POST   /api/solicitudes-cotizacion/:id/marcar-cotizada   # Marca como cotizada (valida que no queden ítems pendientes/sin precio)
+POST   /api/solicitudes-cotizacion/:id/cancelar          # Cancela la solicitud
+```
+
+#### Archivos Relacionados
+
+**Backend**:
+- `backend/src/repositories/solicitudCotizacion.repository.ts`
+- `backend/src/services/solicitudCotizacion.service.ts` (incluye el algoritmo de matching)
+- `backend/src/controllers/solicitudCotizacion.controller.ts`
+- `backend/src/routes/solicitudCotizacion.routes.ts`
+- `backend/src/repositories/articulo.repository.ts` (método `findByEtm()`)
+
+**Frontend**:
+- `frontend/src/pages/solicitudesCotizacion/SolicitudesCotizacionList.tsx`
+- `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionUpload.tsx`
+- `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
+- `frontend/src/services/solicitudesCotizacion.service.ts`
+
+**Migraciones**:
+- `database/migrations/019_add_solicitudes_cotizacion.sql`
+- `database/migrations/020_add_url_externa_solicitud_items.sql`
+
+---
+
 ### 11. Valuación de Stock (FIFO)
 
 El sistema implementa una valuación de stock basada en el método **FIFO (First In, First Out)**, donde cada reposición mantiene su propio costo y cantidad disponible.
@@ -828,7 +937,7 @@ El menú lateral (sidebar) puede colapsarse para mostrar solo iconos:
 - Botón de colapsar/expandir en la parte inferior del menú
 - Al colapsar, solo se muestran los iconos con tooltips
 - El contenido principal se ajusta automáticamente
-- Orden del menú: Dashboard, Artículos, Entregas, Reposiciones, Clientes, Proveedores, Configuraciones
+- Orden del menú: Dashboard, Artículos, Solicitudes de Cotización, Entregas, Reposiciones, Clientes, Proveedores, Configuraciones
 - Sección de Administración separada: Usuarios, Roles, Auditoría
 
 ---
@@ -1196,6 +1305,11 @@ npm run db:seed          # Datos iniciales
     - Campo `username VARCHAR(50)` NOT NULL en tabla usuarios
     - Índice único para username
     - Usuarios existentes reciben username basado en email (parte antes del @)
+18. **019_add_solicitudes_cotizacion.sql**: Módulo de Solicitudes de Cotización
+    - Tablas `solicitudes_cotizacion` (cabecera) y `solicitud_cotizacion_items` (detalle)
+    - Permisos `solicitudes_cotizacion:leer/crear/actualizar/eliminar` asignados a Administrador
+19. **020_add_url_externa_solicitud_items.sql**: URL de producto externo en ítems de cotización
+    - Campo `url_externa TEXT` en `solicitud_cotizacion_items`
 
 ---
 
@@ -1337,6 +1451,8 @@ npm run db:seed          # Datos iniciales
 - [x] ~~Límite de importación aumentado a 10mb~~ (completado)
 - [x] ~~Fix historial de movimientos: cantidad por artículo específico~~ (completado)
 - [x] ~~Scripts de limpieza de base de datos~~ (completado)
+- [x] ~~Módulo de Solicitudes de Cotización con matching automático y cotización imprimible~~ (completado)
+- [ ] Integración OAuth con Mercado Libre para autocompletar precio/foto de productos externos
 
 ---
 
@@ -1353,7 +1469,7 @@ npm run db:seed          # Datos iniciales
 
 ---
 
-*Documentación actualizada el 18 de junio de 2026*
+*Documentación actualizada el 23 de agosto de 2026*
 
 ---
 
@@ -1804,3 +1920,48 @@ npm run db:seed          # Datos iniciales
 - `shared/src/types/index.ts` - Nuevo campo `totalArticulosEnSistema` en `DashboardStats`
 - `backend/src/services/dashboard.service.ts` - Query adicional para contar todos los artículos
 - `frontend/src/pages/Dashboard.tsx` - Nuevo componente `ArticulosCard` para mostrar ambos valores
+
+---
+
+### 23 de agosto de 2026
+
+#### Nuevo Módulo: Solicitudes de Cotización
+- **Objetivo**: procesar el archivo Excel que manda un cliente pidiendo cotización, matchear automáticamente cada ítem contra el catálogo propio, revisarlo en pantalla, y terminar generando una cotización imprimible para responder
+- **Carga de archivo**: columnas detectadas por nombre de encabezado (ETM, Descripción, Cantidad, Marca), no por posición fija — tolera archivos con columnas extra intercaladas (Precio, Moneda, Modelo, Descripción en Inglés, etc.)
+- **Matching automático** (heurístico, sin servicios externos): primero por ETM exacto, luego por overlap de palabras de la descripción + bono si la marca coincide, si no hay coincidencia suficiente queda "sin match"
+- **Pantalla de revisión por ítem**: columnas Solicitado / Sugerido / Aceptado / Acciones / Precio Unitario / Subtotal / Estado
+  - Aceptar la sugerencia del catálogo, o buscar y elegir otro artículo manualmente
+  - Buscar en Mercado Libre (pestaña nueva, búsqueda armada solo con la descripción) sin perder una sugerencia ya matcheada
+  - Pegar la URL de un producto externo (ej. Mercado Libre) y Aceptar/Declinar esa opción de compra
+  - Botón para deshacer una aceptación y volver a decidir, sin perder la sugerencia u URL original
+  - Precio unitario se prellena con el costo del artículo del catálogo si no había uno cargado, siempre editable a mano
+- **Cotizada**: solo se puede marcar cuando todos los ítems tienen decisión y precio cargado; genera un comprobante imprimible sin exponer código interno ni costos
+- **Investigación sobre integración con Mercado Libre**: se confirmó que tanto la búsqueda (`/sites/{site}/search`) como la consulta de un producto puntual (`/items/{id}`) devuelven 403 sin autenticación OAuth desde abril de 2025; embeber la página de ML en un iframe tampoco es viable por sus headers `X-Frame-Options`/CSP, y el scraping server-side también devuelve 403. Por eso el precio y la foto de productos externos se cargan a mano por ahora; automatizarlo queda pendiente como mejora futura (requiere alta de app OAuth en developers.mercadolibre.com.ar)
+- **Nuevas tablas**: `solicitudes_cotizacion` (cabecera) y `solicitud_cotizacion_items` (detalle, incluye `url_externa`)
+- **Nuevo permiso de módulo**: `solicitudes_cotizacion` (leer/crear/actualizar/eliminar)
+
+#### Archivos Nuevos
+**Backend**:
+- `backend/src/repositories/solicitudCotizacion.repository.ts`
+- `backend/src/services/solicitudCotizacion.service.ts`
+- `backend/src/controllers/solicitudCotizacion.controller.ts`
+- `backend/src/routes/solicitudCotizacion.routes.ts`
+
+**Frontend**:
+- `frontend/src/pages/solicitudesCotizacion/SolicitudesCotizacionList.tsx`
+- `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionUpload.tsx`
+- `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
+- `frontend/src/services/solicitudesCotizacion.service.ts`
+
+**Migraciones**:
+- `database/migrations/019_add_solicitudes_cotizacion.sql`
+- `database/migrations/020_add_url_externa_solicitud_items.sql`
+
+#### Archivos Modificados
+- `backend/src/repositories/articulo.repository.ts` - Nuevo método `findByEtm()`
+- `backend/src/middlewares/audit.ts` - Entrada en `ENTITY_CONFIG` para auditar el módulo
+- `backend/src/routes/index.ts` - Registro de las nuevas rutas
+- `frontend/src/App.tsx` - Nuevas rutas `/solicitudes-cotizacion*`
+- `frontend/src/layouts/AdminLayout.tsx` - Ítem de menú nuevo
+- `frontend/src/pages/roles/RoleForm.tsx` - Label del nuevo módulo en el selector de permisos
+- `shared/src/types/index.ts`, `shared/src/validators/index.ts`, `shared/src/constants/index.ts` - Tipos, DTOs, schemas Zod y constante de módulo
