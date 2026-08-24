@@ -4,9 +4,9 @@
 --              del catálogo asociado, se resuelve por fuera).
 -- Date: 2026
 
-UPDATE solicitud_cotizacion_items SET estado_item = 'no_disponible' WHERE estado_item = 'a_comprar';
-
 ALTER TABLE solicitud_cotizacion_items DROP CONSTRAINT IF EXISTS chk_solicitud_item_estado;
+
+UPDATE solicitud_cotizacion_items SET estado_item = 'no_disponible' WHERE estado_item = 'a_comprar';
 
 ALTER TABLE solicitud_cotizacion_items ADD CONSTRAINT chk_solicitud_item_estado
   CHECK (estado_item IN ('pendiente', 'aceptado', 'no_disponible'));
