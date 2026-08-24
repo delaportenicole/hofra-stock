@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ArrowLeft, Check, Search, ExternalLink, Printer, XCircle, FileCheck, Package, X, Link2 } from 'lucide-react';
+import { ArrowLeft, Check, Search, ExternalLink, Printer, XCircle, FileCheck, Package, X, Link2, Ban } from 'lucide-react';
 import { solicitudesCotizacionService } from '../../services/solicitudesCotizacion.service';
 import { articulosService } from '../../services/articulos.service';
 import { ArticuloCombobox } from '../../components/ArticuloCombobox';
@@ -47,12 +47,6 @@ const itemEstadoLabels = {
   pendiente: 'Pendiente',
   aceptado: 'Aceptado',
   no_disponible: 'No Disponible',
-} as const;
-
-const itemEstadoSelectClass = {
-  pendiente: 'text-gray-600',
-  aceptado: 'text-green-700 font-medium',
-  no_disponible: 'text-gray-500 line-through',
 } as const;
 
 function buildMercadoLibreUrl(item: SolicitudCotizacionItemConArticulo): string {
@@ -153,13 +147,9 @@ export function SolicitudCotizacionDetailPage() {
     }
   };
 
-  const handleCambiarEstado = (item: SolicitudCotizacionItemConArticulo, nuevoEstado: typeof item.estadoItem) => {
-    if (nuevoEstado === item.estadoItem) return;
-    const confirmado = confirm(
-      `¿Cambiar el estado de este ítem de "${itemEstadoLabels[item.estadoItem]}" a "${itemEstadoLabels[nuevoEstado]}"?`
-    );
-    if (!confirmado) return;
-    applyUpdate(item.id, { estadoItem: nuevoEstado });
+  const handleMarcarNoDisponible = (item: SolicitudCotizacionItemConArticulo) => {
+    if (!confirm(`¿Marcar "${item.descripcionSolicitada}" como ${itemEstadoLabels.no_disponible}?`)) return;
+    applyUpdate(item.id, { estadoItem: 'no_disponible' });
   };
 
   const handleGuardarUrlExterna = (item: SolicitudCotizacionItemConArticulo) => {
@@ -344,7 +334,7 @@ export function SolicitudCotizacionDetailPage() {
 
       <div className="card p-0 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1400px] divide-y divide-gray-200 text-sm">
+          <table className="w-full min-w-[1230px] divide-y divide-gray-200 text-sm">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[240px]">Solicitado</th>
@@ -353,7 +343,6 @@ export function SolicitudCotizacionDetailPage() {
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[260px]">Acciones</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[150px]">Precio Unit.</th>
                 <th className="px-3 py-3 text-right font-medium text-gray-500 uppercase text-xs min-w-[120px]">Subtotal</th>
-                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[170px]">Estado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -446,6 +435,18 @@ export function SolicitudCotizacionDetailPage() {
                             <X className="w-4 h-4" />
                           </button>
                         </div>
+                      ) : item.estadoItem === 'no_disponible' ? (
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-medium text-gray-500">No Disponible</p>
+                          <button
+                            onClick={() => handleQuitarAceptacion(item)}
+                            disabled={disabled}
+                            title="Quitar para elegir otro artículo"
+                            className="flex-shrink-0 text-gray-400 hover:text-red-600 disabled:opacity-50"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
                       ) : (
                         <span className="text-gray-400">-</span>
                       )}
@@ -496,6 +497,15 @@ export function SolicitudCotizacionDetailPage() {
                           >
                             <ExternalLink className="w-4 h-4" /> Buscar en Mercado Libre
                           </button>
+                          {item.estadoItem !== 'no_disponible' && (
+                            <button
+                              onClick={() => handleMarcarNoDisponible(item)}
+                              disabled={disabled}
+                              className="flex items-center gap-1 text-sm text-gray-600 hover:text-red-600 disabled:opacity-50"
+                            >
+                              <Ban className="w-4 h-4" /> Marcar como No Disponible
+                            </button>
+                          )}
 
                           {item.estadoItem !== 'aceptado' && (
                             <>
@@ -571,24 +581,6 @@ export function SolicitudCotizacionDetailPage() {
                     <td className="px-3 py-3 text-right font-medium whitespace-nowrap">
                       ${subtotal.toLocaleString('es-AR')}
                     </td>
-
-                    <td className="px-3 py-3">
-                      <select
-                        value={item.estadoItem}
-                        disabled={disabled}
-                        onChange={(e) => {
-                          const target = e.target;
-                          const nuevoEstado = target.value as typeof item.estadoItem;
-                          target.value = item.estadoItem; // evita el parpadeo visual si se cancela la confirmación
-                          handleCambiarEstado(item, nuevoEstado);
-                        }}
-                        className={`input text-xs py-1 disabled:opacity-50 ${itemEstadoSelectClass[item.estadoItem]}`}
-                      >
-                        <option value="pendiente">Pendiente</option>
-                        <option value="aceptado">Aceptado</option>
-                        <option value="no_disponible">No Disponible</option>
-                      </select>
-                    </td>
                   </tr>
                 );
               })}
@@ -597,7 +589,6 @@ export function SolicitudCotizacionDetailPage() {
               <tr>
                 <td colSpan={5} className="px-3 py-3 text-right font-semibold">Total</td>
                 <td className="px-3 py-3 text-right font-semibold whitespace-nowrap">${total.toLocaleString('es-AR')}</td>
-                <td></td>
               </tr>
             </tfoot>
           </table>
