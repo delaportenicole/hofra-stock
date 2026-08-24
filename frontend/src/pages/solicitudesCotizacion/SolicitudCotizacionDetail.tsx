@@ -344,16 +344,16 @@ export function SolicitudCotizacionDetailPage() {
 
       <div className="card p-0 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
+          <table className="w-full min-w-[1400px] divide-y divide-gray-200 text-sm">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs">Solicitado</th>
-                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs">Sugerido</th>
-                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs">Aceptado</th>
-                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs">Acciones</th>
-                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs">Precio Unit.</th>
-                <th className="px-3 py-3 text-right font-medium text-gray-500 uppercase text-xs">Subtotal</th>
-                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs">Estado</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[240px]">Solicitado</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[220px]">Sugerido</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[220px]">Aceptado</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[260px]">Acciones</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[150px]">Precio Unit.</th>
+                <th className="px-3 py-3 text-right font-medium text-gray-500 uppercase text-xs min-w-[120px]">Subtotal</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[170px]">Estado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -451,7 +451,7 @@ export function SolicitudCotizacionDetailPage() {
                       )}
                     </td>
 
-                    <td className="px-3 py-3 min-w-[220px]">
+                    <td className="px-3 py-3 min-w-[260px]">
                       {editingItemId === item.id ? (
                         <div className="flex items-start gap-1">
                           <ArticuloCombobox
@@ -558,7 +558,7 @@ export function SolicitudCotizacionDetailPage() {
                       )}
                     </td>
 
-                    <td className="px-3 py-3 w-32">
+                    <td className="px-3 py-3 min-w-[150px]">
                       <CurrencyInput
                         value={precios[item.id]}
                         onChange={(val) => setPrecios((prev) => ({ ...prev, [item.id]: val }))}
