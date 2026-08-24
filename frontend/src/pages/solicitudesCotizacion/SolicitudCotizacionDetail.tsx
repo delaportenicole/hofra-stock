@@ -46,13 +46,13 @@ const confianzaVariants: Record<MatchConfianza, 'success' | 'warning' | 'danger'
 const itemEstadoLabels = {
   pendiente: 'Pendiente',
   aceptado: 'Aceptado',
-  a_comprar: 'A comprar',
+  no_disponible: 'No Disponible',
 } as const;
 
-const itemEstadoVariants = {
-  pendiente: 'gray',
-  aceptado: 'success',
-  a_comprar: 'primary',
+const itemEstadoSelectClass = {
+  pendiente: 'text-gray-600',
+  aceptado: 'text-green-700 font-medium',
+  no_disponible: 'text-gray-500 line-through',
 } as const;
 
 function buildMercadoLibreUrl(item: SolicitudCotizacionItemConArticulo): string {
@@ -147,10 +147,19 @@ export function SolicitudCotizacionDetailPage() {
     window.open(buildMercadoLibreUrl(item), '_blank', 'noopener,noreferrer');
     // Si ya hay un artículo sugerido/coincidente, abrir Mercado Libre es solo para
     // comparar precio: no debe pisar la sugerencia ni sacarle la posibilidad de Aceptar.
-    // Solo se marca "a comprar" cuando realmente no hay ningún artículo matcheado.
-    if (!item.articuloId && item.estadoItem !== 'a_comprar') {
-      applyUpdate(item.id, { estadoItem: 'a_comprar' });
+    // Solo se marca "no disponible" cuando realmente no hay ningún artículo matcheado.
+    if (!item.articuloId && item.estadoItem !== 'no_disponible') {
+      applyUpdate(item.id, { estadoItem: 'no_disponible' });
     }
+  };
+
+  const handleCambiarEstado = (item: SolicitudCotizacionItemConArticulo, nuevoEstado: typeof item.estadoItem) => {
+    if (nuevoEstado === item.estadoItem) return;
+    const confirmado = confirm(
+      `¿Cambiar el estado de este ítem de "${itemEstadoLabels[item.estadoItem]}" a "${itemEstadoLabels[nuevoEstado]}"?`
+    );
+    if (!confirmado) return;
+    applyUpdate(item.id, { estadoItem: nuevoEstado });
   };
 
   const handleGuardarUrlExterna = (item: SolicitudCotizacionItemConArticulo) => {
@@ -161,7 +170,7 @@ export function SolicitudCotizacionDetailPage() {
   };
 
   const handleAceptarUrlExterna = (item: SolicitudCotizacionItemConArticulo) => {
-    applyUpdate(item.id, { estadoItem: 'a_comprar' });
+    applyUpdate(item.id, { estadoItem: 'no_disponible' });
   };
 
   const handleDeclinarUrlExterna = (item: SolicitudCotizacionItemConArticulo) => {
@@ -370,13 +379,19 @@ export function SolicitudCotizacionDetailPage() {
                         </Badge>
                       )}
                       {item.articulo ? (
-                        <div>
-                          <p className="font-medium">{item.articulo.nombre}</p>
+                        <a
+                          href={`/articulos/${item.articulo.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block hover:underline"
+                          title="Ver detalle del artículo"
+                        >
+                          <p className="font-medium text-primary-700">{item.articulo.nombre}</p>
                           <p className="text-xs text-gray-500 font-mono">
                             {item.articulo.codigo} · Stock: {item.articulo.stockActual}
                             {item.articulo.marca && ` · ${item.articulo.marca}`}
                           </p>
-                        </div>
+                        </a>
                       ) : (
                         <p className="text-gray-400 flex items-center gap-1">
                           <Package className="w-4 h-4" /> Sin coincidencia
@@ -387,13 +402,19 @@ export function SolicitudCotizacionDetailPage() {
                     <td className="px-3 py-3 max-w-xs">
                       {item.estadoItem === 'aceptado' && item.articulo ? (
                         <div className="flex items-start justify-between gap-2">
-                          <div>
+                          <a
+                            href={`/articulos/${item.articulo.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:underline"
+                            title="Ver detalle del artículo"
+                          >
                             <p className="font-medium text-green-700">{item.articulo.nombre}</p>
                             <p className="text-xs text-gray-500 font-mono">
                               {item.articulo.codigo}
                               {item.articulo.marca && ` · ${item.articulo.marca}`}
                             </p>
-                          </div>
+                          </a>
                           <button
                             onClick={() => handleQuitarAceptacion(item)}
                             disabled={disabled}
@@ -403,7 +424,7 @@ export function SolicitudCotizacionDetailPage() {
                             <X className="w-4 h-4" />
                           </button>
                         </div>
-                      ) : item.estadoItem === 'a_comprar' && item.urlExterna ? (
+                      ) : item.estadoItem === 'no_disponible' && item.urlExterna ? (
                         <div className="flex items-start justify-between gap-2">
                           <div>
                             <p className="font-medium text-amber-700">Compra externa</p>
@@ -432,13 +453,24 @@ export function SolicitudCotizacionDetailPage() {
 
                     <td className="px-3 py-3 min-w-[220px]">
                       {editingItemId === item.id ? (
-                        <ArticuloCombobox
-                          articulos={articulos}
-                          value={item.articuloId}
-                          onChange={(articulo) => handleSeleccionarArticulo(item, articulo)}
-                          allowZeroStock
-                          placeholder="Buscar artículo..."
-                        />
+                        <div className="flex items-start gap-1">
+                          <ArticuloCombobox
+                            articulos={articulos}
+                            value={item.articuloId}
+                            onChange={(articulo) => handleSeleccionarArticulo(item, articulo)}
+                            allowZeroStock
+                            placeholder="Buscar artículo..."
+                            dropdownClassName="min-w-[520px]"
+                            className="flex-1"
+                          />
+                          <button
+                            onClick={() => setEditingItemId(null)}
+                            title="Cancelar búsqueda"
+                            className="flex-shrink-0 p-2 text-gray-400 hover:text-gray-600"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
                       ) : (
                         <div className="flex flex-col gap-1">
                           {item.articuloId && item.estadoItem !== 'aceptado' && (
@@ -467,7 +499,7 @@ export function SolicitudCotizacionDetailPage() {
 
                           {item.estadoItem !== 'aceptado' && (
                             <>
-                              {item.urlExterna && item.estadoItem !== 'a_comprar' ? (
+                              {item.urlExterna && item.estadoItem !== 'no_disponible' ? (
                                 <div className="mt-1 p-2 bg-amber-50 border border-amber-200 rounded">
                                   <a
                                     href={item.urlExterna}
@@ -510,7 +542,7 @@ export function SolicitudCotizacionDetailPage() {
                                   </button>
                                 </div>
                               ) : (
-                                !(item.estadoItem === 'a_comprar' && item.urlExterna) && (
+                                !(item.estadoItem === 'no_disponible' && item.urlExterna) && (
                                   <button
                                     onClick={() => setPastingUrlItemId(item.id)}
                                     disabled={disabled}
@@ -541,7 +573,21 @@ export function SolicitudCotizacionDetailPage() {
                     </td>
 
                     <td className="px-3 py-3">
-                      <Badge variant={itemEstadoVariants[item.estadoItem]}>{itemEstadoLabels[item.estadoItem]}</Badge>
+                      <select
+                        value={item.estadoItem}
+                        disabled={disabled}
+                        onChange={(e) => {
+                          const target = e.target;
+                          const nuevoEstado = target.value as typeof item.estadoItem;
+                          target.value = item.estadoItem; // evita el parpadeo visual si se cancela la confirmación
+                          handleCambiarEstado(item, nuevoEstado);
+                        }}
+                        className={`input text-xs py-1 disabled:opacity-50 ${itemEstadoSelectClass[item.estadoItem]}`}
+                      >
+                        <option value="pendiente">Pendiente</option>
+                        <option value="aceptado">Aceptado</option>
+                        <option value="no_disponible">No Disponible</option>
+                      </select>
                     </td>
                   </tr>
                 );

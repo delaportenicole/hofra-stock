@@ -11,6 +11,7 @@ interface ArticuloComboboxProps {
   disabled?: boolean;
   className?: string;
   allowZeroStock?: boolean; // Para Reposiciones: permite seleccionar artículos sin stock
+  dropdownClassName?: string; // Para angostar/ensanchar el listado desplegable en layouts angostos (ej. celdas de tabla)
 }
 
 export function ArticuloCombobox({
@@ -22,6 +23,7 @@ export function ArticuloCombobox({
   disabled = false,
   className = '',
   allowZeroStock = false,
+  dropdownClassName = '',
 }: ArticuloComboboxProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -141,7 +143,7 @@ export function ArticuloCombobox({
       </div>
 
       {isOpen && !disabled && (
-        <ul className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-72 overflow-auto">
+        <ul className={`absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-72 overflow-auto ${dropdownClassName}`}>
           {filteredArticulos.length === 0 ? (
             <li className="px-4 py-3 text-gray-500 text-center">
               No se encontraron artículos

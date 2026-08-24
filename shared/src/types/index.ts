@@ -269,7 +269,7 @@ export type EstadoSolicitudCotizacion = 'en_revision' | 'cotizada' | 'cancelada'
 
 export type MatchConfianza = 'etm' | 'nombre' | 'sin_match';
 
-export type EstadoItemCotizacion = 'pendiente' | 'aceptado' | 'a_comprar';
+export type EstadoItemCotizacion = 'pendiente' | 'aceptado' | 'no_disponible';
 
 export interface SolicitudCotizacionItem {
   id: string;

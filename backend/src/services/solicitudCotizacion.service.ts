@@ -161,9 +161,9 @@ class SolicitudCotizacionService {
     const item = solicitud.items.find((i) => i.id === itemId);
     if (!item) throw new NotFoundError('Ítem de la solicitud');
 
-    // Un ítem marcado "a comprar" no tiene un artículo interno asociado
+    // Un ítem marcado "no disponible" no tiene un artículo interno asociado
     const payload = { ...data };
-    if (payload.estadoItem === 'a_comprar') {
+    if (payload.estadoItem === 'no_disponible') {
       payload.articuloId = null;
     }
 
