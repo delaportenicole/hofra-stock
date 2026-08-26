@@ -677,19 +677,28 @@ El matching es solo una *sugerencia*: nunca se acepta automáticamente, siempre 
 #### Estados por Ítem
 - **`pendiente`**: Recién matcheado, sin decisión del usuario
 - **`aceptado`**: El usuario confirmó un artículo (la sugerencia del sistema o uno elegido a mano), o aceptó una URL externa como opción de compra
-- **`a_comprar`**: Se decidió comprarlo afuera del catálogo (vía Mercado Libre o una URL pegada), sin artículo interno asociado
+- **`no_disponible`**: No hay artículo interno asociado — porque se decidió comprarlo afuera (Mercado Libre o una URL pegada) o porque se marcó explícitamente como no disponible
+
+No existe una columna "Estado" en la grilla: el estado de cada ítem se ve reflejado en las columnas Sugerido/Aceptado y en los indicadores de la parte superior de la pantalla (ver más abajo).
+
+#### Indicadores (arriba de la grilla)
+Cuatro tarjetas con conteos en tiempo real sobre los ítems de la solicitud:
+- **Con Coincidencia** / **Sin Coincidencia**: según `matchConfianza` (etm/nombre vs. sin_match) — calidad del matching automático
+- **Aceptados** / **Pendientes de Revisión**: según si el ítem ya salió de `pendiente` o no — progreso de la revisión
 
 #### Pantalla de Revisión (por cada ítem)
 - **Solicitado**: ETM, descripción, marca y cantidad tal como vinieron en el archivo (solo lectura)
-- **Sugerido**: artículo matcheado por el sistema (código, nombre, marca, stock) con badge de confianza ("Coincide por ETM" / "Coincide por nombre"), o "Sin coincidencia"
-- **Aceptado**: una vez confirmada una decisión, muestra el artículo del catálogo aceptado (en verde) o la compra externa aceptada (en ámbar, con link "Ver publicación"), con un botón **✕** para deshacer la decisión (vuelve a `pendiente` sin perder la sugerencia ni la URL) y poder elegir otra opción
-- **Acciones disponibles** (mientras el ítem no esté aceptado):
-  - **Aceptar sugerencia**: confirma el artículo matcheado por el sistema
-  - **Buscar otro artículo**: abre un combobox para elegir manualmente otro artículo del catálogo (permite artículos sin stock, ya que es para cotizar, no para descontar stock)
-  - **Buscar en Mercado Libre**: abre en una pestaña nueva una búsqueda en Mercado Libre armada solo con la **descripción** del ítem (no se usa marca ni ETM, para no ensuciar los resultados). Si el ítem no tiene ningún artículo matcheado, además lo marca como `a_comprar`; si ya hay una sugerencia del catálogo, es solo para comparar precio y no le pisa la sugerencia
-  - **Pegar URL de producto**: permite pegar el link de un producto externo (ej. una publicación de Mercado Libre) como opción de compra para ese ítem. Una vez guardada la URL, se puede **Aceptar** (marca el ítem como `a_comprar`, guarda la URL) o **Declinar** (la descarta)
+- **Sugerido**: artículo matcheado por el sistema (código, nombre, marca, stock) con badge de confianza ("Coincide por ETM" / "Coincide por nombre"), o "Sin coincidencia". Si hay artículo, el nombre es un link que abre su detalle (`/articulos/:id`) en una pestaña nueva
+- **Aceptado**: una vez confirmada una decisión, muestra el artículo del catálogo aceptado (en verde, también clickeable a su detalle), la compra externa aceptada (en ámbar, con link "Ver publicación"), o "No Disponible" si se marcó así sin una URL asociada. En los tres casos hay un botón **✕** para deshacer la decisión (vuelve a `pendiente` sin perder la sugerencia, la URL, o el artículo previamente elegido) y poder decidir de nuevo
+- **Acciones disponibles**:
+  - **Aceptar sugerencia**: confirma el artículo matcheado por el sistema (solo visible si el ítem todavía no está aceptado)
+  - **Buscar otro artículo**: abre un combobox ancho para elegir manualmente otro artículo del catálogo (permite artículos sin stock, ya que es para cotizar, no para descontar stock); tiene un botón **✕** para cancelar la búsqueda sin elegir nada y volver a ver las demás opciones
+  - **Buscar en Mercado Libre**: abre en una pestaña nueva una búsqueda en Mercado Libre armada solo con la **descripción** del ítem (no se usa marca ni ETM, para no ensuciar los resultados). Si el ítem no tiene ningún artículo matcheado, además lo marca como `no_disponible`; si ya hay una sugerencia del catálogo, es solo para comparar precio y no le pisa la sugerencia
+  - **Marcar como No Disponible**: acción directa (con confirmación) para marcar el ítem como no disponible en cualquier momento, sin pasar por Mercado Libre
+  - **Pegar URL de producto**: permite pegar el link de un producto externo (ej. una publicación de Mercado Libre) como opción de compra para ese ítem. Una vez guardada la URL, se puede **Aceptar** (marca el ítem como `no_disponible`, guarda la URL) o **Declinar** (la descarta)
 - **Precio Unitario**: campo editable por ítem. Al aceptar un artículo del catálogo que tiene costo cargado (`costoInicialEstimado`) y el ítem todavía no tiene precio, se prellena con ese valor como punto de partida — siempre se puede sobreescribir a mano. La URL externa **no** trae precio automático; se carga siempre a mano
 - **Subtotal**: cantidad × precio unitario (calculado)
+- La grilla tiene ancho mínimo con scroll horizontal (columnas con `min-width` propio) para que ninguna columna quede cortada en pantallas chicas (ej. notebooks de 13")
 
 #### Marcar como Cotizada
 Solo se habilita cuando **todos** los ítems dejaron de estar `pendiente` y **todos** tienen precio unitario cargado. El backend valida esto antes de permitir el cambio de estado (`POST /solicitudes-cotizacion/:id/marcar-cotizada`).
@@ -739,6 +748,7 @@ POST   /api/solicitudes-cotizacion/:id/cancelar          # Cancela la solicitud
 **Migraciones**:
 - `database/migrations/019_add_solicitudes_cotizacion.sql`
 - `database/migrations/020_add_url_externa_solicitud_items.sql`
+- `database/migrations/021_rename_a_comprar_a_no_disponible.sql`
 
 ---
 
@@ -1310,6 +1320,8 @@ npm run db:seed          # Datos iniciales
     - Permisos `solicitudes_cotizacion:leer/crear/actualizar/eliminar` asignados a Administrador
 19. **020_add_url_externa_solicitud_items.sql**: URL de producto externo en ítems de cotización
     - Campo `url_externa TEXT` en `solicitud_cotizacion_items`
+20. **021_rename_a_comprar_a_no_disponible.sql**: Renombra el estado de ítem `a_comprar` a `no_disponible`
+    - Actualiza filas existentes y el `CHECK` constraint de `estado_item`
 
 ---
 
@@ -1929,16 +1941,21 @@ npm run db:seed          # Datos iniciales
 - **Objetivo**: procesar el archivo Excel que manda un cliente pidiendo cotización, matchear automáticamente cada ítem contra el catálogo propio, revisarlo en pantalla, y terminar generando una cotización imprimible para responder
 - **Carga de archivo**: columnas detectadas por nombre de encabezado (ETM, Descripción, Cantidad, Marca), no por posición fija — tolera archivos con columnas extra intercaladas (Precio, Moneda, Modelo, Descripción en Inglés, etc.)
 - **Matching automático** (heurístico, sin servicios externos): primero por ETM exacto, luego por overlap de palabras de la descripción + bono si la marca coincide, si no hay coincidencia suficiente queda "sin match"
-- **Pantalla de revisión por ítem**: columnas Solicitado / Sugerido / Aceptado / Acciones / Precio Unitario / Subtotal / Estado
-  - Aceptar la sugerencia del catálogo, o buscar y elegir otro artículo manualmente
+- **Pantalla de revisión por ítem**: columnas Solicitado / Sugerido / Aceptado / Acciones / Precio Unitario / Subtotal
+  - Aceptar la sugerencia del catálogo, o buscar y elegir otro artículo manualmente (con botón para cancelar la búsqueda sin elegir nada)
   - Buscar en Mercado Libre (pestaña nueva, búsqueda armada solo con la descripción) sin perder una sugerencia ya matcheada
+  - Marcar directamente un ítem como "No Disponible" (con confirmación), sin pasar por Mercado Libre
   - Pegar la URL de un producto externo (ej. Mercado Libre) y Aceptar/Declinar esa opción de compra
-  - Botón para deshacer una aceptación y volver a decidir, sin perder la sugerencia u URL original
+  - Botón para deshacer una decisión (aceptado o no disponible) y volver a `pendiente`, sin perder la sugerencia u URL original
   - Precio unitario se prellena con el costo del artículo del catálogo si no había uno cargado, siempre editable a mano
+  - Artículos de las columnas Sugerido/Aceptado son clickeables: abren el detalle del artículo en una pestaña nueva
+  - Tarjetas de indicadores arriba de la grilla: Con Coincidencia, Sin Coincidencia, Aceptados, Pendientes de Revisión
+  - Grilla con ancho mínimo y scroll horizontal para que ninguna columna quede cortada en pantallas chicas
 - **Cotizada**: solo se puede marcar cuando todos los ítems tienen decisión y precio cargado; genera un comprobante imprimible sin exponer código interno ni costos
 - **Investigación sobre integración con Mercado Libre**: se confirmó que tanto la búsqueda (`/sites/{site}/search`) como la consulta de un producto puntual (`/items/{id}`) devuelven 403 sin autenticación OAuth desde abril de 2025; embeber la página de ML en un iframe tampoco es viable por sus headers `X-Frame-Options`/CSP, y el scraping server-side también devuelve 403. Por eso el precio y la foto de productos externos se cargan a mano por ahora; automatizarlo queda pendiente como mejora futura (requiere alta de app OAuth en developers.mercadolibre.com.ar)
 - **Nuevas tablas**: `solicitudes_cotizacion` (cabecera) y `solicitud_cotizacion_items` (detalle, incluye `url_externa`)
 - **Nuevo permiso de módulo**: `solicitudes_cotizacion` (leer/crear/actualizar/eliminar)
+- **Estados por ítem simplificados**: `pendiente` / `aceptado` / `no_disponible` (el estado original `a_comprar` se renombró a `no_disponible`, misma semántica: sin artículo interno asociado)
 
 #### Archivos Nuevos
 **Backend**:
@@ -1956,6 +1973,7 @@ npm run db:seed          # Datos iniciales
 **Migraciones**:
 - `database/migrations/019_add_solicitudes_cotizacion.sql`
 - `database/migrations/020_add_url_externa_solicitud_items.sql`
+- `database/migrations/021_rename_a_comprar_a_no_disponible.sql`
 
 #### Archivos Modificados
 - `backend/src/repositories/articulo.repository.ts` - Nuevo método `findByEtm()`
@@ -1965,3 +1983,5 @@ npm run db:seed          # Datos iniciales
 - `frontend/src/layouts/AdminLayout.tsx` - Ítem de menú nuevo
 - `frontend/src/pages/roles/RoleForm.tsx` - Label del nuevo módulo en el selector de permisos
 - `shared/src/types/index.ts`, `shared/src/validators/index.ts`, `shared/src/constants/index.ts` - Tipos, DTOs, schemas Zod y constante de módulo
+- `backend/src/services/solicitudCotizacion.service.ts` - Rename `a_comprar` → `no_disponible`
+- `frontend/src/components/ArticuloCombobox.tsx` - Nueva prop `dropdownClassName` para ensanchar el listado desplegable cuando se usa en celdas de tabla angostas (no afecta su uso en Entregas/Reposiciones)
