@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Tags, Award } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Plus, Edit2, Trash2, Tags, Award, HardDrive, CheckCircle2, ExternalLink } from 'lucide-react';
 import { rubrosService } from '../../services/rubros.service';
 import { marcasService } from '../../services/marcas.service';
+import { googleService, type GoogleStatus } from '../../services/google.service';
 import { DataTable } from '../../components/DataTable';
 import { Badge } from '../../components/Badge';
 import { usePagination } from '../../hooks/usePagination';
@@ -11,10 +13,16 @@ import type { Rubro, Marca } from '@hofra/shared';
 import { RubroModal } from './RubroModal';
 import { MarcaModal } from './MarcaModal';
 
-type TabType = 'rubros' | 'marcas';
+type TabType = 'rubros' | 'marcas' | 'google';
 
 export function UnidadesListPage() {
-  const [activeTab, setActiveTab] = useState<TabType>('rubros');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<TabType>(searchParams.has('google') ? 'google' : 'rubros');
+
+  // Google Drive state
+  const [googleStatus, setGoogleStatus] = useState<GoogleStatus | null>(null);
+  const [isLoadingGoogle, setIsLoadingGoogle] = useState(true);
+  const [isConnectingGoogle, setIsConnectingGoogle] = useState(false);
 
   // Rubros state
   const [rubros, setRubros] = useState<Rubro[]>([]);
@@ -41,6 +49,42 @@ export function UnidadesListPage() {
   useEffect(() => {
     loadMarcas();
   }, [pageMarcas, limitMarcas]);
+
+  useEffect(() => {
+    loadGoogleStatus();
+
+    if (searchParams.get('google') === 'connected') {
+      toast.success('Cuenta de Google conectada correctamente');
+      setSearchParams({}, { replace: true });
+    } else if (searchParams.get('google') === 'error') {
+      toast.error('No se pudo conectar la cuenta de Google, intentá de nuevo');
+      setSearchParams({}, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadGoogleStatus = async () => {
+    setIsLoadingGoogle(true);
+    try {
+      const status = await googleService.getStatus();
+      setGoogleStatus(status);
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setIsLoadingGoogle(false);
+    }
+  };
+
+  const handleConectarGoogle = async () => {
+    setIsConnectingGoogle(true);
+    try {
+      const url = await googleService.getAuthUrl();
+      window.location.href = url;
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+      setIsConnectingGoogle(false);
+    }
+  };
 
   const loadRubros = async () => {
     setIsLoadingRubros(true);
@@ -232,6 +276,17 @@ export function UnidadesListPage() {
             <Award className="w-4 h-4" />
             Marcas
           </button>
+          <button
+            onClick={() => setActiveTab('google')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+              activeTab === 'google'
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <HardDrive className="w-4 h-4" />
+            Google Drive
+          </button>
         </nav>
       </div>
 
@@ -299,6 +354,30 @@ export function UnidadesListPage() {
             onLimitChange={setLimitMarcas}
             emptyMessage="No hay marcas registradas"
           />
+        </div>
+      )}
+
+      {activeTab === 'google' && (
+        <div className="card p-6 max-w-xl">
+          <h2 className="text-lg font-semibold text-gray-900 mb-1">Exportar cotizaciones a Google Sheets</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            Conectá una cuenta de Google para que las Solicitudes de Cotización se puedan exportar
+            directo a una planilla nueva en ese Google Drive.
+          </p>
+
+          {isLoadingGoogle ? (
+            <p className="text-sm text-gray-400">Cargando...</p>
+          ) : googleStatus?.connected ? (
+            <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+              <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+              Conectado como <span className="font-medium">{googleStatus.email}</span>
+            </div>
+          ) : (
+            <button onClick={handleConectarGoogle} disabled={isConnectingGoogle} className="btn-primary disabled:opacity-50">
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Conectar con Google
+            </button>
+          )}
         </div>
       )}
 

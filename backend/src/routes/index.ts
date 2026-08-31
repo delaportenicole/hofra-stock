@@ -14,6 +14,7 @@ import importarRoutes from './importar.routes.js';
 import { reportesRoutes } from './reportes.routes.js';
 import { sugerenciaRoutes } from './sugerencia.routes.js';
 import { solicitudCotizacionRoutes } from './solicitudCotizacion.routes.js';
+import { googleRoutes } from './google.routes.js';
 
 const router = Router();
 
@@ -38,5 +39,6 @@ router.use('/importar', importarRoutes);
 router.use('/reportes', reportesRoutes);
 router.use('/sugerencias', sugerenciaRoutes);
 router.use('/solicitudes-cotizacion', solicitudCotizacionRoutes);
+router.use('/google', googleRoutes);
 
 export { router as apiRoutes };

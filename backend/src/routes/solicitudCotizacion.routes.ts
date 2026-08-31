@@ -17,6 +17,7 @@ router.use(authMiddleware);
 router.get('/', requirePermission('solicitudes_cotizacion', 'leer'), solicitudCotizacionController.findAll);
 router.get('/:id', requirePermission('solicitudes_cotizacion', 'leer'), solicitudCotizacionController.findById);
 router.get('/:id/exportar-excel', requirePermission('solicitudes_cotizacion', 'leer'), solicitudCotizacionController.exportarExcel);
+router.post('/:id/exportar-google-sheets', requirePermission('solicitudes_cotizacion', 'leer'), solicitudCotizacionController.exportarGoogleSheets);
 router.post(
   '/',
   requirePermission('solicitudes_cotizacion', 'crear'),

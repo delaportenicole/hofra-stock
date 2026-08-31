@@ -656,8 +656,10 @@ Las columnas se detectan **por nombre de encabezado** en la primera fila (no por
 |------------|-------|-------|
 | ETM | etmSolicitado | Opcional, se usa para matchear contra el ETM del catálogo |
 | DESCRIPCION | descripcionSolicitada | **Requerido** |
+| DESCRIPCION EN INGLES | descripcionInglesSolicitada | Opcional, se usa solo al exportar la cotización final |
 | CANTIDAD | cantidadSolicitada | **Requerido**, debe ser mayor a 0 |
 | MARCA | marcaSolicitada | Opcional |
+| MODELO | modeloSolicitado | Opcional |
 
 Filas sin Descripción o sin Cantidad válida se omiten (se informa la cantidad de filas omitidas).
 
@@ -712,22 +714,57 @@ La API pública de Mercado Libre dejó de permitir búsquedas y consultas de pro
 - **Embeber la página de Mercado Libre en un iframe no es viable**: el sitio manda headers `X-Frame-Options`/`Content-Security-Policy` que lo bloquean explícitamente, y ni siquiera el scraping server-side funciona (también devuelve 403, ML bloquea tráfico automatizado)
 - El precio y la foto de un producto externo **no se traen automáticamente**: por eso el flujo de "Pegar URL" requiere cargar el precio a mano. Automatizarlo requeriría dar de alta una app en developers.mercadolibre.com.ar, autorizarla con una cuenta de ML y manejar tokens OAuth en el backend — quedó como mejora futura, no implementada
 
+#### Exportar la Cotización (Excel y Google Sheets)
+
+Desde la pantalla de detalle hay dos botones que generan el mismo documento final — una cotización con el formato que ya usaba Nicole a mano (columnas Solicitado / Item Ofrecido / Proveedor / Imagen / Costo-MarkUp-Venta / Precio Sin IVA / Total Sin IVA) — y comparten toda la lógica de armado en `backend/src/services/cotizacionExport.service.ts` (`buildCotizacionSheetData()`), para no duplicar nada entre los dos destinos:
+
+- **"Exportar a Excel"**: genera un `.xlsx` real con `exceljs` (soporta fórmulas nativas) y lo descarga.
+- **"Exportar a Google Sheets"**: crea la planilla directo en una cuenta de Google Drive conectada al sistema (vía Google Sheets API + Drive API) y la abre en una pestaña nueva — sin pasos manuales de descarga/subida.
+
+**Mapeo de columnas** (fila de encabezados en la fila 6 del archivo generado):
+
+| Columna | Contenido | Origen |
+|---|---|---|
+| ITEM, DESCRIPCION, DESCRIPCION EN INGLES, ETM, MARCA, MODELO, CANT | Lo solicitado por el cliente | Campos del ítem tal cual se importaron |
+| Item Ofrecido - Descripción, Marca | Artículo aceptado del catálogo | `item.articulo.nombre` / `.marca` (vacío si no hay artículo) |
+| Modelo (del ofrecido) | — | Siempre vacío, no se trackea; se completa a mano |
+| Unidad de Medida | "Unidad" | Fijo, solo si hay artículo ofrecido |
+| Imagen de lo Ofrecido | Fórmula `=IMAGE(url)` | `articulo.imagenUrl` (Cloudinary), si existe. Vacío para ítems comprados externamente (sin foto disponible) |
+| Proveedor | Proveedor del artículo, o la URL externa | `articulo.proveedorNombre` si es de catálogo; `item.urlExterna` si el ítem es `no_disponible` con URL pegada |
+| Costo por Unidad, Costo Total, Mark Up, Venta con IVA | — | Siempre en blanco (se completan a mano si se quiere el desglose) |
+| Precio Unit. Sin IVA | `item.precioUnitario` | El sistema asume que ya es neto de IVA |
+| Total Sin IVA | Fórmula `=Cantidad × Precio Sin Iva` | Se recalcula solo si se edita el precio o la cantidad en la planilla |
+
+**Integración con Google (OAuth)**:
+- Se conecta **una sola cuenta de Google** para todo el sistema (no por usuario) desde **Configuraciones → Google Drive**.
+- Scopes usados: `drive.file` (solo archivos creados por la app, no todo el Drive) y `userinfo.email` (para mostrar con qué cuenta está conectado).
+- El refresh token queda guardado en la tabla `google_integracion` (una sola fila; conectar una cuenta nueva reemplaza la anterior).
+- Flujo: `GET /api/google/auth-url` arma el link de autorización → Google redirige a `GET /api/google/oauth/callback` → el backend intercambia el código por tokens y guarda el refresh token → redirige de vuelta a `/configuraciones?google=connected`.
+- Google Sheets API y Drive API son gratuitas para este volumen de uso (no requieren cuenta de facturación; el límite gratuito es 500 requests/100s por proyecto).
+
 #### Modelo de Datos
 
 | Tabla | Campo | Notas |
 |-------|-------|-------|
 | solicitudes_cotizacion | `cliente_id`, `numero_referencia_cliente`, `nombre_archivo`, `fecha_solicitud`, `estado`, `observaciones` | Cabecera |
-| solicitud_cotizacion_items | `solicitud_id`, `orden`, `etm_solicitado`, `descripcion_solicitada`, `marca_solicitada`, `cantidad_solicitada`, `articulo_id`, `match_confianza`, `estado_item`, `precio_unitario`, `url_externa` | Detalle |
+| solicitud_cotizacion_items | `solicitud_id`, `orden`, `etm_solicitado`, `descripcion_solicitada`, `descripcion_ingles_solicitada`, `marca_solicitada`, `modelo_solicitado`, `cantidad_solicitada`, `articulo_id`, `match_confianza`, `estado_item`, `precio_unitario`, `url_externa` | Detalle |
+| google_integracion | `refresh_token`, `connected_email`, `connected_at` | Una sola fila: la cuenta de Google conectada para exportar |
 
 #### API
 ```
-GET    /api/solicitudes-cotizacion                      # Lista paginada con filtros (estado, clienteId, busqueda)
-GET    /api/solicitudes-cotizacion/:id                   # Ver detalle con items y matching
-POST   /api/solicitudes-cotizacion                       # Crear solicitud (corre el matching automático por ítem)
+GET    /api/solicitudes-cotizacion                       # Lista paginada con filtros (estado, clienteId, busqueda)
+GET    /api/solicitudes-cotizacion/:id                    # Ver detalle con items y matching
+POST   /api/solicitudes-cotizacion                        # Crear solicitud (corre el matching automático por ítem)
 PUT    /api/solicitudes-cotizacion/:id                    # Actualizar cabecera (referencia, observaciones)
-PUT    /api/solicitudes-cotizacion/:id/items/:itemId     # Actualizar un ítem (artículo, estado, precio, URL externa)
-POST   /api/solicitudes-cotizacion/:id/marcar-cotizada   # Marca como cotizada (valida que no queden ítems pendientes/sin precio)
-POST   /api/solicitudes-cotizacion/:id/cancelar          # Cancela la solicitud
+PUT    /api/solicitudes-cotizacion/:id/items/:itemId      # Actualizar un ítem (artículo, estado, precio, URL externa)
+POST   /api/solicitudes-cotizacion/:id/marcar-cotizada    # Marca como cotizada (valida que no queden ítems pendientes/sin precio)
+POST   /api/solicitudes-cotizacion/:id/cancelar           # Cancela la solicitud
+GET    /api/solicitudes-cotizacion/:id/exportar-excel     # Descarga el .xlsx de la cotización
+POST   /api/solicitudes-cotizacion/:id/exportar-google-sheets  # Crea el Google Sheet y devuelve su URL
+
+GET    /api/google/auth-url    # URL de autorización de Google (requiere permiso solicitudes_cotizacion:actualizar)
+GET    /api/google/oauth/callback  # Callback de Google (lo llama el navegador, no requiere JWT)
+GET    /api/google/status      # Estado de conexión (conectado sí/no, con qué email)
 ```
 
 #### Archivos Relacionados
@@ -735,8 +772,11 @@ POST   /api/solicitudes-cotizacion/:id/cancelar          # Cancela la solicitud
 **Backend**:
 - `backend/src/repositories/solicitudCotizacion.repository.ts`
 - `backend/src/services/solicitudCotizacion.service.ts` (incluye el algoritmo de matching)
-- `backend/src/controllers/solicitudCotizacion.controller.ts`
-- `backend/src/routes/solicitudCotizacion.routes.ts`
+- `backend/src/services/cotizacionExport.service.ts` (armado de la matriz de datos/fórmulas + generación del `.xlsx` con `exceljs`)
+- `backend/src/services/google.service.ts` (OAuth2, creación del Google Sheet vía `googleapis`)
+- `backend/src/repositories/googleIntegracion.repository.ts`
+- `backend/src/controllers/solicitudCotizacion.controller.ts`, `backend/src/controllers/google.controller.ts`
+- `backend/src/routes/solicitudCotizacion.routes.ts`, `backend/src/routes/google.routes.ts`
 - `backend/src/repositories/articulo.repository.ts` (método `findByEtm()`)
 
 **Frontend**:
@@ -744,11 +784,15 @@ POST   /api/solicitudes-cotizacion/:id/cancelar          # Cancela la solicitud
 - `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionUpload.tsx`
 - `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
 - `frontend/src/services/solicitudesCotizacion.service.ts`
+- `frontend/src/services/google.service.ts`
+- `frontend/src/pages/unidades/UnidadesList.tsx` (tab "Google Drive" en Configuraciones)
 
 **Migraciones**:
 - `database/migrations/019_add_solicitudes_cotizacion.sql`
 - `database/migrations/020_add_url_externa_solicitud_items.sql`
 - `database/migrations/021_rename_a_comprar_a_no_disponible.sql`
+- `database/migrations/022_add_modelo_descripcion_ingles_solicitud_items.sql`
+- `database/migrations/023_add_google_integracion.sql`
 
 ---
 
@@ -1237,7 +1281,14 @@ CLOUDINARY_API_SECRET=oTgFK-iPSiKxL66luTuyYXrxk2I
 # App
 NODE_ENV=development
 FRONTEND_URL=http://localhost:5173
+
+# Google (exportar Solicitudes de Cotización a Google Sheets)
+GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-client-secret
+GOOGLE_REDIRECT_URI=https://tu-dominio.vercel.app/api/google/oauth/callback
 ```
+
+Las credenciales de Google se generan en console.cloud.google.com (proyecto propio, con Sheets API y Drive API habilitadas, y un cliente OAuth de tipo "Aplicación web"). No requieren cuenta de facturación para este volumen de uso.
 
 ### Cloudinary (Almacenamiento de Imágenes)
 
@@ -1322,6 +1373,10 @@ npm run db:seed          # Datos iniciales
     - Campo `url_externa TEXT` en `solicitud_cotizacion_items`
 20. **021_rename_a_comprar_a_no_disponible.sql**: Renombra el estado de ítem `a_comprar` a `no_disponible`
     - Actualiza filas existentes y el `CHECK` constraint de `estado_item`
+21. **022_add_modelo_descripcion_ingles_solicitud_items.sql**: Columnas del archivo del cliente para la cotización final
+    - Campos `modelo_solicitado VARCHAR(150)` y `descripcion_ingles_solicitada TEXT` en `solicitud_cotizacion_items`
+22. **023_add_google_integracion.sql**: Integración con Google Sheets/Drive
+    - Tabla `google_integracion` (refresh token de la cuenta de Google conectada)
 
 ---
 
@@ -1464,6 +1519,8 @@ npm run db:seed          # Datos iniciales
 - [x] ~~Fix historial de movimientos: cantidad por artículo específico~~ (completado)
 - [x] ~~Scripts de limpieza de base de datos~~ (completado)
 - [x] ~~Módulo de Solicitudes de Cotización con matching automático y cotización imprimible~~ (completado)
+- [x] ~~Exportar Solicitud de Cotización a Excel (.xlsx con fórmulas)~~ (completado)
+- [x] ~~Exportar Solicitud de Cotización directo a Google Sheets (OAuth con Drive/Sheets API)~~ (completado)
 - [ ] Integración OAuth con Mercado Libre para autocompletar precio/foto de productos externos
 
 ---
@@ -1481,7 +1538,7 @@ npm run db:seed          # Datos iniciales
 
 ---
 
-*Documentación actualizada el 23 de agosto de 2026*
+*Documentación actualizada el 31 de agosto de 2026*
 
 ---
 
@@ -1985,3 +2042,50 @@ npm run db:seed          # Datos iniciales
 - `shared/src/types/index.ts`, `shared/src/validators/index.ts`, `shared/src/constants/index.ts` - Tipos, DTOs, schemas Zod y constante de módulo
 - `backend/src/services/solicitudCotizacion.service.ts` - Rename `a_comprar` → `no_disponible`
 - `frontend/src/components/ArticuloCombobox.tsx` - Nueva prop `dropdownClassName` para ensanchar el listado desplegable cuando se usa en celdas de tabla angostas (no afecta su uso en Entregas/Reposiciones)
+
+---
+
+### 31 de agosto de 2026
+
+#### Exportar Solicitud de Cotización a Excel y Google Sheets
+- **Objetivo**: reemplazar el armado manual de la cotización final (columnas Solicitado/Ofrecido/Costo-MarkUp-Venta/Precio con fórmulas) por una exportación automática, con dos destinos que comparten la misma lógica de armado
+- **`buildCotizacionSheetData()`** (`backend/src/services/cotizacionExport.service.ts`): función pura que arma la matriz de filas/columnas/fórmulas de la cotización a partir de una `SolicitudCotizacionConRelaciones` — la usan tanto el export a Excel como el export a Google Sheets, sin duplicar lógica
+- **"Exportar a Excel"**: genera un `.xlsx` real con `exceljs` (fórmulas nativas, no solo valores) y lo descarga
+  - `GET /api/solicitudes-cotizacion/:id/exportar-excel`
+- **"Exportar a Google Sheets"**: crea la planilla directo en un Google Drive conectado (sin descargar/subir a mano)
+  - Nueva integración OAuth con Google: una sola cuenta conectada para todo el sistema, tab **"Google Drive"** en Configuraciones para conectar/ver estado
+  - Scopes mínimos: `drive.file` (solo archivos creados por la app) + `userinfo.email`
+  - Refresh token guardado en la nueva tabla `google_integracion`
+  - `POST /api/solicitudes-cotizacion/:id/exportar-google-sheets`, `GET /api/google/auth-url`, `GET /api/google/oauth/callback`, `GET /api/google/status`
+- **Columnas del documento final**: Costo por Unidad/Costo Total/Mark Up/Venta con IVA quedan siempre en blanco (decisión explícita: el sistema solo maneja un precio único, ya neto de IVA); Precio Unit. Sin IVA = precio cargado en la solicitud; Total Sin IVA = fórmula (Cantidad × Precio); Imagen de lo Ofrecido = fórmula `=IMAGE(url)` con la foto del artículo del catálogo (Cloudinary) cuando existe; Proveedor = proveedor del artículo aceptado o la URL externa si el ítem es "No Disponible"
+- **Nuevas columnas capturadas del archivo del cliente**: `MODELO` y `DESCRIPCION EN INGLES` (antes se descartaban), para poder volcarlas en la cotización final
+- **Investigación de costos**: se confirmó que Google Sheets API y Drive API son gratuitas para este volumen de uso (no piden cuenta de facturación; límite gratuito de 500 requests/100s por proyecto)
+
+#### Archivos Nuevos
+**Backend**:
+- `backend/src/services/cotizacionExport.service.ts`
+- `backend/src/services/google.service.ts`
+- `backend/src/repositories/googleIntegracion.repository.ts`
+- `backend/src/controllers/google.controller.ts`
+- `backend/src/routes/google.routes.ts`
+
+**Frontend**:
+- `frontend/src/services/google.service.ts`
+
+**Migraciones**:
+- `database/migrations/022_add_modelo_descripcion_ingles_solicitud_items.sql`
+- `database/migrations/023_add_google_integracion.sql`
+
+#### Archivos Modificados
+- `backend/src/repositories/solicitudCotizacion.repository.ts` - Insert/select de `modelo_solicitado`/`descripcion_ingles_solicitada`, `LEFT JOIN proveedores` y `imagen_url` del artículo, `contacto` del cliente
+- `backend/src/services/solicitudCotizacion.service.ts` - Pasa los nuevos campos al crear los ítems
+- `backend/src/controllers/solicitudCotizacion.controller.ts` - Endpoints `exportarExcel` y `exportarGoogleSheets`
+- `backend/src/routes/solicitudCotizacion.routes.ts` - Nuevas rutas de exportación
+- `backend/src/routes/index.ts` - Registro de `googleRoutes`
+- `backend/src/config/env.ts` - Variables `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`
+- `backend/package.json` - Nuevas dependencias `exceljs` y `googleapis`
+- `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionUpload.tsx` - Lee `MODELO` y `DESCRIPCION EN INGLES` del archivo del cliente
+- `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx` - Botones "Exportar a Excel" y "Exportar a Google Sheets", muestra Modelo solicitado
+- `frontend/src/services/solicitudesCotizacion.service.ts` - Métodos `exportarExcel()` y `exportarGoogleSheets()`
+- `frontend/src/pages/unidades/UnidadesList.tsx` - Tab "Google Drive" (estado de conexión + botón conectar)
+- `shared/src/types/index.ts`, `shared/src/validators/index.ts` - Campos `modeloSolicitado`/`descripcionInglesSolicitada`, `proveedorNombre`/`imagenUrl` en el artículo del ítem

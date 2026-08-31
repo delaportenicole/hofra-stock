@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ArrowLeft, Check, Search, ExternalLink, Printer, XCircle, FileCheck, Package, X, Link2, Ban, Download } from 'lucide-react';
+import { ArrowLeft, Check, Search, ExternalLink, Printer, XCircle, FileCheck, Package, X, Link2, Ban, Download, HardDrive, Loader2 } from 'lucide-react';
 import { solicitudesCotizacionService } from '../../services/solicitudesCotizacion.service';
 import { articulosService } from '../../services/articulos.service';
 import { ArticuloCombobox } from '../../components/ArticuloCombobox';
@@ -214,6 +214,21 @@ export function SolicitudCotizacionDetailPage() {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       toast.error(getErrorMessage(error));
+    }
+  };
+
+  const [isExportingSheets, setIsExportingSheets] = useState(false);
+
+  const handleExportarGoogleSheets = async () => {
+    if (!id) return;
+    setIsExportingSheets(true);
+    try {
+      const url = await solicitudesCotizacionService.exportarGoogleSheets(id);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setIsExportingSheets(false);
     }
   };
 
@@ -620,6 +635,10 @@ export function SolicitudCotizacionDetailPage() {
         <button onClick={handleExportarExcel} className="btn-secondary">
           <Download className="w-4 h-4 mr-2" />
           Exportar a Excel
+        </button>
+        <button onClick={handleExportarGoogleSheets} disabled={isExportingSheets} className="btn-secondary disabled:opacity-50">
+          {isExportingSheets ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <HardDrive className="w-4 h-4 mr-2" />}
+          Exportar a Google Sheets
         </button>
         <button onClick={handlePrint} className="btn-secondary">
           <Printer className="w-4 h-4 mr-2" />

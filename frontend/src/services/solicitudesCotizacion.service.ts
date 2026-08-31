@@ -63,4 +63,9 @@ export const solicitudesCotizacionService = {
     const response = await api.get(`/solicitudes-cotizacion/${id}/exportar-excel`, { responseType: 'blob' });
     return response.data;
   },
+
+  async exportarGoogleSheets(id: string): Promise<string> {
+    const response = await api.post<{ data: { url: string } }>(`/solicitudes-cotizacion/${id}/exportar-google-sheets`);
+    return response.data.data.url;
+  },
 };
