@@ -58,4 +58,9 @@ export const solicitudesCotizacionService = {
     const response = await api.post<{ data: SolicitudCotizacionConRelaciones }>(`/solicitudes-cotizacion/${id}/cancelar`);
     return response.data.data;
   },
+
+  async exportarExcel(id: string): Promise<Blob> {
+    const response = await api.get(`/solicitudes-cotizacion/${id}/exportar-excel`, { responseType: 'blob' });
+    return response.data;
+  },
 };

@@ -278,6 +278,8 @@ export interface SolicitudCotizacionItem {
   etmSolicitado: string | null;
   descripcionSolicitada: string;
   marcaSolicitada: string | null;
+  modeloSolicitado: string | null;
+  descripcionInglesSolicitada: string | null;
   cantidadSolicitada: number;
   articuloId: string | null;
   matchConfianza: MatchConfianza | null;
@@ -289,7 +291,11 @@ export interface SolicitudCotizacionItem {
 }
 
 export interface SolicitudCotizacionItemConArticulo extends SolicitudCotizacionItem {
-  articulo: Pick<Articulo, 'id' | 'codigo' | 'nombre' | 'marca' | 'etm' | 'sku' | 'costoInicialEstimado' | 'stockActual'> | null;
+  articulo:
+    | (Pick<Articulo, 'id' | 'codigo' | 'nombre' | 'marca' | 'etm' | 'sku' | 'costoInicialEstimado' | 'stockActual' | 'imagenUrl'> & {
+        proveedorNombre: string | null;
+      })
+    | null;
 }
 
 export interface SolicitudCotizacion extends BaseEntity {
@@ -567,6 +573,8 @@ export interface CreateSolicitudCotizacionItemDto {
   etmSolicitado?: string | null;
   descripcionSolicitada: string;
   marcaSolicitada?: string | null;
+  modeloSolicitado?: string | null;
+  descripcionInglesSolicitada?: string | null;
   cantidadSolicitada: number;
 }
 

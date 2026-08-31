@@ -109,6 +109,8 @@ class SolicitudCotizacionService {
         etmSolicitado: item.etmSolicitado ?? null,
         descripcionSolicitada: item.descripcionSolicitada,
         marcaSolicitada: item.marcaSolicitada ?? null,
+        modeloSolicitado: item.modeloSolicitado ?? null,
+        descripcionInglesSolicitada: item.descripcionInglesSolicitada ?? null,
         cantidadSolicitada: item.cantidadSolicitada,
         articuloId: match.articuloId,
         matchConfianza: match.matchConfianza,

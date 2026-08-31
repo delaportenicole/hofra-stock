@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { solicitudCotizacionService } from '../services/solicitudCotizacion.service.js';
+import { buildCotizacionExcelBuffer } from '../services/cotizacionExport.service.js';
 import { logManualAudit } from '../middlewares/audit.js';
 import { sendSuccess, sendCreated, sendPaginated } from '../utils/response.js';
 import type { AuthenticatedRequest } from '../types/index.js';
@@ -83,6 +84,23 @@ export class SolicitudCotizacionController {
       );
 
       sendSuccess(res, solicitud, 'Solicitud marcada como cotizada');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async exportarExcel(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const solicitud = await solicitudCotizacionService.findById(req.params.id);
+      const buffer = await buildCotizacionExcelBuffer(solicitud);
+
+      const nombreArchivo = `Cotizacion - ${solicitud.cliente.razonSocial}${
+        solicitud.numeroReferenciaCliente ? ` - ${solicitud.numeroReferenciaCliente}` : ''
+      }.xlsx`.replace(/[/\\?%*:|"<>]/g, '-');
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
+      res.send(buffer);
     } catch (error) {
       next(error);
     }

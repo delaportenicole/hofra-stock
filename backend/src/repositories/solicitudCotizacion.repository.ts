@@ -22,6 +22,8 @@ interface CreateItemData {
   etmSolicitado: string | null;
   descripcionSolicitada: string;
   marcaSolicitada: string | null;
+  modeloSolicitado: string | null;
+  descripcionInglesSolicitada: string | null;
   cantidadSolicitada: number;
   articuloId: string | null;
   matchConfianza: MatchConfianza;
@@ -62,8 +64,8 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       for (const item of data.items) {
         const itemRows = await client.query<Record<string, unknown>>(
           `INSERT INTO solicitud_cotizacion_items
-             (solicitud_id, orden, etm_solicitado, descripcion_solicitada, marca_solicitada, cantidad_solicitada, articulo_id, match_confianza)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+             (solicitud_id, orden, etm_solicitado, descripcion_solicitada, marca_solicitada, modelo_solicitado, descripcion_ingles_solicitada, cantidad_solicitada, articulo_id, match_confianza)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
            RETURNING *`,
           [
             solicitud.id,
@@ -71,6 +73,8 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
             item.etmSolicitado,
             item.descripcionSolicitada,
             item.marcaSolicitada,
+            item.modeloSolicitado,
+            item.descripcionInglesSolicitada,
             item.cantidadSolicitada,
             item.articuloId,
             item.matchConfianza,
@@ -187,7 +191,7 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
   async findByIdWithRelations(id: string): Promise<SolicitudCotizacionConRelaciones | null> {
     const row = await queryOne<Record<string, unknown>>(
       `SELECT s.*,
-              c.id as cli_id, c.razon_social as cliente_razon_social, c.cuit as cliente_cuit
+              c.id as cli_id, c.razon_social as cliente_razon_social, c.cuit as cliente_cuit, c.contacto as cliente_contacto
        FROM solicitudes_cotizacion s
        INNER JOIN clientes c ON c.id = s.cliente_id
        WHERE s.id = $1 AND s.deleted_at IS NULL`,
@@ -206,9 +210,11 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       `SELECT sci.*,
               a.id as articulo_id_full, a.codigo as articulo_codigo, a.nombre as articulo_nombre,
               a.marca as articulo_marca, a.etm as articulo_etm, a.sku as articulo_sku,
-              a.costo_inicial_estimado as articulo_costo_inicial_estimado, a.stock_actual as articulo_stock_actual
+              a.costo_inicial_estimado as articulo_costo_inicial_estimado, a.stock_actual as articulo_stock_actual,
+              a.imagen_url as articulo_imagen_url, p.razon_social as articulo_proveedor_nombre
        FROM solicitud_cotizacion_items sci
        LEFT JOIN articulos a ON a.id = sci.articulo_id
+       LEFT JOIN proveedores p ON p.id = a.proveedor_id
        WHERE sci.solicitud_id = $1
        ORDER BY sci.orden ASC`,
       [solicitudId]
@@ -221,6 +227,8 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       etmSolicitado: row.etm_solicitado as string | null,
       descripcionSolicitada: row.descripcion_solicitada as string,
       marcaSolicitada: row.marca_solicitada as string | null,
+      modeloSolicitado: row.modelo_solicitado as string | null,
+      descripcionInglesSolicitada: row.descripcion_ingles_solicitada as string | null,
       cantidadSolicitada: row.cantidad_solicitada as number,
       articuloId: row.articulo_id as string | null,
       matchConfianza: row.match_confianza as MatchConfianza | null,
@@ -239,6 +247,8 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
             sku: row.articulo_sku as string | null,
             costoInicialEstimado: row.articulo_costo_inicial_estimado !== null ? Number(row.articulo_costo_inicial_estimado) : null,
             stockActual: row.articulo_stock_actual as number,
+            imagenUrl: row.articulo_imagen_url as string | null,
+            proveedorNombre: row.articulo_proveedor_nombre as string | null,
           }
         : null,
     }));
@@ -276,7 +286,7 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
     const [rows, countResult] = await Promise.all([
       query<Record<string, unknown>>(
         `SELECT s.*,
-                c.id as cli_id, c.razon_social as cliente_razon_social, c.cuit as cliente_cuit
+                c.id as cli_id, c.razon_social as cliente_razon_social, c.cuit as cliente_cuit, c.contacto as cliente_contacto
          FROM solicitudes_cotizacion s
          INNER JOIN clientes c ON c.id = s.cliente_id
          WHERE ${whereClause}
@@ -342,7 +352,7 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
         direccion: null,
         telefono: null,
         email: null,
-        contacto: null,
+        contacto: row.cliente_contacto as string | null,
         notas: null,
         activo: true,
         createdAt: new Date(),

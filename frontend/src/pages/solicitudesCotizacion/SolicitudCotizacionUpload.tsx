@@ -70,8 +70,10 @@ export function SolicitudCotizacionUploadPage() {
         const headers = (jsonData[0] as unknown[]).map((h) => normalizarHeader(String(h ?? '')));
         const etmIdx = headers.findIndex((h) => h === 'ETM');
         const descIdx = headers.findIndex((h) => h === 'DESCRIPCION');
+        const descIngIdx = headers.findIndex((h) => h === 'DESCRIPCION EN INGLES');
         const cantidadIdx = headers.findIndex((h) => h === 'CANTIDAD');
         const marcaIdx = headers.findIndex((h) => h === 'MARCA');
+        const modeloIdx = headers.findIndex((h) => h === 'MODELO');
 
         if (descIdx === -1 || cantidadIdx === -1) {
           setParseError('El archivo debe tener columnas "Descripcion" y "Cantidad" en la primera fila');
@@ -99,7 +101,9 @@ export function SolicitudCotizacionUploadPage() {
             orden: rows.length,
             etmSolicitado: etmIdx !== -1 && row[etmIdx] ? String(row[etmIdx]).trim() : null,
             descripcionSolicitada: descripcion,
+            descripcionInglesSolicitada: descIngIdx !== -1 && row[descIngIdx] ? String(row[descIngIdx]).trim() : null,
             marcaSolicitada: marcaIdx !== -1 && row[marcaIdx] ? String(row[marcaIdx]).trim() : null,
+            modeloSolicitado: modeloIdx !== -1 && row[modeloIdx] ? String(row[modeloIdx]).trim() : null,
             cantidadSolicitada: Math.trunc(cantidad),
           });
         }
@@ -236,8 +240,10 @@ export function SolicitudCotizacionUploadPage() {
                 <tbody>
                   <tr><td className="py-1">ETM</td><td>ETM</td></tr>
                   <tr><td className="py-1">DESCRIPCION</td><td>Descripción (requerido)</td></tr>
+                  <tr><td className="py-1">DESCRIPCION EN INGLES</td><td>Descripción en Inglés</td></tr>
                   <tr><td className="py-1">CANTIDAD</td><td>Cantidad (requerido)</td></tr>
                   <tr><td className="py-1">MARCA</td><td>Marca</td></tr>
+                  <tr><td className="py-1">MODELO</td><td>Modelo</td></tr>
                 </tbody>
               </table>
             </div>

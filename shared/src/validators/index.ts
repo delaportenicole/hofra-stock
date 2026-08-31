@@ -353,6 +353,8 @@ export const createSolicitudCotizacionItemSchema = z.object({
   etmSolicitado: z.string().max(100).optional().nullable(),
   descripcionSolicitada: z.string().min(1, 'La descripción es requerida').max(500),
   marcaSolicitada: z.string().max(100).optional().nullable(),
+  modeloSolicitado: z.string().max(150).optional().nullable(),
+  descripcionInglesSolicitada: z.string().max(500).optional().nullable(),
   cantidadSolicitada: z.coerce.number().int().positive('La cantidad debe ser mayor a 0'),
 });
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ArrowLeft, Check, Search, ExternalLink, Printer, XCircle, FileCheck, Package, X, Link2, Ban } from 'lucide-react';
+import { ArrowLeft, Check, Search, ExternalLink, Printer, XCircle, FileCheck, Package, X, Link2, Ban, Download } from 'lucide-react';
 import { solicitudesCotizacionService } from '../../services/solicitudesCotizacion.service';
 import { articulosService } from '../../services/articulos.service';
 import { ArticuloCombobox } from '../../components/ArticuloCombobox';
@@ -197,6 +197,26 @@ export function SolicitudCotizacionDetailPage() {
     }
   };
 
+  const handleExportarExcel = async () => {
+    if (!id || !solicitud) return;
+    try {
+      const blob = await solicitudesCotizacionService.exportarExcel(id);
+      const nombreArchivo = `Cotizacion - ${solicitud.cliente.razonSocial}${
+        solicitud.numeroReferenciaCliente ? ` - ${solicitud.numeroReferenciaCliente}` : ''
+      }.xlsx`;
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = nombreArchivo;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  };
+
   const handlePrint = () => {
     if (!solicitud) return;
 
@@ -357,6 +377,7 @@ export function SolicitudCotizacionDetailPage() {
                       <p className="text-xs text-gray-500">
                         Cant: {item.cantidadSolicitada}
                         {item.marcaSolicitada && ` · Marca: ${item.marcaSolicitada}`}
+                        {item.modeloSolicitado && ` · Modelo: ${item.modeloSolicitado}`}
                         {item.etmSolicitado && ` · ETM: ${item.etmSolicitado}`}
                       </p>
                     </td>
@@ -596,6 +617,10 @@ export function SolicitudCotizacionDetailPage() {
       </div>
 
       <div className="flex flex-wrap justify-end gap-3">
+        <button onClick={handleExportarExcel} className="btn-secondary">
+          <Download className="w-4 h-4 mr-2" />
+          Exportar a Excel
+        </button>
         <button onClick={handlePrint} className="btn-secondary">
           <Printer className="w-4 h-4 mr-2" />
           Imprimir Cotización
