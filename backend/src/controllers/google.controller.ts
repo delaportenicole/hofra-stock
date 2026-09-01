@@ -4,6 +4,21 @@ import { sendSuccess } from '../utils/response.js';
 import { env } from '../config/env.js';
 
 export class GoogleController {
+  // Endpoint temporal de diagnóstico: no expone el client secret, solo confirma
+  // si cada variable de entorno le está llegando al backend en este deploy.
+  async debugEnv(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      sendSuccess(res, {
+        clientId: env.GOOGLE_CLIENT_ID || null,
+        clientSecretPresente: !!env.GOOGLE_CLIENT_SECRET,
+        clientSecretLargo: env.GOOGLE_CLIENT_SECRET.length,
+        redirectUri: env.GOOGLE_REDIRECT_URI || null,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getAuthUrl(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const url = googleService.getAuthUrl();
