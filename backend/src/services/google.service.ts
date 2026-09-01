@@ -1,17 +1,27 @@
-import { google } from 'googleapis';
+import { OAuth2Client } from 'google-auth-library';
 import { env } from '../config/env.js';
 import { googleIntegracionRepository } from '../repositories/googleIntegracion.repository.js';
 import { buildCotizacionSheetData, type SheetCell } from './cotizacionExport.service.js';
 import { AppError } from '../utils/errors.js';
 import type { SolicitudCotizacionConRelaciones } from '@hofra/shared';
 
+// Se usa google-auth-library directo (no el paquete "googleapis" completo: pesa
+// ~200MB y hace crashear la función serverless de Vercel por tamaño). Las llamadas
+// a Sheets/Drive se hacen por HTTP a mano usando client.request(), que ya se
+// encarga de adjuntar el token y renovarlo con el refresh_token guardado.
+
 const SCOPES = [
   'https://www.googleapis.com/auth/drive.file',
   'https://www.googleapis.com/auth/userinfo.email',
 ];
 
-function createOAuthClient() {
-  return new google.auth.OAuth2(env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET, env.GOOGLE_REDIRECT_URI);
+function createOAuthClient(): OAuth2Client {
+  return new OAuth2Client(env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET, env.GOOGLE_REDIRECT_URI);
+}
+
+interface SheetsCreateResponse {
+  spreadsheetId: string;
+  spreadsheetUrl: string;
 }
 
 class GoogleService {
@@ -36,8 +46,9 @@ class GoogleService {
     }
 
     client.setCredentials(tokens);
-    const oauth2 = google.oauth2({ auth: client, version: 'v2' });
-    const { data } = await oauth2.userinfo.get();
+    const { data } = await client.request<{ email?: string }>({
+      url: 'https://www.googleapis.com/oauth2/v2/userinfo',
+    });
 
     await googleIntegracionRepository.upsert({
       refreshToken: tokens.refresh_token,
@@ -50,7 +61,7 @@ class GoogleService {
     return { connected: !!integracion, email: integracion?.connectedEmail || null };
   }
 
-  private async getAuthorizedClient() {
+  private async getAuthorizedClient(): Promise<OAuth2Client> {
     const integracion = await googleIntegracionRepository.get();
     if (!integracion) {
       throw new AppError(400, 'No hay ninguna cuenta de Google conectada. Conectala desde Configuraciones.');
@@ -61,31 +72,31 @@ class GoogleService {
   }
 
   async createSpreadsheet(solicitud: SolicitudCotizacionConRelaciones): Promise<string> {
-    const auth = await this.getAuthorizedClient();
-    const sheets = google.sheets({ version: 'v4', auth });
-
+    const client = await this.getAuthorizedClient();
     const { titulo, rows } = buildCotizacionSheetData(solicitud);
 
-    const created = await sheets.spreadsheets.create({
-      requestBody: {
+    const created = await client.request<SheetsCreateResponse>({
+      url: 'https://sheets.googleapis.com/v4/spreadsheets',
+      method: 'POST',
+      data: {
         properties: { title: titulo },
         sheets: [{ properties: { title: 'Cotización' } }],
       },
     });
 
-    const spreadsheetId = created.data.spreadsheetId;
-    const spreadsheetUrl = created.data.spreadsheetUrl;
+    const { spreadsheetId, spreadsheetUrl } = created.data;
     if (!spreadsheetId || !spreadsheetUrl) {
       throw new Error('Google no devolvió el ID de la planilla creada');
     }
 
     const values = rows.map((row) => row.map(toSheetsValue));
+    const range = encodeURIComponent('Cotización!A1');
 
-    await sheets.spreadsheets.values.update({
-      spreadsheetId,
-      range: 'Cotización!A1',
-      valueInputOption: 'USER_ENTERED',
-      requestBody: { values },
+    await client.request({
+      url: `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}`,
+      method: 'PUT',
+      params: { valueInputOption: 'USER_ENTERED' },
+      data: { values },
     });
 
     return spreadsheetUrl;
