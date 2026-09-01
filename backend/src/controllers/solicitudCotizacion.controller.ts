@@ -1,7 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { solicitudCotizacionService } from '../services/solicitudCotizacion.service.js';
 import { buildCotizacionExcelBuffer } from '../services/cotizacionExport.service.js';
-import { googleService } from '../services/google.service.js';
 import { logManualAudit } from '../middlewares/audit.js';
 import { sendSuccess, sendCreated, sendPaginated } from '../utils/response.js';
 import type { AuthenticatedRequest } from '../types/index.js';
@@ -102,16 +101,6 @@ export class SolicitudCotizacionController {
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
       res.send(buffer);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async exportarGoogleSheets(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const solicitud = await solicitudCotizacionService.findById(req.params.id);
-      const url = await googleService.createSpreadsheet(solicitud);
-      sendSuccess(res, { url });
     } catch (error) {
       next(error);
     }

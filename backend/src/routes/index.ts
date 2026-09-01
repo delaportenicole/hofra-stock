@@ -14,7 +14,9 @@ import importarRoutes from './importar.routes.js';
 import { reportesRoutes } from './reportes.routes.js';
 import { sugerenciaRoutes } from './sugerencia.routes.js';
 import { solicitudCotizacionRoutes } from './solicitudCotizacion.routes.js';
-import { googleRoutes } from './google.routes.js';
+// Integración con Google Sheets/Drive en pausa (ver google.routes.ts) — desconectada
+// del árbol de rutas hasta migrar a Railway, estaba crasheando la función de Vercel.
+// import { googleRoutes } from './google.routes.js';
 
 const router = Router();
 
@@ -39,6 +41,6 @@ router.use('/importar', importarRoutes);
 router.use('/reportes', reportesRoutes);
 router.use('/sugerencias', sugerenciaRoutes);
 router.use('/solicitudes-cotizacion', solicitudCotizacionRoutes);
-router.use('/google', googleRoutes);
+// router.use('/google', googleRoutes);
 
 export { router as apiRoutes };
