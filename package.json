@@ -2,6 +2,7 @@
   "name": "hofra-stock",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "Sistema de Gestión de Stock - Grupo Hofra",
   "workspaces": [
     "frontend",
