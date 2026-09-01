@@ -2,11 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 
-// Import backend modules from the compiled output (not src/), so Vercel's function
-// builder doesn't have to transpile the backend's TypeScript itself — it just loads
-// the real .js files produced by our own `npm run build --workspace=backend` step.
-import { apiRoutes } from '../backend/dist/routes/index.js';
-import { errorHandler, notFoundHandler } from '../backend/dist/middlewares/error.js';
+// Import backend modules
+import { apiRoutes } from '../backend/src/routes/index.js';
+import { errorHandler, notFoundHandler } from '../backend/src/middlewares/error.js';
 
 const app = express();
 
