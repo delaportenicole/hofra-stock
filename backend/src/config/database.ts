@@ -89,7 +89,8 @@ export async function testConnection(): Promise<boolean> {
   try {
     await pool.query('SELECT NOW()');
     return true;
-  } catch {
+  } catch (error) {
+    console.error('Database connection error:', error);
     return false;
   }
 }
