@@ -714,12 +714,11 @@ La API pública de Mercado Libre dejó de permitir búsquedas y consultas de pro
 - **Embeber la página de Mercado Libre en un iframe no es viable**: el sitio manda headers `X-Frame-Options`/`Content-Security-Policy` que lo bloquean explícitamente, y ni siquiera el scraping server-side funciona (también devuelve 403, ML bloquea tráfico automatizado)
 - El precio y la foto de un producto externo **no se traen automáticamente**: por eso el flujo de "Pegar URL" requiere cargar el precio a mano. Automatizarlo requeriría dar de alta una app en developers.mercadolibre.com.ar, autorizarla con una cuenta de ML y manejar tokens OAuth en el backend — quedó como mejora futura, no implementada
 
-#### Exportar la Cotización (Excel y Google Sheets)
+#### Exportar la Cotización (Excel; Google Sheets en pausa)
 
-Desde la pantalla de detalle hay dos botones que generan el mismo documento final — una cotización con el formato que ya usaba Nicole a mano (columnas Solicitado / Item Ofrecido / Proveedor / Imagen / Costo-MarkUp-Venta / Precio Sin IVA / Total Sin IVA) — y comparten toda la lógica de armado en `backend/src/services/cotizacionExport.service.ts` (`buildCotizacionSheetData()`), para no duplicar nada entre los dos destinos:
+Desde la pantalla de detalle hay un botón **"Exportar a Excel"** que genera un `.xlsx` real (con fórmulas, vía `exceljs`) con el formato que ya usaba Nicole a mano (columnas Solicitado / Item Ofrecido / Proveedor / Imagen / Costo-MarkUp-Venta / Precio Sin IVA / Total Sin IVA). Toda la lógica de armado vive en `backend/src/services/cotizacionExport.service.ts` (`buildCotizacionSheetData()`), pensada para no depender de a dónde se escriba el resultado.
 
-- **"Exportar a Excel"**: genera un `.xlsx` real con `exceljs` (soporta fórmulas nativas) y lo descarga.
-- **"Exportar a Google Sheets"**: crea la planilla directo en una cuenta de Google Drive conectada al sistema (vía Google Sheets API + Drive API) y la abre en una pestaña nueva — sin pasos manuales de descarga/subida.
+**Exportar a Google Sheets — en pausa**: se había implementado un segundo botón que creaba la planilla directo en una cuenta de Google Drive conectada (OAuth, Sheets API + Drive API), sin pasos manuales de descarga/subida. Esa integración quedó **desconectada** del backend (código intacto en `google.service.ts`/`google.controller.ts`/`google.routes.ts`/`googleIntegracion.repository.ts`, simplemente no importados desde `routes/index.ts` ni desde `solicitudCotizacion.controller.ts`) porque cargar ese módulo hacía crashear la función serverless de Vercel — ver "Infraestructura de Despliegue" más arriba. Queda pendiente retomarla ahora que el backend corre en Railway (proceso Node normal, sin el límite que la rompía). La tabla `google_integracion` (migración 023) sigue existiendo en la base, sin uso por ahora.
 
 **Mapeo de columnas** (fila de encabezados en la fila 6 del archivo generado):
 
@@ -760,12 +759,9 @@ PUT    /api/solicitudes-cotizacion/:id/items/:itemId      # Actualizar un ítem 
 POST   /api/solicitudes-cotizacion/:id/marcar-cotizada    # Marca como cotizada (valida que no queden ítems pendientes/sin precio)
 POST   /api/solicitudes-cotizacion/:id/cancelar           # Cancela la solicitud
 GET    /api/solicitudes-cotizacion/:id/exportar-excel     # Descarga el .xlsx de la cotización
-POST   /api/solicitudes-cotizacion/:id/exportar-google-sheets  # Crea el Google Sheet y devuelve su URL
-
-GET    /api/google/auth-url    # URL de autorización de Google (requiere permiso solicitudes_cotizacion:actualizar)
-GET    /api/google/oauth/callback  # Callback de Google (lo llama el navegador, no requiere JWT)
-GET    /api/google/status      # Estado de conexión (conectado sí/no, con qué email)
 ```
+
+Los endpoints `/exportar-google-sheets` y todos los de `/api/google/*` existen en el código pero **no están montados** en `routes/index.ts` (integración en pausa, ver arriba) — devolverían 404 si se llamaran hoy.
 
 #### Archivos Relacionados
 
@@ -773,7 +769,7 @@ GET    /api/google/status      # Estado de conexión (conectado sí/no, con qué
 - `backend/src/repositories/solicitudCotizacion.repository.ts`
 - `backend/src/services/solicitudCotizacion.service.ts` (incluye el algoritmo de matching)
 - `backend/src/services/cotizacionExport.service.ts` (armado de la matriz de datos/fórmulas + generación del `.xlsx` con `exceljs`)
-- `backend/src/services/google.service.ts` (OAuth2, creación del Google Sheet vía `googleapis`)
+- `backend/src/services/google.service.ts` (OAuth2 y llamadas HTTP directas a Sheets/Drive vía `google-auth-library` — se evitó el paquete `googleapis` completo por pesar ~200MB y romper el empaquetado serverless de Vercel)
 - `backend/src/repositories/googleIntegracion.repository.ts`
 - `backend/src/controllers/solicitudCotizacion.controller.ts`, `backend/src/controllers/google.controller.ts`
 - `backend/src/routes/solicitudCotizacion.routes.ts`, `backend/src/routes/google.routes.ts`
@@ -1263,11 +1259,35 @@ El menú lateral (sidebar) puede colapsarse para mostrar solo iconos:
 
 ## Configuración
 
+### Infraestructura de Despliegue (actualizado 2 de septiembre de 2026)
+
+| Componente | Dónde vive | Notas |
+|---|---|---|
+| **Frontend** | Vercel (`hofra-stock.vercel.app`) | Sitio estático (build de Vite). `vercel.json` solo buildea `shared` + `frontend` y sirve el SPA — ya **no** aloja el backend |
+| **Backend** | Railway (servicio `hofra/backend`) | Proceso Node normal (`node dist/app.js`), definido por `railway.json`. Ver "Por qué se movió de Vercel" más abajo |
+| **Base de datos** | Supabase (Postgres) | Se conecta vía el **Transaction Pooler** de Supabase (puerto `6543`), no la conexión directa — ver nota de IPv6 más abajo |
+
+El frontend le apunta al backend vía la variable de build `VITE_API_URL` (configurada en Vercel → Environment Variables), no por rutas relativas `/api` como antes.
+
+#### Por qué el backend se movió de Vercel a Railway
+Vercel aloja el backend como función serverless (`api/index.ts`, un wrapper Express). Al desplegar la integración con Google Sheets, la función empezó a crashear con `Error [ERR_REQUIRE_ESM]: require() of ES Module ... not supported` — un problema de fondo en cómo el builder de Vercel empaqueta un backend ESM (`"type": "module"`) dentro de una función que trata como CommonJS, no algo puntual del código de Google. Se probaron varios fixes (sacar dependencias pesadas, forzar `"type": "module"` en la raíz, importar desde `dist` en vez de `src`, cargar el backend con `import()` dinámico) y el error persistió idéntico en todos los casos, incluso con el código de Google completamente desconectado — señal de un límite de la plataforma, no del código. La solución fue mover el backend a **Railway**, que lo corre como proceso Node persistente (`backend/src/app.ts`, que ya existía y ya tenía todo lo necesario: `express().listen()`, manejo de errores, conexión a DB) — sin reempaquetado serverless, sin este problema.
+
+`api/index.ts` y la config de función en `vercel.json` quedaron sin uso (el archivo se dejó en el repo como referencia, no se borró).
+
+#### Conexión a Supabase: Transaction Pooler en vez de conexión directa
+La conexión directa de Supabase (`db.[project-ref].supabase.co:5432`) resuelve **solo a una dirección IPv6** salvo que se pague el add-on de IPv4 dedicada. Railway (y varias plataformas más) no tienen salida IPv6, así que la conexión fallaba con `ENETUNREACH` a una IP `2600:...`. La solución es usar el **Transaction Pooler** de Supabase (Project Settings → Database → Connect → "Transaction pooler"), que corre sobre un proxy con IPv4:
+
+```
+postgresql://postgres.[project-ref]:[PASSWORD]@aws-<region>.pooler.supabase.com:6543/postgres
+```
+
+Notar el usuario `postgres.[project-ref]` (con punto, no dos puntos) y el puerto `6543` (no `5432`). `backend/src/config/database.ts` sigue teniendo el `dns.setDefaultResultOrder('ipv4first')` heredado de un fix anterior para Render — no está de más dejarlo, pero el pooler es lo que realmente resuelve el problema en redes sin IPv6.
+
 ### Variables de Entorno (.env)
 
 ```env
-# Base de datos Supabase
-DATABASE_URL=postgresql://postgres:[PASSWORD]@db.[PROJECT].supabase.co:5432/postgres
+# Base de datos Supabase — usar el Transaction Pooler, no la conexión directa (ver nota de IPv6 arriba)
+DATABASE_URL=postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-<region>.pooler.supabase.com:6543/postgres
 
 # JWT
 JWT_SECRET=your-secret-key
@@ -1282,13 +1302,15 @@ CLOUDINARY_API_SECRET=oTgFK-iPSiKxL66luTuyYXrxk2I
 NODE_ENV=development
 FRONTEND_URL=http://localhost:5173
 
-# Google (exportar Solicitudes de Cotización a Google Sheets)
+# Google (exportar Solicitudes de Cotización a Google Sheets) — integración en pausa, ver módulo 16
 GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-client-secret
-GOOGLE_REDIRECT_URI=https://tu-dominio.vercel.app/api/google/oauth/callback
+GOOGLE_REDIRECT_URI=https://tu-dominio/api/google/oauth/callback
 ```
 
-Las credenciales de Google se generan en console.cloud.google.com (proyecto propio, con Sheets API y Drive API habilitadas, y un cliente OAuth de tipo "Aplicación web"). No requieren cuenta de facturación para este volumen de uso.
+En el **frontend** (Vercel), además se configura `VITE_API_URL=https://<tu-backend>.up.railway.app/api` como variable de build.
+
+Las credenciales de Google se generan en console.cloud.google.com (proyecto propio, con Sheets API y Drive API habilitadas, y un cliente OAuth de tipo "Aplicación web"). No requieren cuenta de facturación para este volumen de uso. La integración quedó desconectada del árbol de rutas del backend (ver sección "Solicitudes de Cotización") hasta reconstruirla sobre Railway.
 
 ### Cloudinary (Almacenamiento de Imágenes)
 
@@ -1538,7 +1560,7 @@ npm run db:seed          # Datos iniciales
 
 ---
 
-*Documentación actualizada el 31 de agosto de 2026*
+*Documentación actualizada el 2 de septiembre de 2026*
 
 ---
 
@@ -2089,3 +2111,34 @@ npm run db:seed          # Datos iniciales
 - `frontend/src/services/solicitudesCotizacion.service.ts` - Métodos `exportarExcel()` y `exportarGoogleSheets()`
 - `frontend/src/pages/unidades/UnidadesList.tsx` - Tab "Google Drive" (estado de conexión + botón conectar)
 - `shared/src/types/index.ts`, `shared/src/validators/index.ts` - Campos `modeloSolicitado`/`descripcionInglesSolicitada`, `proveedorNombre`/`imagenUrl` en el artículo del ítem
+
+---
+
+### 2 de septiembre de 2026
+
+#### Incidente: caída total del backend y migración de Vercel a Railway
+
+Al desplegar la integración de Google Sheets (ver 31 de agosto), la función serverless de Vercel empezó a crashear con `Error [ERR_REQUIRE_ESM]: require() of ES Module ... not supported` — y afectaba **todo** `/api/*`, no solo las rutas de Google (incluido `/api/health`, sin ninguna dependencia). Se probaron, en orden, sin éxito (el error persistió idéntico en cada intento):
+
+1. Sacar el paquete `googleapis` (~207MB) y reemplazarlo por `google-auth-library` (~800KB), sospechando un límite de tamaño de la función.
+2. Agregar `"type": "module"` al `package.json` de la raíz, para que Vercel tratara `api/index.ts` como ES Module (coherente con el backend).
+3. Hacer que `api/index.ts` importe desde `backend/dist` (ya compilado) en vez de `backend/src` (fuente TypeScript), para sacarle a Vercel la transpilación propia.
+4. Desconectar el código de Google del árbol de rutas por completo — **el error siguió igual**, confirmando que nunca fue un problema del código de Google.
+5. Revertir `api/index.ts` y el `package.json` raíz al último commit confirmado como funcionando — **el error siguió igual**, algo cambió en el entorno de Vercel/Node entre medio, no en el código.
+6. Reescribir `api/index.ts` para cargar el backend con `import()` dinámico en vez de `import` estático (la solución que el propio mensaje de error sugiere) — **el error siguió idéntico**, letra por letra, indicando que Vercel transpila igual el `import()` dinámico de vuelta a `require()` al compilar a CommonJS.
+
+Con seis intentos técnicamente distintos dando el mismo resultado exacto, se descartó seguir parcheando y se decidió migrar el backend a **Railway**, que lo corre como proceso Node persistente en vez de reempaquetarlo como función serverless — eliminando esta categoría de problema de raíz. `backend/src/app.ts` (un servidor Express completo con `.listen()`) ya existía y no necesitó cambios; el único trabajo fue de infraestructura (`railway.json`, variables de entorno, simplificar `vercel.json` para que solo sirva el frontend).
+
+**Segundo problema encontrado en el camino**: una vez en Railway, la conexión a Supabase fallaba con `ENETUNREACH` a una dirección IPv6 — la conexión "directa" de Supabase (`db.[project].supabase.co`) resuelve solo a IPv6 salvo que se pague el add-on de IPv4, y Railway no tiene salida IPv6. Se resolvió cambiando `DATABASE_URL` a la cadena del **Transaction Pooler** de Supabase (`aws-<region>.pooler.supabase.com:6543`, usuario `postgres.[project-ref]`), que sí tiene IPv4. De paso se corrigió `testConnection()` en `database.ts`, que tragaba el error real y solo logueaba "connection failed" — sin ese fix hubiera sido mucho más difícil de diagnosticar.
+
+**Resultado**: sistema restaurado, backend en Railway, frontend sin cambios en Vercel, base de datos sin cambios en Supabase (solo cambió la cadena de conexión). La integración de Google Sheets queda en pausa (código intacto, desconectado) para retomar sobre Railway más adelante. Nicole también planea migrar el frontend y la base de datos a Railway a futuro (Supabase le está resultando caro) — queda pendiente, sin apuro, para no repetir una migración bajo presión.
+
+#### Archivos Nuevos
+- `railway.json` (config de build/start para Railway)
+
+#### Archivos Modificados
+- `vercel.json` - Ya no buildea ni sirve `/api`; solo `shared` + `frontend`, rewrite genérico a `index.html`
+- `api/index.ts` - Reescrito para cargar el backend con `import()` dinámico (mitigación intentada; quedó así aunque el fix real fue migrar a Railway)
+- `backend/src/config/database.ts` - `testConnection()` ahora loguea el error real en vez de tragarlo
+- `backend/src/routes/index.ts`, `backend/src/controllers/solicitudCotizacion.controller.ts`, `backend/src/routes/solicitudCotizacion.routes.ts` - Google Sheets desconectado (imports y rutas comentados/removidos)
+- `backend/package.json` - `googleapis` reemplazado por `google-auth-library`
