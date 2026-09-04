@@ -5,7 +5,7 @@
 Sistema completo de gestión de inventario con arquitectura monorepo, desarrollado con:
 - **Frontend**: React 18 + Vite 4 + TypeScript + Tailwind CSS
 - **Backend**: Express + TypeScript
-- **Base de Datos**: PostgreSQL (Supabase)
+- **Base de Datos**: PostgreSQL (Railway)
 - **Autenticación**: JWT con access/refresh tokens
 
 ---
@@ -1263,11 +1263,11 @@ El menú lateral (sidebar) puede colapsarse para mostrar solo iconos:
 
 | Componente | Dónde vive | Notas |
 |---|---|---|
-| **Frontend** | Vercel (`hofra-stock.vercel.app`) | Sitio estático (build de Vite). `vercel.json` solo buildea `shared` + `frontend` y sirve el SPA — ya **no** aloja el backend |
+| **Frontend** | Railway (servicio `hofra/frontend`) + Vercel (`hofra-stock.vercel.app`, en paralelo) | Sitio estático servido con `serve -s dist` (paquete `serve`, script `start` en `frontend/package.json`), definido por `railway.frontend.json` (Railway no lee este archivo solo para el servicio de frontend — el Build/Start Command también están seteados a mano en el dashboard). Vercel se dejó activo como espejo, sin decidir aún si se deprecará |
 | **Backend** | Railway (servicio `hofra/backend`) | Proceso Node normal (`node dist/app.js`), definido por `railway.json`. Ver "Por qué se movió de Vercel" más abajo |
-| **Base de datos** | Supabase (Postgres) | Se conecta vía el **Transaction Pooler** de Supabase (puerto `6543`), no la conexión directa — ver nota de IPv6 más abajo |
+| **Base de datos** | Railway (servicio Postgres, mismo proyecto) | Migrada desde Supabase — ver "Migración de la base de datos" más abajo. El backend se conecta por red **interna** de Railway (`${{Postgres.DATABASE_URL}}`), sin pooler ni problema de IPv6 |
 
-El frontend le apunta al backend vía la variable de build `VITE_API_URL` (configurada en Vercel → Environment Variables), no por rutas relativas `/api` como antes.
+El frontend le apunta al backend vía la variable de build `VITE_API_URL` (configurada como variable de build tanto en Vercel como en Railway), no por rutas relativas `/api` como antes.
 
 #### Por qué el backend se movió de Vercel a Railway
 Vercel aloja el backend como función serverless (`api/index.ts`, un wrapper Express). Al desplegar la integración con Google Sheets, la función empezó a crashear con `Error [ERR_REQUIRE_ESM]: require() of ES Module ... not supported` — un problema de fondo en cómo el builder de Vercel empaqueta un backend ESM (`"type": "module"`) dentro de una función que trata como CommonJS, no algo puntual del código de Google. Se probaron varios fixes (sacar dependencias pesadas, forzar `"type": "module"` en la raíz, importar desde `dist` en vez de `src`, cargar el backend con `import()` dinámico) y el error persistió idéntico en todos los casos, incluso con el código de Google completamente desconectado — señal de un límite de la plataforma, no del código. La solución fue mover el backend a **Railway**, que lo corre como proceso Node persistente (`backend/src/app.ts`, que ya existía y ya tenía todo lo necesario: `express().listen()`, manejo de errores, conexión a DB) — sin reempaquetado serverless, sin este problema.
@@ -1281,13 +1281,28 @@ La conexión directa de Supabase (`db.[project-ref].supabase.co:5432`) resuelve 
 postgresql://postgres.[project-ref]:[PASSWORD]@aws-<region>.pooler.supabase.com:6543/postgres
 ```
 
-Notar el usuario `postgres.[project-ref]` (con punto, no dos puntos) y el puerto `6543` (no `5432`). `backend/src/config/database.ts` sigue teniendo el `dns.setDefaultResultOrder('ipv4first')` heredado de un fix anterior para Render — no está de más dejarlo, pero el pooler es lo que realmente resuelve el problema en redes sin IPv6.
+Notar el usuario `postgres.[project-ref]` (con punto, no dos puntos) y el puerto `6543` (no `5432`). `backend/src/config/database.ts` sigue teniendo el `dns.setDefaultResultOrder('ipv4first')` heredado de un fix anterior para Render — no está de más dejarlo, aunque desde la migración a Postgres de Railway (conexión interna, sin IPv6 de por medio) ya no es necesario para resolver el problema original.
+
+**Nota histórica**: esta sección describe el problema que existía mientras la base vivía en Supabase. Ya no aplica desde la migración a Postgres de Railway (ver más abajo), pero se deja documentada por si en el futuro se vuelve a conectar a un Postgres externo con solo salida IPv6.
+
+#### Migración de la base de datos: Supabase → Postgres de Railway (2 de septiembre de 2026)
+
+Supabase empezó a forzar a Nicole a un plan pago costoso para seguir usando el proyecto, así que la base se migró a un servicio Postgres propio dentro del mismo proyecto de Railway donde ya viven `hofra/backend` y `hofra/frontend`. Pasos:
+
+1. **Dump de Supabase**: `pg_dump --schema=public --no-owner --no-acl -F c` contra la conexión directa de Supabase (schema `public` únicamente, para no arrastrar los schemas internos de Supabase como `auth`/`storage`/`realtime`, que no existen en un Postgres genérico).
+2. **Provisioning en Railway**: "+ New" → "Database" → "Add PostgreSQL" dentro del mismo proyecto. Se habilitó momentáneamente el acceso público ("Add Public Access", variable `DATABASE_PUBLIC_URL`) solo para poder correr el `pg_restore` desde afuera de Railway.
+3. **Restore**: `pg_restore --no-owner --no-acl -d "<DATABASE_PUBLIC_URL>" hofra_backup.dump`.
+4. **Verificación de integridad**: se compararon conteos exactos (`SELECT count(*)`) de las 16 tablas propias de la app entre Supabase y el Postgres nuevo — coincidieron exactamente en todas (`articulos`: 496, `audit_log`: 101, `solicitud_cotizacion_items`: 455, `refresh_tokens`: 97, etc.). *Ojo*: la primera verificación se hizo con `pg_stat_user_tables.n_live_tup`, que resultó ser una estimación desactualizada y además mezclaba tablas internas de Supabase (Auth/Storage) con las propias — dio números erróneos (muchos en cero) que no reflejaban la realidad. La verificación confiable es siempre `SELECT count(*)` directo por tabla.
+5. **Cutover**: en `hofra/backend` → Variables, se cambió `DATABASE_URL` a la referencia interna `${{Postgres.DATABASE_URL}}` (nombre del servicio Postgres tal como aparece en el proyecto) y se redesplegó. Al ser el mismo backend (mismos `JWT_SECRET`/`JWT_REFRESH_SECRET`) y haberse migrado también la tabla `refresh_tokens`, las sesiones activas siguieron funcionando sin tener que volver a loguearse.
+6. **Prueba end-to-end**: login y edición de datos desde el frontend confirmados contra la base nueva.
+
+El proyecto de Supabase se deja activo unos días como respaldo antes de decidir decomisionarlo — no se borra en esta etapa.
 
 ### Variables de Entorno (.env)
 
 ```env
-# Base de datos Supabase — usar el Transaction Pooler, no la conexión directa (ver nota de IPv6 arriba)
-DATABASE_URL=postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-<region>.pooler.supabase.com:6543/postgres
+# Base de datos: Postgres de Railway (mismo proyecto que el backend) — conexión interna, sin pooler
+DATABASE_URL=${{Postgres.DATABASE_URL}}
 
 # JWT
 JWT_SECRET=your-secret-key
@@ -1553,7 +1568,7 @@ npm run db:seed          # Datos iniciales
 |------|------------|
 | Frontend | React 18, Vite 4, TypeScript, Tailwind CSS, Zustand, React Hook Form, React Hot Toast |
 | Backend | Node.js 16, Express, TypeScript, Zod |
-| Base de Datos | PostgreSQL (Supabase) |
+| Base de Datos | PostgreSQL (Railway) |
 | Autenticación | JWT (jsonwebtoken, bcryptjs) |
 | Imágenes | Cloudinary / Almacenamiento local |
 | Validación | Zod (compartido entre frontend y backend) |
@@ -2142,3 +2157,20 @@ Con seis intentos técnicamente distintos dando el mismo resultado exacto, se de
 - `backend/src/config/database.ts` - `testConnection()` ahora loguea el error real en vez de tragarlo
 - `backend/src/routes/index.ts`, `backend/src/controllers/solicitudCotizacion.controller.ts`, `backend/src/routes/solicitudCotizacion.routes.ts` - Google Sheets desconectado (imports y rutas comentados/removidos)
 - `backend/package.json` - `googleapis` reemplazado por `google-auth-library`
+
+---
+
+#### Migración del frontend a Railway y de la base de datos de Supabase a Postgres de Railway
+
+Continuando la migración de infraestructura del mismo día, se movió también el frontend a Railway (queda además en Vercel como espejo, sin decidir aún si se deprecará) y la base de datos completa de Supabase a un servicio Postgres dentro del mismo proyecto de Railway — motivado por Supabase forzando a Nicole a un plan pago caro.
+
+**Frontend**: se agregó el paquete `serve` y un script `start` (`serve -s dist -l ${PORT:-3000}`) a `frontend/package.json`, y se creó `railway.frontend.json` con el build/start command para Railway. Railway no leyó ese archivo para el servicio de frontend (autodetectó comandos propios, incluyendo el build del backend por error) — hubo que pisar el Build Command y el Start Command a mano en el dashboard del servicio. También hubo que ajustar el puerto del dominio generado (Railway asignó `PORT=8080` en runtime pese a haber elegido 3000 al generar el dominio).
+
+**Base de datos**: dump completo de Supabase (`pg_dump --schema=public --no-owner --no-acl -F c`) restaurado en un Postgres nuevo provisionado dentro del proyecto de Railway (`pg_restore` vía el endpoint público temporal del servicio). Verificación por conteo exacto de filas (`SELECT count(*)`) confirmó paridad total en las 16 tablas propias de la app antes de cortar. El backend se re-apuntó a la nueva base vía la referencia interna de Railway (`DATABASE_URL=${{Postgres.DATABASE_URL}}`) y se redesplegó; al conservar los mismos JWT secrets y haber migrado `refresh_tokens`, las sesiones activas no se vieron afectadas. Ver la sección "Migración de la base de datos" en Configuración → Infraestructura de Despliegue para el detalle paso a paso. Supabase se deja activo unos días como respaldo antes de decomisionarlo.
+
+#### Archivos Nuevos
+- `railway.frontend.json` (config de build/start para el frontend en Railway)
+
+#### Archivos Modificados
+- `frontend/package.json` - Agregado `serve` y script `start`
+- Variables de entorno del backend en Railway - `DATABASE_URL` apunta ahora al Postgres de Railway (antes: Transaction Pooler de Supabase)
