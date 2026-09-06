@@ -369,6 +369,10 @@ export const createSolicitudCotizacionSchema = z.object({
 export const updateSolicitudCotizacionSchema = z.object({
   numeroReferenciaCliente: z.string().max(100).optional().nullable(),
   observaciones: z.string().max(1000).optional().nullable(),
+  fechaEntrega: z.coerce.date().optional().nullable(),
+  solicitadoPor: z.string().max(200).optional().nullable(),
+  usdOficialCompra: z.coerce.number().nonnegative('El valor no puede ser negativo').optional().nullable(),
+  usdOficialVenta: z.coerce.number().nonnegative('El valor no puede ser negativo').optional().nullable(),
 });
 
 export const updateSolicitudCotizacionItemSchema = z.object({

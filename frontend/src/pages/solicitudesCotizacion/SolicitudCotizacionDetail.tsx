@@ -65,6 +65,13 @@ export function SolicitudCotizacionDetailPage() {
   const [precios, setPrecios] = useState<Record<string, number | undefined>>({});
   const [pastingUrlItemId, setPastingUrlItemId] = useState<string | null>(null);
   const [urlDrafts, setUrlDrafts] = useState<Record<string, string>>({});
+  const [headerDraft, setHeaderDraft] = useState({
+    fechaEntrega: '',
+    solicitadoPor: '',
+    usdOficialCompra: undefined as number | undefined,
+    usdOficialVenta: undefined as number | undefined,
+  });
+  const [isSavingHeader, setIsSavingHeader] = useState(false);
 
   useEffect(() => {
     if (id) loadData(id);
@@ -84,6 +91,12 @@ export function SolicitudCotizacionDetailPage() {
         preciosIniciales[item.id] = item.precioUnitario ?? undefined;
       });
       setPrecios(preciosIniciales);
+      setHeaderDraft({
+        fechaEntrega: solicitudData.fechaEntrega ? new Date(solicitudData.fechaEntrega).toISOString().slice(0, 10) : '',
+        solicitadoPor: solicitudData.solicitadoPor || '',
+        usdOficialCompra: solicitudData.usdOficialCompra ?? undefined,
+        usdOficialVenta: solicitudData.usdOficialVenta ?? undefined,
+      });
     } catch (error) {
       toast.error(getErrorMessage(error));
     } finally {
@@ -172,6 +185,23 @@ export function SolicitudCotizacionDetailPage() {
     const nuevoPrecio = precios[item.id];
     if (nuevoPrecio === item.precioUnitario) return;
     applyUpdate(item.id, { precioUnitario: nuevoPrecio ?? null });
+  };
+
+  const handleHeaderFieldBlur = async (
+    field: 'fechaEntrega' | 'solicitadoPor' | 'usdOficialCompra' | 'usdOficialVenta',
+    valorNuevo: string | number | undefined
+  ) => {
+    if (!id) return;
+    const normalizado = valorNuevo === undefined || valorNuevo === '' ? null : valorNuevo;
+    setIsSavingHeader(true);
+    try {
+      const updated = await solicitudesCotizacionService.update(id, { [field]: normalizado });
+      setSolicitud((prev) => (prev ? { ...prev, ...updated } : prev));
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setIsSavingHeader(false);
+    }
   };
 
   const handleMarcarCotizada = async () => {
@@ -344,6 +374,54 @@ export function SolicitudCotizacionDetailPage() {
           <div>
             <p className="text-gray-500">Referencia del Cliente</p>
             <p className="font-medium">{solicitud.numeroReferenciaCliente || '-'}</p>
+          </div>
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <p className="text-xs font-medium text-gray-500 uppercase mb-3">Datos para el Excel de cotización</p>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+            <div>
+              <label className="block text-gray-500 mb-1">Fecha de Entrega</label>
+              <input
+                type="date"
+                className="input"
+                value={headerDraft.fechaEntrega}
+                disabled={solicitud.estado !== 'en_revision' || isSavingHeader}
+                onChange={(e) => setHeaderDraft((prev) => ({ ...prev, fechaEntrega: e.target.value }))}
+                onBlur={() => handleHeaderFieldBlur('fechaEntrega', headerDraft.fechaEntrega)}
+              />
+            </div>
+            <div>
+              <label className="block text-gray-500 mb-1">Solicitado Por</label>
+              <input
+                type="text"
+                className="input"
+                value={headerDraft.solicitadoPor}
+                disabled={solicitud.estado !== 'en_revision' || isSavingHeader}
+                onChange={(e) => setHeaderDraft((prev) => ({ ...prev, solicitadoPor: e.target.value }))}
+                onBlur={() => handleHeaderFieldBlur('solicitadoPor', headerDraft.solicitadoPor)}
+              />
+            </div>
+            <div>
+              <label className="block text-gray-500 mb-1">USD Oficial Compra</label>
+              <CurrencyInput
+                value={headerDraft.usdOficialCompra}
+                disabled={solicitud.estado !== 'en_revision' || isSavingHeader}
+                onChange={(val) => setHeaderDraft((prev) => ({ ...prev, usdOficialCompra: val }))}
+                onBlur={() => handleHeaderFieldBlur('usdOficialCompra', headerDraft.usdOficialCompra)}
+                placeholder="0,00"
+              />
+            </div>
+            <div>
+              <label className="block text-gray-500 mb-1">USD Oficial Venta</label>
+              <CurrencyInput
+                value={headerDraft.usdOficialVenta}
+                disabled={solicitud.estado !== 'en_revision' || isSavingHeader}
+                onChange={(val) => setHeaderDraft((prev) => ({ ...prev, usdOficialVenta: val }))}
+                onBlur={() => handleHeaderFieldBlur('usdOficialVenta', headerDraft.usdOficialVenta)}
+                placeholder="0,00"
+              />
+            </div>
           </div>
         </div>
       </div>

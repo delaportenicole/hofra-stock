@@ -91,7 +91,14 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
 
   async updateHeader(
     id: string,
-    data: { numeroReferenciaCliente?: string | null; observaciones?: string | null },
+    data: {
+      numeroReferenciaCliente?: string | null;
+      observaciones?: string | null;
+      fechaEntrega?: Date | string | null;
+      solicitadoPor?: string | null;
+      usdOficialCompra?: number | null;
+      usdOficialVenta?: number | null;
+    },
     updatedBy?: string
   ): Promise<SolicitudCotizacion | null> {
     const sets: string[] = ['updated_at = NOW()'];
@@ -105,6 +112,22 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
     if (data.observaciones !== undefined) {
       sets.push(`observaciones = $${paramIndex++}`);
       values.push(data.observaciones);
+    }
+    if (data.fechaEntrega !== undefined) {
+      sets.push(`fecha_entrega = $${paramIndex++}`);
+      values.push(data.fechaEntrega);
+    }
+    if (data.solicitadoPor !== undefined) {
+      sets.push(`solicitado_por = $${paramIndex++}`);
+      values.push(data.solicitadoPor);
+    }
+    if (data.usdOficialCompra !== undefined) {
+      sets.push(`usd_oficial_compra = $${paramIndex++}`);
+      values.push(data.usdOficialCompra);
+    }
+    if (data.usdOficialVenta !== undefined) {
+      sets.push(`usd_oficial_venta = $${paramIndex++}`);
+      values.push(data.usdOficialVenta);
     }
     if (updatedBy) {
       sets.push(`updated_by = $${paramIndex++}`);

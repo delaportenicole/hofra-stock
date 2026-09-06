@@ -305,6 +305,10 @@ export interface SolicitudCotizacion extends BaseEntity {
   fechaSolicitud: Date;
   estado: EstadoSolicitudCotizacion;
   observaciones: string | null;
+  fechaEntrega: Date | null;
+  solicitadoPor: string | null;
+  usdOficialCompra: number | null;
+  usdOficialVenta: number | null;
 }
 
 export interface SolicitudCotizacionConRelaciones extends SolicitudCotizacion {
@@ -589,6 +593,10 @@ export interface CreateSolicitudCotizacionDto {
 export interface UpdateSolicitudCotizacionDto {
   numeroReferenciaCliente?: string | null;
   observaciones?: string | null;
+  fechaEntrega?: Date | string | null;
+  solicitadoPor?: string | null;
+  usdOficialCompra?: number | null;
+  usdOficialVenta?: number | null;
 }
 
 export interface UpdateSolicitudCotizacionItemDto {

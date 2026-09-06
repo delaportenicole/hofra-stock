@@ -5,6 +5,7 @@ import { AppError, NotFoundError } from '../utils/errors.js';
 import type {
   SolicitudCotizacionConRelaciones,
   CreateSolicitudCotizacionItemDto,
+  UpdateSolicitudCotizacionDto,
   UpdateSolicitudCotizacionItemDto,
   MatchConfianza,
   ArticuloConRelaciones,
@@ -141,7 +142,7 @@ class SolicitudCotizacionService {
 
   async updateHeader(
     id: string,
-    data: { numeroReferenciaCliente?: string | null; observaciones?: string | null },
+    data: UpdateSolicitudCotizacionDto,
     userId?: string
   ): Promise<SolicitudCotizacionConRelaciones> {
     const updated = await solicitudCotizacionRepository.updateHeader(id, data, userId);
