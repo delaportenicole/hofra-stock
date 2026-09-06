@@ -714,25 +714,46 @@ La API pública de Mercado Libre dejó de permitir búsquedas y consultas de pro
 - **Embeber la página de Mercado Libre en un iframe no es viable**: el sitio manda headers `X-Frame-Options`/`Content-Security-Policy` que lo bloquean explícitamente, y ni siquiera el scraping server-side funciona (también devuelve 403, ML bloquea tráfico automatizado)
 - El precio y la foto de un producto externo **no se traen automáticamente**: por eso el flujo de "Pegar URL" requiere cargar el precio a mano. Automatizarlo requeriría dar de alta una app en developers.mercadolibre.com.ar, autorizarla con una cuenta de ML y manejar tokens OAuth en el backend — quedó como mejora futura, no implementada
 
-#### Exportar la Cotización (Excel; Google Sheets en pausa)
+#### Exportar la Cotización (Excel; Google Sheets reconectado pero sin cuenta autorizada)
 
-Desde la pantalla de detalle hay un botón **"Exportar a Excel"** que genera un `.xlsx` real (con fórmulas, vía `exceljs`) con el formato que ya usaba Nicole a mano (columnas Solicitado / Item Ofrecido / Proveedor / Imagen / Costo-MarkUp-Venta / Precio Sin IVA / Total Sin IVA). Toda la lógica de armado vive en `backend/src/services/cotizacionExport.service.ts` (`buildCotizacionSheetData()`), pensada para no depender de a dónde se escriba el resultado.
+Desde la pantalla de detalle hay un botón **"Exportar a Excel"** que genera un `.xlsx` real (con fórmulas, vía `exceljs`), replicando celda por celda el archivo que Nicole armaba a mano (`Downloads/2 - Cristián - TC Argentina - Cotización 8.20 - #274.xlsx`, usado como referencia). Toda la lógica de armado vive en `backend/src/services/cotizacionExport.service.ts` (`buildCotizacionSheetData()` para la matriz de datos, `buildCotizacionExcelBuffer()` para el formato específico de xlsx: texto enriquecido, colores, merges, imágenes).
 
-**Exportar a Google Sheets — en pausa**: se había implementado un segundo botón que creaba la planilla directo en una cuenta de Google Drive conectada (OAuth, Sheets API + Drive API), sin pasos manuales de descarga/subida. Esa integración quedó **desconectada** del backend (código intacto en `google.service.ts`/`google.controller.ts`/`google.routes.ts`/`googleIntegracion.repository.ts`, simplemente no importados desde `routes/index.ts` ni desde `solicitudCotizacion.controller.ts`) porque cargar ese módulo hacía crashear la función serverless de Vercel — ver "Infraestructura de Despliegue" más arriba. Queda pendiente retomarla ahora que el backend corre en Railway (proceso Node normal, sin el límite que la rompía). La tabla `google_integracion` (migración 023) sigue existiendo en la base, sin uso por ahora.
+**Cabecera del archivo (filas 1-5)**:
+- **B1**: título (cliente + "Cotización" + referencia)
+- **B2**: "Fecha de Entrega:" (negrita+subrayado) + valor — campo editable `fechaEntrega`
+- **B3**: "Solicitado por:" (negrita+subrayado) + valor — campo editable `solicitadoPor`
+- **N3/O3**: "USD Oficial Compra" + valor con formato moneda — campo editable `usdOficialCompra`
+- **N4/O4**: "USD Oficial Venta" + valor con formato moneda — campo editable `usdOficialVenta`
+- **H1:H5** y **K1:K5**: logos institucionales (GE Vernova y HOFRA Group) embebidos en base64 en `backend/src/assets/logos.ts` (extraídos del archivo de referencia, siempre los mismos, no se suben por archivo aparte)
 
-**Mapeo de columnas** (fila de encabezados en la fila 6 del archivo generado):
+Los 4 campos editables se cargan en la pantalla de detalle, en la sección "Datos para el Excel de cotización" (arriba de la grilla de ítems), y se guardan solos al salir del campo — igual que el precio de los ítems. Se bloquean una vez que la solicitud deja de estar `en_revision`.
 
-| Columna | Contenido | Origen |
-|---|---|---|
-| ITEM, DESCRIPCION, DESCRIPCION EN INGLES, ETM, MARCA, MODELO, CANT | Lo solicitado por el cliente | Campos del ítem tal cual se importaron |
-| Item Ofrecido - Descripción, Marca | Artículo aceptado del catálogo | `item.articulo.nombre` / `.marca` (vacío si no hay artículo) |
-| Modelo (del ofrecido) | — | Siempre vacío, no se trackea; se completa a mano |
-| Unidad de Medida | "Unidad" | Fijo, solo si hay artículo ofrecido |
-| Imagen de lo Ofrecido | Fórmula `=IMAGE(url)` | `articulo.imagenUrl` (Cloudinary), si existe. Vacío para ítems comprados externamente (sin foto disponible) |
-| Proveedor | Proveedor del artículo, o la URL externa | `articulo.proveedorNombre` si es de catálogo; `item.urlExterna` si el ítem es `no_disponible` con URL pegada |
-| Costo por Unidad, Costo Total, Mark Up, Venta con IVA | — | Siempre en blanco (se completan a mano si se quiere el desglose) |
-| Precio Unit. Sin IVA | `item.precioUnitario` | El sistema asume que ya es neto de IVA |
-| Total Sin IVA | Fórmula `=Cantidad × Precio Sin Iva` | Se recalcula solo si se edita el precio o la cantidad en la planilla |
+**Exportar a Google Sheets — código reconectado, cuenta de Google suspendida**: el botón y las rutas de Google (`google.routes.ts`, `google.controller.ts`, endpoint `exportarGoogleSheets`) volvieron a estar montados en el backend ahora que corre en Railway (proceso Node normal, ya no aplica el límite de Vercel que forzó a desconectarlo el 2 de septiembre). Sin embargo, **Google suspendió la cuenta de Google Cloud usada para el OAuth**, marcándola como "creada por un bot" — Nicole apeló la suspensión, resultado pendiente. Hasta que se resuelva, el botón de exportar a Google Sheets no va a funcionar aunque el código esté activo. La tabla `google_integracion` (migración 023) sigue existiendo en la base, sin uso por ahora.
+
+**Mapeo de columnas** (header partido en dos filas, 6 y 7, igual que el archivo de referencia — las columnas de título corto están fusionadas verticalmente):
+
+| Columna | Contenido | Color de fondo | Fórmula / Origen |
+|---|---|---|---|
+| A-F: ITEM, DESCRIPCION, DESCRIPCION EN INGLES, ETM, MARCA, MODELO | Lo solicitado por el cliente | Celeste | Campos del ítem tal cual se importaron |
+| G: CANT | Cantidad solicitada | Verde | — |
+| H: Item Ofrecido - Descripción | Artículo aceptado del catálogo | Verde | `item.articulo.nombre` |
+| I: Unidad de Medida | "Unidad" | Celeste, texto amarillo | Fijo, solo si hay artículo ofrecido |
+| J: Marca, K: Modelo (del ofrecido) | Marca del artículo / vacío | Verde | `item.articulo.marca`; Modelo no se trackea, se completa a mano |
+| L: Imagen de lo Ofrecido | Fórmula `=IMAGE(url)` | Verde | `articulo.imagenUrl` (Cloudinary), si existe |
+| M: Proveedor | Proveedor del artículo, o la URL externa | Rojo, texto amarillo | `articulo.proveedorNombre` o `item.urlExterna` si es `no_disponible` |
+| N: Costo | — | Rojo, texto amarillo | **En blanco, se completa a mano en Excel** |
+| O: Costo Total | Fórmula `=Cant×Costo` | Rojo, texto amarillo | `=G{fila}*N{fila}` |
+| P: Mark Up | — | Rojo, texto amarillo | **En blanco, se completa a mano en Excel** |
+| Q: Venta con IVA | Fórmula costo+markup | Rojo, texto amarillo | `=N{fila}*((P{fila}+100)/100)` |
+| R: Precio Unit. Sin IVA | Fórmula quitando 21% IVA | Celeste | `=INT(Q{fila}/1.21)` |
+| S: Total Sin IVA | Fórmula | Celeste | `=G{fila}*R{fila}` |
+| T | Separadora, sin contenido | Sin color | — |
+| U: Precio Unit. Sin IVA (USD) | Fórmula convirtiendo a USD | Verde | `=INT(R{fila}/$O$3*100)/100` (usa el tipo de cambio Oficial Compra del header, referencia absoluta) |
+| V: Total Sin IVA (USD) | Fórmula | Verde | `=INT(G{fila}*U{fila}*100)/100` |
+| W: Plazo de Entrega | — | Verde | **En blanco, se completa a mano en Excel** |
+| X: Comentarios | — | Verde | **En blanco, se completa a mano en Excel** |
+
+El diseño intencional es que la app resuelve el matching/catálogo/cantidades y arma toda la cadena de fórmulas, pero **Costo, Mark Up, Plazo de Entrega y Comentarios se completan a mano en el Excel después de descargarlo** — igual que en la planilla original de Nicole, donde esos datos se negocian/ajustan fuera del sistema.
 
 **Integración con Google (OAuth)**:
 - Se conecta **una sola cuenta de Google** para todo el sistema (no por usuario) desde **Configuraciones → Google Drive**.
@@ -740,12 +761,13 @@ Desde la pantalla de detalle hay un botón **"Exportar a Excel"** que genera un 
 - El refresh token queda guardado en la tabla `google_integracion` (una sola fila; conectar una cuenta nueva reemplaza la anterior).
 - Flujo: `GET /api/google/auth-url` arma el link de autorización → Google redirige a `GET /api/google/oauth/callback` → el backend intercambia el código por tokens y guarda el refresh token → redirige de vuelta a `/configuraciones?google=connected`.
 - Google Sheets API y Drive API son gratuitas para este volumen de uso (no requieren cuenta de facturación; el límite gratuito es 500 requests/100s por proyecto).
+- **Estado actual**: cuenta de Google Cloud suspendida (ver arriba) — no se puede completar el flujo OAuth hasta que se resuelva la apelación.
 
 #### Modelo de Datos
 
 | Tabla | Campo | Notas |
 |-------|-------|-------|
-| solicitudes_cotizacion | `cliente_id`, `numero_referencia_cliente`, `nombre_archivo`, `fecha_solicitud`, `estado`, `observaciones` | Cabecera |
+| solicitudes_cotizacion | `cliente_id`, `numero_referencia_cliente`, `nombre_archivo`, `fecha_solicitud`, `estado`, `observaciones`, `fecha_entrega`, `solicitado_por`, `usd_oficial_compra`, `usd_oficial_venta` | Cabecera. Los últimos 4 campos son para el header del Excel (migración 024) |
 | solicitud_cotizacion_items | `solicitud_id`, `orden`, `etm_solicitado`, `descripcion_solicitada`, `descripcion_ingles_solicitada`, `marca_solicitada`, `modelo_solicitado`, `cantidad_solicitada`, `articulo_id`, `match_confianza`, `estado_item`, `precio_unitario`, `url_externa` | Detalle |
 | google_integracion | `refresh_token`, `connected_email`, `connected_at` | Una sola fila: la cuenta de Google conectada para exportar |
 
@@ -754,14 +776,15 @@ Desde la pantalla de detalle hay un botón **"Exportar a Excel"** que genera un 
 GET    /api/solicitudes-cotizacion                       # Lista paginada con filtros (estado, clienteId, busqueda)
 GET    /api/solicitudes-cotizacion/:id                    # Ver detalle con items y matching
 POST   /api/solicitudes-cotizacion                        # Crear solicitud (corre el matching automático por ítem)
-PUT    /api/solicitudes-cotizacion/:id                    # Actualizar cabecera (referencia, observaciones)
+PUT    /api/solicitudes-cotizacion/:id                    # Actualizar cabecera (referencia, observaciones, fecha de entrega, solicitado por, USD oficial compra/venta)
 PUT    /api/solicitudes-cotizacion/:id/items/:itemId      # Actualizar un ítem (artículo, estado, precio, URL externa)
 POST   /api/solicitudes-cotizacion/:id/marcar-cotizada    # Marca como cotizada (valida que no queden ítems pendientes/sin precio)
 POST   /api/solicitudes-cotizacion/:id/cancelar           # Cancela la solicitud
 GET    /api/solicitudes-cotizacion/:id/exportar-excel     # Descarga el .xlsx de la cotización
+POST   /api/solicitudes-cotizacion/:id/exportar-google-sheets  # Crea la planilla en el Drive conectado (sin uso mientras la cuenta de Google está suspendida)
 ```
 
-Los endpoints `/exportar-google-sheets` y todos los de `/api/google/*` existen en el código pero **no están montados** en `routes/index.ts` (integración en pausa, ver arriba) — devolverían 404 si se llamaran hoy.
+Los endpoints de `/api/google/*` (auth-url, oauth/callback, status) ya están montados en `routes/index.ts` — dejaron de devolver 404 desde la reconexión del 6 de septiembre — pero el flujo OAuth en sí no completa mientras la cuenta de Google Cloud siga suspendida.
 
 #### Archivos Relacionados
 
@@ -1414,6 +1437,8 @@ npm run db:seed          # Datos iniciales
     - Campos `modelo_solicitado VARCHAR(150)` y `descripcion_ingles_solicitada TEXT` en `solicitud_cotizacion_items`
 22. **023_add_google_integracion.sql**: Integración con Google Sheets/Drive
     - Tabla `google_integracion` (refresh token de la cuenta de Google conectada)
+23. **024_add_datos_cabecera_cotizacion.sql**: Datos de cabecera para el Excel de la cotización
+    - Campos `fecha_entrega DATE`, `solicitado_por VARCHAR(200)`, `usd_oficial_compra NUMERIC(10,2)`, `usd_oficial_venta NUMERIC(10,2)` en `solicitudes_cotizacion`
 
 ---
 
@@ -1575,7 +1600,7 @@ npm run db:seed          # Datos iniciales
 
 ---
 
-*Documentación actualizada el 2 de septiembre de 2026*
+*Documentación actualizada el 6 de septiembre de 2026*
 
 ---
 
@@ -2174,3 +2199,29 @@ Continuando la migración de infraestructura del mismo día, se movió también 
 #### Archivos Modificados
 - `frontend/package.json` - Agregado `serve` y script `start`
 - Variables de entorno del backend en Railway - `DATABASE_URL` apunta ahora al Postgres de Railway (antes: Transaction Pooler de Supabase)
+
+---
+
+### 6 de septiembre de 2026
+
+#### Rediseño del header del Excel de cotización, reconexión de Google Sheets y cadena de fórmulas de precios
+
+Con el backend ya estable en Railway, se retomó la integración de Google Sheets (código reconectado: `googleRoutes` montado de nuevo en `routes/index.ts`, `exportarGoogleSheets` restaurado en el controller/rutas de Solicitudes de Cotización — la UI del frontend nunca se había desconectado). Al intentar probarla, **Google suspendió la cuenta de Google Cloud usada para el OAuth**, marcándola como "creada por un bot". Nicole apeló la suspensión; mientras se resuelve, el trabajo se redirigió a mejorar el archivo Excel (que de todas formas sigue siendo el flujo principal de descarga).
+
+**Header del archivo** (antes genérico, ahora calcado del archivo real de Nicole): título en B1, "Fecha de Entrega"/"Solicitado por" en B2/B3 con negrita+subrayado, par de celdas "USD Oficial Compra"/"USD Oficial Venta" en N3-O4 con formato moneda, y los logos de GE Vernova y HOFRA Group embebidos como imágenes en H1:H5/K1:K5 — extraídos directo del archivo de referencia (`Downloads/2 - Cristián - TC Argentina - Cotización 8.20 - #274.xlsx`) y guardados en base64 en `backend/src/assets/logos.ts`, sin depender de que Nicole los suba cada vez. Se agregaron 4 campos nuevos a `solicitudes_cotizacion` (`fecha_entrega`, `solicitado_por`, `usd_oficial_compra`, `usd_oficial_venta`, migración 024) editables desde la pantalla de detalle.
+
+**Columnas de la tabla de ítems**: se detectó que faltaban columnas respecto al archivo de referencia (T separadora, U/V segundo par Precio/Total Sin IVA en USD, W Plazo de Entrega, X Comentarios) y que el header iba partido en dos filas (6 y 7, con fusión vertical en las columnas de título corto) en vez de una sola. Se replicaron exactamente, incluyendo los colores de fondo/fuente del archivo original (celeste para los datos "Solicitado" + primer par de precio, verde para "Ofrecido" + segundo par + Plazo/Comentarios, rojo con texto amarillo para Proveedor/Costo/Mark Up/Venta con IVA).
+
+**Cadena de fórmulas de precios**: Costo (N), Mark Up (P), Plazo de Entrega (W) y Comentarios (X) quedan en blanco para completar a mano en Excel después de descargar — igual que en la planilla original, donde esos datos se negocian fuera del sistema. El resto es fórmula en vivo: Costo Total = `G×N`, Venta con IVA = `N×((P+100)/100)`, Precio Unit. Sin IVA = `INT(Q/1.21)`, Total Sin IVA = `G×R`, y el segundo par en USD convierte usando el tipo de cambio Oficial Compra del header (`$O$3`, referencia absoluta): `INT(R/$O$3*100)/100` y `INT(G×U*100)/100`. El campo `precioUnitario` que ya existía en el ítem (usado para habilitar "Marcar como Cotizada" y el subtotal en pantalla) no cambió — sigue siendo independiente de esta cadena, que es puramente del archivo Excel.
+
+#### Archivos Nuevos
+- `backend/src/assets/logos.ts` (logos institucionales en base64)
+- `database/migrations/024_add_datos_cabecera_cotizacion.sql`
+
+#### Archivos Modificados
+- `backend/src/routes/index.ts` - `googleRoutes` montado de nuevo
+- `backend/src/controllers/solicitudCotizacion.controller.ts`, `backend/src/routes/solicitudCotizacion.routes.ts` - `exportarGoogleSheets` restaurado
+- `backend/src/services/cotizacionExport.service.ts` - Reescrito: header de 5 filas con texto enriquecido/logos/moneda, header de ítems en dos filas con merges y colores, columnas T-X, cadena de fórmulas de precios
+- `backend/src/repositories/solicitudCotizacion.repository.ts`, `backend/src/services/solicitudCotizacion.service.ts` - `updateHeader()` acepta los 4 campos nuevos
+- `shared/src/types/index.ts`, `shared/src/validators/index.ts` - Campos `fechaEntrega`/`solicitadoPor`/`usdOficialCompra`/`usdOficialVenta` en `SolicitudCotizacion` y su DTO de actualización
+- `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx` - Sección "Datos para el Excel de cotización" con los 4 campos editables (guardado automático al salir del campo)
