@@ -13,26 +13,23 @@ export interface CotizacionSheetData {
   rows: SheetCell[][];
 }
 
-const COLUMNAS_HEADER: SheetCell[] = [
-  'ITEM',
-  'DESCRIPCION',
-  'DESCRIPCION EN INGLES',
-  'ETM',
-  'MARCA',
-  'MODELO',
-  'CANT',
-  'Item Ofrecido - Descripción',
-  'Unidad de Medida',
-  'Marca',
-  'Modelo',
-  'Imagen de lo Ofrecido',
-  'Proveedor',
-  'Costo por Unidad',
-  'Costo Total',
-  'Mark Up',
-  'Venta con IVA',
-  'Precio Unit. Sin IVA',
-  'Total Sin IVA',
+// Header partido en dos filas (igual que la planilla de referencia de Nicole), donde
+// las columnas de una sola palabra van fusionadas verticalmente (mismo texto repetido
+// en ambas filas) y las de título largo se parten en dos líneas para no ensanchar la
+// columna. Ver documentacion.md / módulo Solicitudes de Cotización para el archivo
+// de referencia (Downloads/2 - Cristián - TC Argentina - Cotización 8.20 - #274.xlsx).
+const COLUMNAS_HEADER_FILA1: SheetCell[] = [
+  'ITEM', 'DESCRIPCION', 'DESCRIPCION EN INGLES ', 'ETM', 'MARCA', 'MODELO', 'CANT',
+  'Item Ofrecido - Descripción', 'Unidad de', 'Marca', 'Modelo', 'Imagen de', 'Proveedor',
+  'Costo', 'Costo Total', 'Mark Up', 'Venta ', 'Precio Unit.', 'Total ',
+  null, 'Precio Unit.', 'Total ', 'Plazo', 'Comentarios',
+];
+
+const COLUMNAS_HEADER_FILA2: SheetCell[] = [
+  'ITEM', 'DESCRIPCION', 'DESCRIPCION EN INGLES ', 'ETM', 'MARCA', 'MODELO', 'CANT',
+  'Item Ofrecido - Descripción', 'Medida', 'Marca', 'Modelo', 'lo Ofrecido', 'Proveedor',
+  'por Unidad', 'Costo Total', 'Mark Up', 'con iva', 'Sin Iva', 'Sin Iva',
+  null, 'Sin Iva', 'Sin Iva', 'de Entrega', 'Comentarios',
 ];
 
 /**
@@ -69,7 +66,8 @@ export function buildCotizacionSheetData(solicitud: SolicitudCotizacionConRelaci
       'USD Oficial Venta', solicitud.usdOficialVenta ?? '',
     ],
     [],
-    COLUMNAS_HEADER,
+    COLUMNAS_HEADER_FILA1,
+    COLUMNAS_HEADER_FILA2,
   ];
 
   const primeraFilaItems = rows.length + 1; // fila 1-indexed donde arranca el primer ítem
@@ -83,9 +81,13 @@ export function buildCotizacionSheetData(solicitud: SolicitudCotizacionConRelaci
       (item.estadoItem === 'no_disponible' ? item.urlExterna : null) ||
       '';
 
-    const totalSinIva: SheetCell =
-      item.precioUnitario != null ? { formula: `G${filaNum}*R${filaNum}` } : '';
-
+    // Costo (N), Mark Up (P), Plazo de Entrega (W) y Comentarios (X) se completan a
+    // mano en Excel después de descargar, igual que en la planilla original de Nicole.
+    // El resto de la cadena de precios es fórmula en vivo, encadenada a partir de esas
+    // dos celdas manuales: Costo Total = cant×costo, Venta con IVA = costo con markup
+    // aplicado, Precio/Total Sin IVA = Venta sin el 21% de IVA, y el segundo par (U/V)
+    // convierte esos mismos valores a USD usando el tipo de cambio Oficial Compra del
+    // header ($O$3, referencia absoluta porque es igual para todos los ítems).
     rows.push([
       index + 1,
       item.descripcionSolicitada,
@@ -100,12 +102,17 @@ export function buildCotizacionSheetData(solicitud: SolicitudCotizacionConRelaci
       '', // Modelo del artículo ofrecido: no lo trackeamos, queda para completar a mano
       articulo?.imagenUrl ? { formula: `IMAGE("${articulo.imagenUrl}")` } : '',
       proveedor,
-      '', // Costo por Unidad
-      '', // Costo Total
-      '', // Mark Up
-      '', // Venta con IVA
-      item.precioUnitario ?? '',
-      totalSinIva,
+      '', // N: Costo por Unidad (manual)
+      { formula: `G${filaNum}*N${filaNum}` }, // O: Costo Total
+      '', // P: Mark Up % (manual)
+      { formula: `N${filaNum}*((P${filaNum}+100)/100)` }, // Q: Venta con IVA
+      { formula: `INT(Q${filaNum}/1.21)` }, // R: Precio Unit. Sin IVA
+      { formula: `G${filaNum}*R${filaNum}` }, // S: Total Sin IVA
+      null, // T: separadora, sin datos
+      { formula: `INT(R${filaNum}/$O$3*100)/100` }, // U: Precio Unit. Sin IVA (USD)
+      { formula: `INT(G${filaNum}*U${filaNum}*100)/100` }, // V: Total Sin IVA (USD)
+      '', // W: Plazo de Entrega (manual)
+      '', // X: Comentarios (manual)
     ]);
   });
 
@@ -131,11 +138,42 @@ export async function buildCotizacionExcelBuffer(solicitud: SolicitudCotizacionC
   });
 
   sheet.getRow(6).font = { bold: true };
+  sheet.getRow(7).font = { bold: true };
+
+  // Columnas de título corto: en el archivo de referencia son una sola celda fusionada
+  // verticalmente (filas 6:7), no texto repetido en dos filas. El resto (Unidad de Medida,
+  // Imagen de lo Ofrecido, Costo por Unidad, Venta con IVA, Precio Unit./Total Sin IVA x2,
+  // Plazo de Entrega) va partido en dos líneas sin fusionar, tal cual el original.
+  const columnasFusionHeader = [1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 13, 15, 16, 24];
+  columnasFusionHeader.forEach((col) => {
+    sheet.mergeCells(6, col, 7, col);
+  });
+
+  // Colores del header de ítems, calcados de la planilla de referencia: celeste para
+  // los datos "Solicitado" + el primer par Precio Unit./Total Sin IVA, verde para los
+  // datos "Ofrecido" + el segundo par + Plazo/Comentarios, rojo para Proveedor/Costo/
+  // Mark Up/Venta con IVA. La columna T queda sin color (es la separadora en blanco).
+  const gruposColorHeader: Array<{ cols: number[]; fill: string; fontColor: string }> = [
+    { cols: [1, 2, 3, 4, 5, 6, 18, 19], fill: 'FF00B0F0', fontColor: 'FFFFFFFF' }, // A-F, R, S: celeste
+    { cols: [9], fill: 'FF00B0F0', fontColor: 'FFFFFF00' }, // I (Unidad de Medida): celeste, texto amarillo
+    { cols: [7, 8, 10, 11, 12, 21, 22, 23, 24], fill: 'FF548235', fontColor: 'FFFFFFFF' }, // G,H,J,K,L,U,V,W,X: verde
+    { cols: [13, 14, 15, 16, 17], fill: 'FFFF0000', fontColor: 'FFFFFF00' }, // M-Q: rojo, texto amarillo
+  ];
+  gruposColorHeader.forEach(({ cols, fill, fontColor }) => {
+    cols.forEach((col) => {
+      [6, 7].forEach((row) => {
+        const cell = sheet.getCell(row, col);
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fill } };
+        cell.font = { bold: true, color: { argb: fontColor } };
+      });
+    });
+  });
 
   const anchoColumnas: Record<number, number> = {
     1: 9, 2: 62, 3: 45, 4: 31.75, 5: 24.25, 6: 21, 7: 10.25, 8: 51.25,
     9: 16.75, 10: 18, 11: 25, 12: 28.75, 13: 36, 14: 20.25, 15: 20.25,
-    16: 18.75, 17: 21, 18: 21, 19: 22.75,
+    16: 18.75, 17: 21, 18: 21, 19: 22.75, 20: 9, 21: 21.5, 22: 22.75,
+    23: 21.75, 24: 51,
   };
   Object.entries(anchoColumnas).forEach(([col, width]) => {
     sheet.getColumn(Number(col)).width = width;
