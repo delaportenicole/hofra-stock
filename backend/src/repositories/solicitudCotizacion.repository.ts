@@ -358,6 +358,10 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       fecha_solicitud: row.fecha_solicitud,
       estado: row.estado,
       observaciones: row.observaciones,
+      fecha_entrega: row.fecha_entrega,
+      solicitado_por: row.solicitado_por,
+      usd_oficial_compra: row.usd_oficial_compra,
+      usd_oficial_venta: row.usd_oficial_venta,
       created_at: row.created_at,
       updated_at: row.updated_at,
       deleted_at: row.deleted_at,
@@ -367,6 +371,12 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
 
     return {
       ...solicitud,
+      usdOficialCompra: row.usd_oficial_compra !== null && row.usd_oficial_compra !== undefined
+        ? Number(row.usd_oficial_compra)
+        : null,
+      usdOficialVenta: row.usd_oficial_venta !== null && row.usd_oficial_venta !== undefined
+        ? Number(row.usd_oficial_venta)
+        : null,
       items,
       cliente: {
         id: row.cli_id as string,

@@ -81,13 +81,14 @@ export function buildCotizacionSheetData(solicitud: SolicitudCotizacionConRelaci
       (item.estadoItem === 'no_disponible' ? item.urlExterna : null) ||
       '';
 
-    // Costo (N), Mark Up (P), Plazo de Entrega (W) y Comentarios (X) se completan a
-    // mano en Excel después de descargar, igual que en la planilla original de Nicole.
-    // El resto de la cadena de precios es fórmula en vivo, encadenada a partir de esas
-    // dos celdas manuales: Costo Total = cant×costo, Venta con IVA = costo con markup
-    // aplicado, Precio/Total Sin IVA = Venta sin el 21% de IVA, y el segundo par (U/V)
-    // convierte esos mismos valores a USD usando el tipo de cambio Oficial Compra del
-    // header ($O$3, referencia absoluta porque es igual para todos los ítems).
+    // Mark Up (P), Plazo de Entrega (W) y Comentarios (X) se completan a mano en Excel
+    // después de descargar, igual que en la planilla original de Nicole. Costo por
+    // Unidad (N) viene del precioUnitario cargado en la solicitud. El resto de la
+    // cadena de precios es fórmula en vivo: Costo Total = cant×costo, Venta con IVA =
+    // costo con markup aplicado, Precio/Total Sin IVA = Venta sin el 21% de IVA, y el
+    // segundo par (U/V) convierte esos mismos valores a USD usando el tipo de cambio
+    // Oficial Compra del header ($O$3, referencia absoluta porque es igual para todos
+    // los ítems).
     rows.push([
       index + 1,
       item.descripcionSolicitada,
@@ -102,7 +103,7 @@ export function buildCotizacionSheetData(solicitud: SolicitudCotizacionConRelaci
       '', // Modelo del artículo ofrecido: no lo trackeamos, queda para completar a mano
       articulo?.imagenUrl ? { formula: `IMAGE("${articulo.imagenUrl}")` } : '',
       proveedor,
-      '', // N: Costo por Unidad (manual)
+      item.precioUnitario ?? '', // N: Costo por Unidad
       { formula: `G${filaNum}*N${filaNum}` }, // O: Costo Total
       '', // P: Mark Up % (manual)
       { formula: `N${filaNum}*((P${filaNum}+100)/100)` }, // Q: Venta con IVA
