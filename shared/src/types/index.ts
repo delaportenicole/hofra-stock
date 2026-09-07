@@ -301,6 +301,7 @@ export interface SolicitudCotizacionItemConArticulo extends SolicitudCotizacionI
 
 export interface SolicitudCotizacion extends BaseEntity {
   clienteId: string;
+  numeroCotizacion: number | null;
   numeroReferenciaCliente: string | null;
   nombreArchivo: string | null;
   fechaSolicitud: Date;

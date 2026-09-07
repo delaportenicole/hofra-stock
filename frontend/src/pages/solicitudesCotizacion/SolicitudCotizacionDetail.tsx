@@ -53,6 +53,12 @@ function buildMercadoLibreUrl(item: SolicitudCotizacionItemConArticulo): string 
   return `https://listado.mercadolibre.com.ar/${encodeURIComponent(item.descripcionSolicitada.trim())}`;
 }
 
+// Ocultos a pedido de Nicole (2026-09-07): Google Sheets no sirve mientras la cuenta de
+// Google siga suspendida, e Imprimir Cotización queda pausado por ahora. No se borraron
+// el botón ni la lógica para poder reactivarlos fácilmente más adelante.
+const MOSTRAR_EXPORTAR_GOOGLE_SHEETS = false;
+const MOSTRAR_IMPRIMIR = false;
+
 export function SolicitudCotizacionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -402,8 +408,8 @@ export function SolicitudCotizacionDetailPage() {
             <p className="font-medium">{format(new Date(solicitud.fechaSolicitud), 'dd/MM/yyyy HH:mm', { locale: es })}</p>
           </div>
           <div>
-            <p className="text-gray-500">Referencia del Cliente</p>
-            <p className="font-medium">{solicitud.numeroReferenciaCliente || '-'}</p>
+            <p className="text-gray-500">Cotización Número</p>
+            <p className="font-medium">{solicitud.numeroCotizacion ?? '-'}</p>
           </div>
         </div>
 
@@ -495,14 +501,18 @@ export function SolicitudCotizacionDetailPage() {
           <Download className="w-4 h-4 mr-2" />
           Descargar Excel Externo
         </button>
-        <button onClick={handleExportarGoogleSheets} disabled={isExportingSheets} className="btn-secondary disabled:opacity-50">
-          {isExportingSheets ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <HardDrive className="w-4 h-4 mr-2" />}
-          Exportar a Google Sheets
-        </button>
-        <button onClick={handlePrint} className="btn-secondary">
-          <Printer className="w-4 h-4 mr-2" />
-          Imprimir Cotización
-        </button>
+        {MOSTRAR_EXPORTAR_GOOGLE_SHEETS && (
+          <button onClick={handleExportarGoogleSheets} disabled={isExportingSheets} className="btn-secondary disabled:opacity-50">
+            {isExportingSheets ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <HardDrive className="w-4 h-4 mr-2" />}
+            Exportar a Google Sheets
+          </button>
+        )}
+        {MOSTRAR_IMPRIMIR && (
+          <button onClick={handlePrint} className="btn-secondary">
+            <Printer className="w-4 h-4 mr-2" />
+            Imprimir Cotización
+          </button>
+        )}
         {solicitud.estado === 'en_revision' && (
           <>
             <button onClick={handleCancelar} className="btn-danger">

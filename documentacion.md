@@ -781,7 +781,7 @@ El diseño intencional es que la app resuelve el matching/catálogo/cantidades/c
 
 | Tabla | Campo | Notas |
 |-------|-------|-------|
-| solicitudes_cotizacion | `cliente_id`, `numero_referencia_cliente`, `nombre_archivo`, `fecha_solicitud`, `estado`, `observaciones`, `fecha_entrega`, `lugar_entrega`, `solicitado_por`, `usd_oficial_compra`, `usd_oficial_venta` | Cabecera. Los últimos 5 campos son para el header del Excel (migraciones 024 y 025) |
+| solicitudes_cotizacion | `cliente_id`, `numero_cotizacion`, `numero_referencia_cliente`, `nombre_archivo`, `fecha_solicitud`, `estado`, `observaciones`, `fecha_entrega`, `lugar_entrega`, `solicitado_por`, `usd_oficial_compra`, `usd_oficial_venta` | Cabecera. `numero_cotizacion` es un contador interno autoincremental desde 250 (migración 028, `NULL` en solicitudes previas a esa migración), independiente de `numero_referencia_cliente` (la referencia que trae el cliente, sigue siendo texto libre). `fecha_entrega`...`usd_oficial_venta` son para el header del Excel (migraciones 024 y 025) |
 | solicitud_cotizacion_items | `solicitud_id`, `orden`, `etm_solicitado`, `descripcion_solicitada`, `descripcion_ingles_solicitada`, `marca_solicitada`, `modelo_solicitado`, `cantidad_solicitada`, `articulo_id`, `match_confianza`, `estado_item`, `precio_unitario`, `mark_up`, `url_externa` | Detalle. `mark_up` es el margen del ítem, número entero (migraciones 026-027), usado para calcular el precio final en el Excel Externo |
 | google_integracion | `refresh_token`, `connected_email`, `connected_at` | Una sola fila: la cuenta de Google conectada para exportar |
 
@@ -831,6 +831,7 @@ Los endpoints de `/api/google/*` (auth-url, oauth/callback, status) ya están mo
 - `database/migrations/025_add_lugar_entrega_cotizacion.sql`
 - `database/migrations/026_add_mark_up_solicitud_items.sql`
 - `database/migrations/027_mark_up_a_entero.sql`
+- `database/migrations/028_add_numero_cotizacion.sql`
 
 ---
 
@@ -1464,6 +1465,8 @@ npm run db:seed          # Datos iniciales
     - Campo `mark_up NUMERIC(6,2)` en `solicitud_cotizacion_items`
 26. **027_mark_up_a_entero.sql**: Mark Up pasa a número entero
     - `mark_up` cambia de `NUMERIC(6,2)` a `INTEGER`
+27. **028_add_numero_cotizacion.sql**: Número de Cotización interno
+    - Secuencia `solicitudes_cotizacion_numero_seq` arrancando en 250 y campo `numero_cotizacion INTEGER UNIQUE` en `solicitudes_cotizacion`, con default `nextval(...)` — las solicitudes existentes al momento de la migración quedan con este campo en `NULL` (decisión explícita: no se renumeran retroactivamente)
 
 ---
 
@@ -2301,3 +2304,17 @@ Se evaluó armar el Excel "en la web" (una previsualización/editor propio) como
 - **Mark Up es un número entero, no moneda**: pasó de `CurrencyInput` (formato con coma decimal y separador de miles, pensado para plata) a un `<input type="number" step="1">` simple. La columna `mark_up` se convirtió de `NUMERIC(6,2)` a `INTEGER` (migración 027) para reflejar esto en la base también
 - **"Datos para el Excel de cotización" en un solo renglón**: el grid de Fecha/Lugar de Entrega, Solicitado por y USD Oficial Compra/Venta pasó de `md:grid-cols-4` (se partía en dos líneas) a `md:grid-cols-5`, para que los 5 campos entren en una fila en pantallas medianas/grandes
 - **Botones de acción arriba de la grilla de ítems**: "Descargar Excel Interno/Externo", "Exportar a Google Sheets", "Imprimir Cotización", "Cancelar Solicitud" y "Marcar como Cotizada" se movieron de debajo de la tabla de ítems a arriba (entre las tarjetas de indicadores y la tabla), para no tener que scrollear hasta el final para volver a descargar/exportar
+
+### 7 de septiembre de 2026 (continuación) — Número de Cotización y botones ocultos temporalmente
+
+**Número de Cotización**: nuevo campo `numero_cotizacion` en `solicitudes_cotizacion` (migración 028), un contador interno que arranca en 250 y se autoincrementa vía secuencia de Postgres (`solicitudes_cotizacion_numero_seq`) cada vez que se crea una solicitud nueva — no requiere lógica en la app, el default de la columna llama a `nextval()` en cada INSERT. Es distinto de `numero_referencia_cliente` (la referencia que trae el cliente en su archivo, sigue existiendo igual que antes, texto libre). Las solicitudes creadas antes de esta migración quedan con `numero_cotizacion = NULL` (decisión explícita: no se renumeran retroactivamente, ver `documentacion.md` → migración 028). En la pantalla de detalle, la tarjeta que decía "Referencia del Cliente" ahora muestra **"Cotización Número"** con este nuevo campo.
+
+**Botones ocultos temporalmente**: "Exportar a Google Sheets" (igual no funciona mientras la cuenta de Google esté suspendida) e "Imprimir Cotización" se ocultan de la pantalla de detalle a pedido de Nicole. No se borró el código: `SolicitudCotizacionDetail.tsx` tiene dos constantes (`MOSTRAR_EXPORTAR_GOOGLE_SHEETS`, `MOSTRAR_IMPRIMIR`, ambas en `false`) que controlan la visibilidad — para reactivarlos alcanza con volverlas `true`.
+
+#### Archivos Nuevos
+- `database/migrations/028_add_numero_cotizacion.sql`
+
+#### Archivos Modificados
+- `shared/src/types/index.ts` - Campo `numeroCotizacion` en `SolicitudCotizacion`
+- `backend/src/repositories/solicitudCotizacion.repository.ts` - `numero_cotizacion` en el mapeo de `mapToConRelaciones()`
+- `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx` - Tarjeta "Cotización Número" en vez de "Referencia del Cliente"; botones de Google Sheets e Imprimir detrás de flags `MOSTRAR_*`

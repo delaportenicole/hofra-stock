@@ -364,6 +364,7 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
     const solicitud = toCamelCase<SolicitudCotizacion>({
       id: row.id,
       cliente_id: row.cliente_id,
+      numero_cotizacion: row.numero_cotizacion,
       numero_referencia_cliente: row.numero_referencia_cliente,
       nombre_archivo: row.nombre_archivo,
       fecha_solicitud: row.fecha_solicitud,
