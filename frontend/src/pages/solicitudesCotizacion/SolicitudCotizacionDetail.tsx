@@ -67,6 +67,7 @@ export function SolicitudCotizacionDetailPage() {
   const [urlDrafts, setUrlDrafts] = useState<Record<string, string>>({});
   const [headerDraft, setHeaderDraft] = useState({
     fechaEntrega: '',
+    lugarEntrega: '',
     solicitadoPor: '',
     usdOficialCompra: undefined as number | undefined,
     usdOficialVenta: undefined as number | undefined,
@@ -93,6 +94,7 @@ export function SolicitudCotizacionDetailPage() {
       setPrecios(preciosIniciales);
       setHeaderDraft({
         fechaEntrega: solicitudData.fechaEntrega ? new Date(solicitudData.fechaEntrega).toISOString().slice(0, 10) : '',
+        lugarEntrega: solicitudData.lugarEntrega || '',
         solicitadoPor: solicitudData.solicitadoPor || '',
         usdOficialCompra: solicitudData.usdOficialCompra ?? undefined,
         usdOficialVenta: solicitudData.usdOficialVenta ?? undefined,
@@ -188,7 +190,7 @@ export function SolicitudCotizacionDetailPage() {
   };
 
   const handleHeaderFieldBlur = async (
-    field: 'fechaEntrega' | 'solicitadoPor' | 'usdOficialCompra' | 'usdOficialVenta',
+    field: 'fechaEntrega' | 'lugarEntrega' | 'solicitadoPor' | 'usdOficialCompra' | 'usdOficialVenta',
     valorNuevo: string | number | undefined
   ) => {
     if (!id) return;
@@ -389,6 +391,17 @@ export function SolicitudCotizacionDetailPage() {
                 disabled={solicitud.estado !== 'en_revision' || isSavingHeader}
                 onChange={(e) => setHeaderDraft((prev) => ({ ...prev, fechaEntrega: e.target.value }))}
                 onBlur={() => handleHeaderFieldBlur('fechaEntrega', headerDraft.fechaEntrega)}
+              />
+            </div>
+            <div>
+              <label className="block text-gray-500 mb-1">Lugar de Entrega</label>
+              <input
+                type="text"
+                className="input"
+                value={headerDraft.lugarEntrega}
+                disabled={solicitud.estado !== 'en_revision' || isSavingHeader}
+                onChange={(e) => setHeaderDraft((prev) => ({ ...prev, lugarEntrega: e.target.value }))}
+                onBlur={() => handleHeaderFieldBlur('lugarEntrega', headerDraft.lugarEntrega)}
               />
             </div>
             <div>

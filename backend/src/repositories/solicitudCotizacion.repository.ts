@@ -95,6 +95,7 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       numeroReferenciaCliente?: string | null;
       observaciones?: string | null;
       fechaEntrega?: Date | string | null;
+      lugarEntrega?: string | null;
       solicitadoPor?: string | null;
       usdOficialCompra?: number | null;
       usdOficialVenta?: number | null;
@@ -116,6 +117,10 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
     if (data.fechaEntrega !== undefined) {
       sets.push(`fecha_entrega = $${paramIndex++}`);
       values.push(data.fechaEntrega);
+    }
+    if (data.lugarEntrega !== undefined) {
+      sets.push(`lugar_entrega = $${paramIndex++}`);
+      values.push(data.lugarEntrega);
     }
     if (data.solicitadoPor !== undefined) {
       sets.push(`solicitado_por = $${paramIndex++}`);
@@ -359,6 +364,7 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       estado: row.estado,
       observaciones: row.observaciones,
       fecha_entrega: row.fecha_entrega,
+      lugar_entrega: row.lugar_entrega,
       solicitado_por: row.solicitado_por,
       usd_oficial_compra: row.usd_oficial_compra,
       usd_oficial_venta: row.usd_oficial_venta,

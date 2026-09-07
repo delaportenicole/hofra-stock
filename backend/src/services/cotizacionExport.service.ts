@@ -55,6 +55,7 @@ export function buildCotizacionSheetData(solicitud: SolicitudCotizacionConRelaci
   const rows: SheetCell[][] = [
     [null, titulo],
     [null, `Fecha de Entrega: ${fechaEntregaTexto}`],
+    [null, `Lugar de Entrega: ${solicitud.lugarEntrega || ''}`],
     [
       null, `Solicitado por: ${solicitud.solicitadoPor || ''}`,
       null, null, null, null, null, null, null, null, null, null, null, // C..M (11 columnas)
@@ -87,7 +88,7 @@ export function buildCotizacionSheetData(solicitud: SolicitudCotizacionConRelaci
     // cadena de precios es fórmula en vivo: Costo Total = cant×costo, Venta con IVA =
     // costo con markup aplicado, Precio/Total Sin IVA = Venta sin el 21% de IVA, y el
     // segundo par (U/V) convierte esos mismos valores a USD usando el tipo de cambio
-    // Oficial Compra del header ($O$3, referencia absoluta porque es igual para todos
+    // Oficial Compra del header ($O$4, referencia absoluta porque es igual para todos
     // los ítems).
     rows.push([
       index + 1,
@@ -110,7 +111,7 @@ export function buildCotizacionSheetData(solicitud: SolicitudCotizacionConRelaci
       { formula: `INT(Q${filaNum}/1.21)` }, // R: Precio Unit. Sin IVA
       { formula: `G${filaNum}*R${filaNum}` }, // S: Total Sin IVA
       null, // T: separadora, sin datos
-      { formula: `INT(R${filaNum}/$O$3*100)/100` }, // U: Precio Unit. Sin IVA (USD)
+      { formula: `INT(R${filaNum}/$O$4*100)/100` }, // U: Precio Unit. Sin IVA (USD)
       { formula: `INT(G${filaNum}*U${filaNum}*100)/100` }, // V: Total Sin IVA (USD)
       '', // W: Plazo de Entrega (manual)
       '', // X: Comentarios (manual)
@@ -141,18 +142,22 @@ export async function buildCotizacionExcelBuffer(solicitud: SolicitudCotizacionC
     });
   });
 
-  sheet.getRow(6).font = { bold: true };
-  sheet.getRow(7).font = { bold: true };
-  sheet.getRow(6).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-  sheet.getRow(7).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+  // Filas del header de columnas: 7 y 8 (se corrieron una fila hacia abajo respecto de
+  // la planilla de referencia original por el agregado de "Lugar de Entrega").
+  const FILA_HEADER_COLUMNAS_1 = 7;
+  const FILA_HEADER_COLUMNAS_2 = 8;
+  sheet.getRow(FILA_HEADER_COLUMNAS_1).font = { bold: true };
+  sheet.getRow(FILA_HEADER_COLUMNAS_2).font = { bold: true };
+  sheet.getRow(FILA_HEADER_COLUMNAS_1).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+  sheet.getRow(FILA_HEADER_COLUMNAS_2).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
 
   // Columnas de título corto: en el archivo de referencia son una sola celda fusionada
-  // verticalmente (filas 6:7), no texto repetido en dos filas. El resto (Unidad de Medida,
+  // verticalmente (dos filas), no texto repetido en dos filas. El resto (Unidad de Medida,
   // Imagen de lo Ofrecido, Costo por Unidad, Venta con IVA, Precio Unit./Total Sin IVA x2,
   // Plazo de Entrega) va partido en dos líneas sin fusionar, tal cual el original.
   const columnasFusionHeader = [1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 13, 15, 16, 24];
   columnasFusionHeader.forEach((col) => {
-    sheet.mergeCells(6, col, 7, col);
+    sheet.mergeCells(FILA_HEADER_COLUMNAS_1, col, FILA_HEADER_COLUMNAS_2, col);
   });
 
   // Colores del header de ítems, calcados de la planilla de referencia: celeste para
@@ -167,7 +172,7 @@ export async function buildCotizacionExcelBuffer(solicitud: SolicitudCotizacionC
   ];
   gruposColorHeader.forEach(({ cols, fill, fontColor }) => {
     cols.forEach((col) => {
-      [6, 7].forEach((row) => {
+      [FILA_HEADER_COLUMNAS_1, FILA_HEADER_COLUMNAS_2].forEach((row) => {
         const cell = sheet.getCell(row, col);
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fill } };
         cell.font = { bold: true, color: { argb: fontColor } };
@@ -185,16 +190,18 @@ export async function buildCotizacionExcelBuffer(solicitud: SolicitudCotizacionC
     sheet.getColumn(Number(col)).width = width;
   });
 
-  // Alto de filas calcado del archivo de referencia: título/fecha/solicitado por (20),
-  // fila del logo (11), header de columnas en dos líneas (24) y filas de ítems (50).
-  [1, 2, 3, 4].forEach((row) => {
+  // Alto de filas calcado del archivo de referencia: título/fecha/lugar/solicitado por/
+  // USD venta (20), fila del logo (11), header de columnas en dos líneas (24) y filas de
+  // ítems (50). Un renglón más que el original por el agregado de "Lugar de Entrega".
+  const primeraFilaItems = rows.length - solicitud.items.length + 1;
+  [1, 2, 3, 4, 5].forEach((row) => {
     sheet.getRow(row).height = 20;
   });
-  sheet.getRow(5).height = 11;
-  sheet.getRow(6).height = 24;
-  sheet.getRow(7).height = 24;
+  sheet.getRow(6).height = 11;
+  sheet.getRow(FILA_HEADER_COLUMNAS_1).height = 24;
+  sheet.getRow(FILA_HEADER_COLUMNAS_2).height = 24;
   for (let i = 0; i < solicitud.items.length; i++) {
-    sheet.getRow(8 + i).height = 50;
+    sheet.getRow(primeraFilaItems + i).height = 50;
   }
 
   // Cabecera: título en B1, etiqueta+valor en negrita/subrayado para Fecha de Entrega
@@ -220,26 +227,52 @@ export async function buildCotizacionExcelBuffer(solicitud: SolicitudCotizacionC
     ? new Date(solicitud.fechaEntrega).toLocaleDateString('es-AR')
     : '';
   setEtiquetaValor('B2', 'Fecha de Entrega', fechaEntregaTexto);
-  setEtiquetaValor('B3', 'Solicitado por', solicitud.solicitadoPor || '');
+  setEtiquetaValor('B3', 'Lugar de Entrega', solicitud.lugarEntrega || '');
+  setEtiquetaValor('B4', 'Solicitado por', solicitud.solicitadoPor || '');
 
-  ['N3', 'N4'].forEach((direccion) => {
+  ['N4', 'N5'].forEach((direccion) => {
     sheet.getCell(direccion).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
     sheet.getCell(direccion).font = fuenteEtiqueta;
   });
-  sheet.getCell('O3').value = solicitud.usdOficialCompra ?? null;
-  sheet.getCell('O4').value = solicitud.usdOficialVenta ?? null;
-  ['O3', 'O4'].forEach((direccion) => {
+  sheet.getCell('O4').value = solicitud.usdOficialCompra ?? null;
+  sheet.getCell('O5').value = solicitud.usdOficialVenta ?? null;
+  ['O4', 'O5'].forEach((direccion) => {
     sheet.getCell(direccion).numFmt = '"$" #,##0.00';
     sheet.getCell(direccion).font = fuenteValor;
   });
 
-  // Logos institucionales (siempre los mismos, ver backend/src/assets/logos.ts).
+  // Precios en pesos (Q, R, S) con formato moneda "$" y USD (U, V) con formato "USD",
+  // ambos con separador de miles y centavos (los separadores reales que se ven dependen
+  // de la configuración regional de Excel, no del código de formato en sí).
+  for (let i = 0; i < solicitud.items.length; i++) {
+    const filaNum = primeraFilaItems + i;
+    ['Q', 'R', 'S'].forEach((col) => {
+      sheet.getCell(`${col}${filaNum}`).numFmt = '"$" #,##0.00';
+    });
+    ['U', 'V'].forEach((col) => {
+      sheet.getCell(`${col}${filaNum}`).numFmt = '"USD" #,##0.00';
+    });
+  }
+
+  // Logos institucionales (siempre los mismos, ver backend/src/assets/logos.ts). Ocupan
+  // las filas 1-6 (una más que en el original) para seguir cubriendo todo el bloque de
+  // cabecera ahora que "Lugar de Entrega" agrega un renglón.
   // Los tipos de exceljs para addImage piden un Anchor completo (col/row nativos, offsets);
   // en la práctica la librería solo lee col/row para un two-cell anchor, así que se castea.
   const geLogoId = workbook.addImage({ base64: `data:image/png;base64,${LOGO_GE_VERNOVA_BASE64}`, extension: 'png' });
-  sheet.addImage(geLogoId, { tl: { col: 7, row: 0 }, br: { col: 8, row: 5 } } as ExcelJS.ImageRange); // H1:H5
+  sheet.addImage(geLogoId, { tl: { col: 7, row: 0 }, br: { col: 8, row: 6 } } as ExcelJS.ImageRange); // H1:H6
   const hofraLogoId = workbook.addImage({ base64: `data:image/png;base64,${LOGO_HOFRA_GROUP_BASE64}`, extension: 'png' });
-  sheet.addImage(hofraLogoId, { tl: { col: 10, row: 0 }, br: { col: 11, row: 5 } } as ExcelJS.ImageRange); // K1:K5
+  sheet.addImage(hofraLogoId, { tl: { col: 10, row: 0 }, br: { col: 11, row: 6 } } as ExcelJS.ImageRange); // K1:K6
+
+  // Centrado global: todos los textos de todas las celdas quedan centrados horizontal y
+  // verticalmente, pisando cualquier alineación previa (títulos, etiquetas, valores,
+  // header e ítems), preservando el wrapText donde ya estaba activado.
+  for (let r = 1; r <= rows.length; r++) {
+    for (let c = 1; c <= 24; c++) {
+      const cell = sheet.getCell(r, c);
+      cell.alignment = { ...cell.alignment, horizontal: 'center', vertical: 'middle' };
+    }
+  }
 
   const buffer = await workbook.xlsx.writeBuffer();
   return Buffer.from(buffer);

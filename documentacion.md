@@ -718,42 +718,47 @@ La API pública de Mercado Libre dejó de permitir búsquedas y consultas de pro
 
 Desde la pantalla de detalle hay un botón **"Exportar a Excel"** que genera un `.xlsx` real (con fórmulas, vía `exceljs`), replicando celda por celda el archivo que Nicole armaba a mano (`Downloads/2 - Cristián - TC Argentina - Cotización 8.20 - #274.xlsx`, usado como referencia). Toda la lógica de armado vive en `backend/src/services/cotizacionExport.service.ts` (`buildCotizacionSheetData()` para la matriz de datos, `buildCotizacionExcelBuffer()` para el formato específico de xlsx: texto enriquecido, colores, merges, imágenes).
 
-**Cabecera del archivo (filas 1-5)**:
+**Cabecera del archivo (filas 1-6)**:
 - **B1**: título (cliente + "Cotización" + referencia)
 - **B2**: "Fecha de Entrega:" (negrita+subrayado) + valor — campo editable `fechaEntrega`
-- **B3**: "Solicitado por:" (negrita+subrayado) + valor — campo editable `solicitadoPor`
-- **N3/O3**: "USD Oficial Compra" + valor con formato moneda — campo editable `usdOficialCompra`
-- **N4/O4**: "USD Oficial Venta" + valor con formato moneda — campo editable `usdOficialVenta`
-- **H1:H5** y **K1:K5**: logos institucionales (GE Vernova y HOFRA Group) embebidos en base64 en `backend/src/assets/logos.ts` (extraídos del archivo de referencia, siempre los mismos, no se suben por archivo aparte)
+- **B3**: "Lugar de Entrega:" (negrita+subrayado) + valor — campo editable `lugarEntrega`
+- **B4**: "Solicitado por:" (negrita+subrayado) + valor — campo editable `solicitadoPor`
+- **N4/O4**: "USD Oficial Compra" + valor con formato moneda — campo editable `usdOficialCompra`
+- **N5/O5**: "USD Oficial Venta" + valor con formato moneda — campo editable `usdOficialVenta`
+- **H1:H6** y **K1:K6**: logos institucionales (GE Vernova y HOFRA Group) embebidos en base64 en `backend/src/assets/logos.ts` (extraídos del archivo de referencia, siempre los mismos, no se suben por archivo aparte)
 
-Los 4 campos editables se cargan en la pantalla de detalle, en la sección "Datos para el Excel de cotización" (arriba de la grilla de ítems), y se guardan solos al salir del campo — igual que el precio de los ítems. Se bloquean una vez que la solicitud deja de estar `en_revision`.
+Nota: en el archivo de referencia original de Nicole la cabecera ocupaba las filas 1-5 (sin "Lugar de Entrega"); acá tiene una fila más y el header de columnas quedó en las filas 7-8 en vez de 6-7, ya que se corrió todo un renglón hacia abajo.
+
+Los 5 campos editables se cargan en la pantalla de detalle, en la sección "Datos para el Excel de cotización" (arriba de la grilla de ítems), y se guardan solos al salir del campo — igual que el precio de los ítems. Se bloquean una vez que la solicitud deja de estar `en_revision`.
+
+**Formato general de celdas**: todo el texto del archivo (título, etiquetas, valores de cabecera, encabezados de columna e ítems) queda centrado horizontal y verticalmente. Los anchos de columna y los altos de fila están calcados del archivo de referencia (más el renglón extra de "Lugar de Entrega"), incluyendo un ajuste explícito de `defaultColWidth=9` en la hoja para que las columnas A y T —cuyo ancho coincide justo con el default de `exceljs`— no pierdan su ancho al generarse el archivo.
 
 **Exportar a Google Sheets — código reconectado, cuenta de Google suspendida**: el botón y las rutas de Google (`google.routes.ts`, `google.controller.ts`, endpoint `exportarGoogleSheets`) volvieron a estar montados en el backend ahora que corre en Railway (proceso Node normal, ya no aplica el límite de Vercel que forzó a desconectarlo el 2 de septiembre). Sin embargo, **Google suspendió la cuenta de Google Cloud usada para el OAuth**, marcándola como "creada por un bot" — Nicole apeló la suspensión, resultado pendiente. Hasta que se resuelva, el botón de exportar a Google Sheets no va a funcionar aunque el código esté activo. La tabla `google_integracion` (migración 023) sigue existiendo en la base, sin uso por ahora.
 
-**Mapeo de columnas** (header partido en dos filas, 6 y 7, igual que el archivo de referencia — las columnas de título corto están fusionadas verticalmente):
+**Mapeo de columnas** (header partido en dos filas, 7 y 8, igual estructura que el archivo de referencia pero corrida un renglón por "Lugar de Entrega" — las columnas de título corto están fusionadas verticalmente):
 
-| Columna | Contenido | Color de fondo | Fórmula / Origen |
-|---|---|---|---|
-| A-F: ITEM, DESCRIPCION, DESCRIPCION EN INGLES, ETM, MARCA, MODELO | Lo solicitado por el cliente | Celeste | Campos del ítem tal cual se importaron |
-| G: CANT | Cantidad solicitada | Verde | — |
-| H: Item Ofrecido - Descripción | Artículo aceptado del catálogo | Verde | `item.articulo.nombre` |
-| I: Unidad de Medida | "Unidad" | Celeste, texto amarillo | Fijo, solo si hay artículo ofrecido |
-| J: Marca, K: Modelo (del ofrecido) | Marca del artículo / vacío | Verde | `item.articulo.marca`; Modelo no se trackea, se completa a mano |
-| L: Imagen de lo Ofrecido | Fórmula `=IMAGE(url)` | Verde | `articulo.imagenUrl` (Cloudinary), si existe |
-| M: Proveedor | Proveedor del artículo, o la URL externa | Rojo, texto amarillo | `articulo.proveedorNombre` o `item.urlExterna` si es `no_disponible` |
-| N: Costo | — | Rojo, texto amarillo | **En blanco, se completa a mano en Excel** |
-| O: Costo Total | Fórmula `=Cant×Costo` | Rojo, texto amarillo | `=G{fila}*N{fila}` |
-| P: Mark Up | — | Rojo, texto amarillo | **En blanco, se completa a mano en Excel** |
-| Q: Venta con IVA | Fórmula costo+markup | Rojo, texto amarillo | `=N{fila}*((P{fila}+100)/100)` |
-| R: Precio Unit. Sin IVA | Fórmula quitando 21% IVA | Celeste | `=INT(Q{fila}/1.21)` |
-| S: Total Sin IVA | Fórmula | Celeste | `=G{fila}*R{fila}` |
-| T | Separadora, sin contenido | Sin color | — |
-| U: Precio Unit. Sin IVA (USD) | Fórmula convirtiendo a USD | Verde | `=INT(R{fila}/$O$3*100)/100` (usa el tipo de cambio Oficial Compra del header, referencia absoluta) |
-| V: Total Sin IVA (USD) | Fórmula | Verde | `=INT(G{fila}*U{fila}*100)/100` |
-| W: Plazo de Entrega | — | Verde | **En blanco, se completa a mano en Excel** |
-| X: Comentarios | — | Verde | **En blanco, se completa a mano en Excel** |
+| Columna | Contenido | Color de fondo | Formato | Fórmula / Origen |
+|---|---|---|---|---|
+| A-F: ITEM, DESCRIPCION, DESCRIPCION EN INGLES, ETM, MARCA, MODELO | Lo solicitado por el cliente | Celeste | — | Campos del ítem tal cual se importaron |
+| G: CANT | Cantidad solicitada | Verde | — | — |
+| H: Item Ofrecido - Descripción | Artículo aceptado del catálogo | Verde | — | `item.articulo.nombre` |
+| I: Unidad de Medida | "Unidad" | Celeste, texto amarillo | — | Fijo, solo si hay artículo ofrecido |
+| J: Marca, K: Modelo (del ofrecido) | Marca del artículo / vacío | Verde | — | `item.articulo.marca`; Modelo no se trackea, se completa a mano |
+| L: Imagen de lo Ofrecido | Fórmula `=IMAGE(url)` | Verde | — | `articulo.imagenUrl` (Cloudinary), si existe |
+| M: Proveedor | Proveedor del artículo, o la URL externa | Rojo, texto amarillo | — | `articulo.proveedorNombre` o `item.urlExterna` si es `no_disponible` |
+| N: Costo por Unidad | Precio unitario cargado en la solicitud | Rojo, texto amarillo | — | `item.precioUnitario` |
+| O: Costo Total | Fórmula `=Cant×Costo` | Rojo, texto amarillo | — | `=G{fila}*N{fila}` |
+| P: Mark Up | — | Rojo, texto amarillo | — | **En blanco, se completa a mano en Excel** |
+| Q: Venta con IVA | Fórmula costo+markup | Rojo, texto amarillo | `"$" #,##0.00` | `=N{fila}*((P{fila}+100)/100)` |
+| R: Precio Unit. Sin IVA | Fórmula quitando 21% IVA | Celeste | `"$" #,##0.00` | `=INT(Q{fila}/1.21)` |
+| S: Total Sin IVA | Fórmula | Celeste | `"$" #,##0.00` | `=G{fila}*R{fila}` |
+| T | Separadora, sin contenido | Sin color | — | — |
+| U: Precio Unit. Sin IVA (USD) | Fórmula convirtiendo a USD | Verde | `"USD" #,##0.00` | `=INT(R{fila}/$O$4*100)/100` (usa el tipo de cambio Oficial Compra del header, referencia absoluta) |
+| V: Total Sin IVA (USD) | Fórmula | Verde | `"USD" #,##0.00` | `=INT(G{fila}*U{fila}*100)/100` |
+| W: Plazo de Entrega | — | Verde | — | **En blanco, se completa a mano en Excel** |
+| X: Comentarios | — | Verde | — | **En blanco, se completa a mano en Excel** |
 
-El diseño intencional es que la app resuelve el matching/catálogo/cantidades y arma toda la cadena de fórmulas, pero **Costo, Mark Up, Plazo de Entrega y Comentarios se completan a mano en el Excel después de descargarlo** — igual que en la planilla original de Nicole, donde esos datos se negocian/ajustan fuera del sistema.
+El diseño intencional es que la app resuelve el matching/catálogo/cantidades y arma toda la cadena de fórmulas, pero **Mark Up, Plazo de Entrega y Comentarios se completan a mano en el Excel después de descargarlo** — igual que en la planilla original de Nicole, donde esos datos se negocian/ajustan fuera del sistema. El separador de miles/decimales real que se ve en Excel depende de la configuración regional del programa (punto y coma en una instalación en español de Argentina), no del código de formato en sí — el código siempre usa `#,##0.00` con el símbolo de moneda literal (`$` o `USD`) según corresponda.
 
 **Integración con Google (OAuth)**:
 - Se conecta **una sola cuenta de Google** para todo el sistema (no por usuario) desde **Configuraciones → Google Drive**.
@@ -767,7 +772,7 @@ El diseño intencional es que la app resuelve el matching/catálogo/cantidades y
 
 | Tabla | Campo | Notas |
 |-------|-------|-------|
-| solicitudes_cotizacion | `cliente_id`, `numero_referencia_cliente`, `nombre_archivo`, `fecha_solicitud`, `estado`, `observaciones`, `fecha_entrega`, `solicitado_por`, `usd_oficial_compra`, `usd_oficial_venta` | Cabecera. Los últimos 4 campos son para el header del Excel (migración 024) |
+| solicitudes_cotizacion | `cliente_id`, `numero_referencia_cliente`, `nombre_archivo`, `fecha_solicitud`, `estado`, `observaciones`, `fecha_entrega`, `lugar_entrega`, `solicitado_por`, `usd_oficial_compra`, `usd_oficial_venta` | Cabecera. Los últimos 5 campos son para el header del Excel (migraciones 024 y 025) |
 | solicitud_cotizacion_items | `solicitud_id`, `orden`, `etm_solicitado`, `descripcion_solicitada`, `descripcion_ingles_solicitada`, `marca_solicitada`, `modelo_solicitado`, `cantidad_solicitada`, `articulo_id`, `match_confianza`, `estado_item`, `precio_unitario`, `url_externa` | Detalle |
 | google_integracion | `refresh_token`, `connected_email`, `connected_at` | Una sola fila: la cuenta de Google conectada para exportar |
 
@@ -776,7 +781,7 @@ El diseño intencional es que la app resuelve el matching/catálogo/cantidades y
 GET    /api/solicitudes-cotizacion                       # Lista paginada con filtros (estado, clienteId, busqueda)
 GET    /api/solicitudes-cotizacion/:id                    # Ver detalle con items y matching
 POST   /api/solicitudes-cotizacion                        # Crear solicitud (corre el matching automático por ítem)
-PUT    /api/solicitudes-cotizacion/:id                    # Actualizar cabecera (referencia, observaciones, fecha de entrega, solicitado por, USD oficial compra/venta)
+PUT    /api/solicitudes-cotizacion/:id                    # Actualizar cabecera (referencia, observaciones, fecha de entrega, lugar de entrega, solicitado por, USD oficial compra/venta)
 PUT    /api/solicitudes-cotizacion/:id/items/:itemId      # Actualizar un ítem (artículo, estado, precio, URL externa)
 POST   /api/solicitudes-cotizacion/:id/marcar-cotizada    # Marca como cotizada (valida que no queden ítems pendientes/sin precio)
 POST   /api/solicitudes-cotizacion/:id/cancelar           # Cancela la solicitud
@@ -812,6 +817,8 @@ Los endpoints de `/api/google/*` (auth-url, oauth/callback, status) ya están mo
 - `database/migrations/021_rename_a_comprar_a_no_disponible.sql`
 - `database/migrations/022_add_modelo_descripcion_ingles_solicitud_items.sql`
 - `database/migrations/023_add_google_integracion.sql`
+- `database/migrations/024_add_datos_cabecera_cotizacion.sql`
+- `database/migrations/025_add_lugar_entrega_cotizacion.sql`
 
 ---
 
@@ -1439,6 +1446,8 @@ npm run db:seed          # Datos iniciales
     - Tabla `google_integracion` (refresh token de la cuenta de Google conectada)
 23. **024_add_datos_cabecera_cotizacion.sql**: Datos de cabecera para el Excel de la cotización
     - Campos `fecha_entrega DATE`, `solicitado_por VARCHAR(200)`, `usd_oficial_compra NUMERIC(10,2)`, `usd_oficial_venta NUMERIC(10,2)` en `solicitudes_cotizacion`
+24. **025_add_lugar_entrega_cotizacion.sql**: Lugar de Entrega para el Excel de la cotización
+    - Campo `lugar_entrega VARCHAR(300)` en `solicitudes_cotizacion`
 
 ---
 
@@ -2212,7 +2221,7 @@ Con el backend ya estable en Railway, se retomó la integración de Google Sheet
 
 **Columnas de la tabla de ítems**: se detectó que faltaban columnas respecto al archivo de referencia (T separadora, U/V segundo par Precio/Total Sin IVA en USD, W Plazo de Entrega, X Comentarios) y que el header iba partido en dos filas (6 y 7, con fusión vertical en las columnas de título corto) en vez de una sola. Se replicaron exactamente, incluyendo los colores de fondo/fuente del archivo original (celeste para los datos "Solicitado" + primer par de precio, verde para "Ofrecido" + segundo par + Plazo/Comentarios, rojo con texto amarillo para Proveedor/Costo/Mark Up/Venta con IVA).
 
-**Cadena de fórmulas de precios**: Costo (N), Mark Up (P), Plazo de Entrega (W) y Comentarios (X) quedan en blanco para completar a mano en Excel después de descargar — igual que en la planilla original, donde esos datos se negocian fuera del sistema. El resto es fórmula en vivo: Costo Total = `G×N`, Venta con IVA = `N×((P+100)/100)`, Precio Unit. Sin IVA = `INT(Q/1.21)`, Total Sin IVA = `G×R`, y el segundo par en USD convierte usando el tipo de cambio Oficial Compra del header (`$O$3`, referencia absoluta): `INT(R/$O$3*100)/100` y `INT(G×U*100)/100`. El campo `precioUnitario` que ya existía en el ítem (usado para habilitar "Marcar como Cotizada" y el subtotal en pantalla) no cambió — sigue siendo independiente de esta cadena, que es puramente del archivo Excel.
+**Cadena de fórmulas de precios**: Mark Up (P), Plazo de Entrega (W) y Comentarios (X) quedan en blanco para completar a mano en Excel después de descargar — igual que en la planilla original, donde esos datos se negocian fuera del sistema. Costo (N) toma el `precioUnitario` ya cargado en la solicitud (ver cambio del 7 de septiembre más abajo). El resto es fórmula en vivo: Costo Total = `G×N`, Venta con IVA = `N×((P+100)/100)`, Precio Unit. Sin IVA = `INT(Q/1.21)`, Total Sin IVA = `G×R`, y el segundo par en USD convierte usando el tipo de cambio Oficial Compra del header (`$O$4` desde el 7 de septiembre, referencia absoluta): `INT(R/$O$4*100)/100` y `INT(G×U*100)/100`.
 
 #### Archivos Nuevos
 - `backend/src/assets/logos.ts` (logos institucionales en base64)
@@ -2225,3 +2234,28 @@ Con el backend ya estable en Railway, se retomó la integración de Google Sheet
 - `backend/src/repositories/solicitudCotizacion.repository.ts`, `backend/src/services/solicitudCotizacion.service.ts` - `updateHeader()` acepta los 4 campos nuevos
 - `shared/src/types/index.ts`, `shared/src/validators/index.ts` - Campos `fechaEntrega`/`solicitadoPor`/`usdOficialCompra`/`usdOficialVenta` en `SolicitudCotizacion` y su DTO de actualización
 - `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx` - Sección "Datos para el Excel de cotización" con los 4 campos editables (guardado automático al salir del campo)
+
+### 7 de septiembre de 2026
+
+#### Fix: los campos de cabecera no llegaban al Excel + Costo por Unidad automático + Lugar de Entrega + formato general
+
+**Bug encontrado**: `fecha_entrega`, `solicitado_por`, `usd_oficial_compra` y `usd_oficial_venta` se guardaban bien en la base, pero `mapToConRelaciones()` (en `solicitudCotizacion.repository.ts`) armaba el objeto de respuesta con una lista fija de campos que no incluía esos 4 — se perdían cada vez que se releía la solicitud, incluido el momento de generar el Excel. Se agregaron al mapeo, con `Number()` explícito en los dos campos USD (Postgres devuelve `NUMERIC` como string).
+
+**Costo por Unidad (columna N) ya no es manual**: ahora toma directamente el `precioUnitario` cargado en la solicitud, en vez de quedar en blanco para completar a mano.
+
+**Anchos/altos del Excel calcados del archivo de referencia**: se agregó el alto de fila exacto (título/fecha/etc. 20, fila del logo 11, header de columnas 24, ítems 50) y se detectó que `exceljs` omite el `<col>` de una columna cuando su ancho coincide justo con el default de la librería (9) — pasaba con las columnas A y T, que quedaban sin ancho explícito y Excel las mostraba con SU default (8.43) en vez de 9. Se fuerza `defaultColWidth: 9` en la hoja para evitarlo. También se centraron los títulos de columna (antes sin alineación).
+
+**Lugar de Entrega** (nuevo campo, debajo de Fecha de Entrega): columna `lugar_entrega VARCHAR(300)` en `solicitudes_cotizacion` (migración 025), editable en la pantalla de detalle junto a los otros 4 campos de cabecera. En el Excel agrega una fila nueva (B3, entre Fecha de Entrega y Solicitado por), corriendo todo lo que estaba debajo un renglón: Solicitado por/USD Oficial Compra pasan de la fila 3 a la 4, USD Oficial Venta de la 4 a la 5, la fila en blanco de los logos de la 5 a la 6, y el header de columnas de las filas 6-7 a las filas 7-8 (los ítems ahora arrancan en la fila 9, no en la 8). Los logos institucionales se estiraron una fila más (H1:H6/K1:K6) para seguir cubriendo todo el bloque de cabecera. La fórmula de conversión a USD, que usa una referencia absoluta al tipo de cambio Oficial Compra, pasó de `$O$3` a `$O$4`.
+
+**Todo el texto del archivo centrado**: título, etiquetas, valores de cabecera, encabezados de columna e ítems — se aplica un centrado horizontal+vertical global sobre todas las celdas usadas de la hoja, al final de `buildCotizacionExcelBuffer()`, preservando el wrap de texto donde ya estaba activado.
+
+**Formato moneda en las columnas de precio**: Q (Venta con IVA), R (Precio Unit. Sin IVA) y S (Total Sin IVA) quedan con formato `"$" #,##0.00`; U y V (el par en USD) con `"USD" #,##0.00`. El separador de miles/decimales que se ve (punto/coma) depende de la configuración regional de Excel, no del código de formato.
+
+#### Archivos Nuevos
+- `database/migrations/025_add_lugar_entrega_cotizacion.sql`
+
+#### Archivos Modificados
+- `backend/src/repositories/solicitudCotizacion.repository.ts` - Fix de `mapToConRelaciones()` (campos de cabecera faltantes), soporte de `lugar_entrega` en `updateHeader()`
+- `backend/src/services/cotizacionExport.service.ts` - Costo por Unidad desde `precioUnitario`, fila de Lugar de Entrega (corrimiento de filas 3→9), `defaultColWidth`, alturas de fila, centrado global, formato moneda Q/R/S/U/V
+- `shared/src/types/index.ts`, `shared/src/validators/index.ts` - Campo `lugarEntrega` en `SolicitudCotizacion` y su DTO de actualización
+- `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx` - Campo "Lugar de Entrega" en la sección "Datos para el Excel de cotización"
