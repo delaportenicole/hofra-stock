@@ -125,7 +125,10 @@ export async function buildCotizacionExcelBuffer(solicitud: SolicitudCotizacionC
 
   const workbook = new ExcelJS.Workbook();
   workbook.title = titulo;
-  const sheet = workbook.addWorksheet('Cotización');
+  // El archivo de referencia fija defaultColWidth=9 en la hoja: sin esto, exceljs omite
+  // el <col> de las columnas cuyo ancho coincide con el default (A y T) y Excel las
+  // renderiza con SU propio default (8.43), más angostas que las 9 reales del original.
+  const sheet = workbook.addWorksheet('Cotización', { properties: { defaultColWidth: 9 } });
 
   rows.forEach((row, rowIndex) => {
     row.forEach((cell, colIndex) => {
@@ -140,6 +143,8 @@ export async function buildCotizacionExcelBuffer(solicitud: SolicitudCotizacionC
 
   sheet.getRow(6).font = { bold: true };
   sheet.getRow(7).font = { bold: true };
+  sheet.getRow(6).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+  sheet.getRow(7).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
 
   // Columnas de título corto: en el archivo de referencia son una sola celda fusionada
   // verticalmente (filas 6:7), no texto repetido en dos filas. El resto (Unidad de Medida,
@@ -179,6 +184,18 @@ export async function buildCotizacionExcelBuffer(solicitud: SolicitudCotizacionC
   Object.entries(anchoColumnas).forEach(([col, width]) => {
     sheet.getColumn(Number(col)).width = width;
   });
+
+  // Alto de filas calcado del archivo de referencia: título/fecha/solicitado por (20),
+  // fila del logo (11), header de columnas en dos líneas (24) y filas de ítems (50).
+  [1, 2, 3, 4].forEach((row) => {
+    sheet.getRow(row).height = 20;
+  });
+  sheet.getRow(5).height = 11;
+  sheet.getRow(6).height = 24;
+  sheet.getRow(7).height = 24;
+  for (let i = 0; i < solicitud.items.length; i++) {
+    sheet.getRow(8 + i).height = 50;
+  }
 
   // Cabecera: título en B1, etiqueta+valor en negrita/subrayado para Fecha de Entrega
   // y Solicitado por, y el par etiqueta (N) / valor con formato moneda (O) para USD
