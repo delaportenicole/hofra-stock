@@ -285,6 +285,7 @@ export interface SolicitudCotizacionItem {
   matchConfianza: MatchConfianza | null;
   estadoItem: EstadoItemCotizacion;
   precioUnitario: number | null;
+  markUp: number | null;
   urlExterna: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -605,6 +606,7 @@ export interface UpdateSolicitudCotizacionItemDto {
   articuloId?: string | null;
   estadoItem?: EstadoItemCotizacion;
   precioUnitario?: number | null;
+  markUp?: number | null;
   urlExterna?: string | null;
 }
 

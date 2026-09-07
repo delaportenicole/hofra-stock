@@ -63,6 +63,7 @@ export function SolicitudCotizacionDetailPage() {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [savingItemId, setSavingItemId] = useState<string | null>(null);
   const [precios, setPrecios] = useState<Record<string, number | undefined>>({});
+  const [markUps, setMarkUps] = useState<Record<string, number | undefined>>({});
   const [pastingUrlItemId, setPastingUrlItemId] = useState<string | null>(null);
   const [urlDrafts, setUrlDrafts] = useState<Record<string, string>>({});
   const [headerDraft, setHeaderDraft] = useState({
@@ -88,10 +89,13 @@ export function SolicitudCotizacionDetailPage() {
       setSolicitud(solicitudData);
       setArticulos(articulosRes.data);
       const preciosIniciales: Record<string, number | undefined> = {};
+      const markUpsIniciales: Record<string, number | undefined> = {};
       solicitudData.items.forEach((item) => {
         preciosIniciales[item.id] = item.precioUnitario ?? undefined;
+        markUpsIniciales[item.id] = item.markUp ?? undefined;
       });
       setPrecios(preciosIniciales);
+      setMarkUps(markUpsIniciales);
       setHeaderDraft({
         fechaEntrega: solicitudData.fechaEntrega ? new Date(solicitudData.fechaEntrega).toISOString().slice(0, 10) : '',
         lugarEntrega: solicitudData.lugarEntrega || '',
@@ -115,6 +119,7 @@ export function SolicitudCotizacionDetailPage() {
       const updatedItem = updated.items.find((i) => i.id === itemId);
       if (updatedItem) {
         setPrecios((prev) => ({ ...prev, [itemId]: updatedItem.precioUnitario ?? undefined }));
+        setMarkUps((prev) => ({ ...prev, [itemId]: updatedItem.markUp ?? undefined }));
       }
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -189,6 +194,12 @@ export function SolicitudCotizacionDetailPage() {
     applyUpdate(item.id, { precioUnitario: nuevoPrecio ?? null });
   };
 
+  const handleMarkUpBlur = (item: SolicitudCotizacionItemConArticulo) => {
+    const nuevoMarkUp = markUps[item.id];
+    if (nuevoMarkUp === item.markUp) return;
+    applyUpdate(item.id, { markUp: nuevoMarkUp ?? null });
+  };
+
   const handleHeaderFieldBlur = async (
     field: 'fechaEntrega' | 'lugarEntrega' | 'solicitadoPor' | 'usdOficialCompra' | 'usdOficialVenta',
     valorNuevo: string | number | undefined
@@ -229,21 +240,38 @@ export function SolicitudCotizacionDetailPage() {
     }
   };
 
+  const descargarBlob = (blob: Blob, nombreArchivo: string) => {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = nombreArchivo;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
   const handleExportarExcel = async () => {
     if (!id || !solicitud) return;
     try {
       const blob = await solicitudesCotizacionService.exportarExcel(id);
+      const nombreArchivo = `Cotizacion Interna - ${solicitud.cliente.razonSocial}${
+        solicitud.numeroReferenciaCliente ? ` - ${solicitud.numeroReferenciaCliente}` : ''
+      }.xlsx`;
+      descargarBlob(blob, nombreArchivo);
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  };
+
+  const handleExportarExcelExterno = async () => {
+    if (!id || !solicitud) return;
+    try {
+      const blob = await solicitudesCotizacionService.exportarExcelExterno(id);
       const nombreArchivo = `Cotizacion - ${solicitud.cliente.razonSocial}${
         solicitud.numeroReferenciaCliente ? ` - ${solicitud.numeroReferenciaCliente}` : ''
       }.xlsx`;
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = nombreArchivo;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+      descargarBlob(blob, nombreArchivo);
     } catch (error) {
       toast.error(getErrorMessage(error));
     }
@@ -468,6 +496,7 @@ export function SolicitudCotizacionDetailPage() {
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[220px]">Aceptado</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[260px]">Acciones</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[150px]">Precio Unit.</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[120px]">Mark Up %</th>
                 <th className="px-3 py-3 text-right font-medium text-gray-500 uppercase text-xs min-w-[120px]">Subtotal</th>
               </tr>
             </thead>
@@ -705,6 +734,16 @@ export function SolicitudCotizacionDetailPage() {
                       />
                     </td>
 
+                    <td className="px-3 py-3 min-w-[120px]">
+                      <CurrencyInput
+                        value={markUps[item.id]}
+                        onChange={(val) => setMarkUps((prev) => ({ ...prev, [item.id]: val }))}
+                        onBlur={() => handleMarkUpBlur(item)}
+                        disabled={disabled}
+                        placeholder="0,00"
+                      />
+                    </td>
+
                     <td className="px-3 py-3 text-right font-medium whitespace-nowrap">
                       ${subtotal.toLocaleString('es-AR')}
                     </td>
@@ -714,7 +753,7 @@ export function SolicitudCotizacionDetailPage() {
             </tbody>
             <tfoot className="bg-gray-50">
               <tr>
-                <td colSpan={5} className="px-3 py-3 text-right font-semibold">Total</td>
+                <td colSpan={6} className="px-3 py-3 text-right font-semibold">Total</td>
                 <td className="px-3 py-3 text-right font-semibold whitespace-nowrap">${total.toLocaleString('es-AR')}</td>
               </tr>
             </tfoot>
@@ -725,7 +764,11 @@ export function SolicitudCotizacionDetailPage() {
       <div className="flex flex-wrap justify-end gap-3">
         <button onClick={handleExportarExcel} className="btn-secondary">
           <Download className="w-4 h-4 mr-2" />
-          Exportar a Excel
+          Descargar Excel Interno
+        </button>
+        <button onClick={handleExportarExcelExterno} className="btn-secondary">
+          <Download className="w-4 h-4 mr-2" />
+          Descargar Excel Externo
         </button>
         <button onClick={handleExportarGoogleSheets} disabled={isExportingSheets} className="btn-secondary disabled:opacity-50">
           {isExportingSheets ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <HardDrive className="w-4 h-4 mr-2" />}

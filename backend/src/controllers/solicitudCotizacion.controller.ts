@@ -93,7 +93,24 @@ export class SolicitudCotizacionController {
   async exportarExcel(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const solicitud = await solicitudCotizacionService.findById(req.params.id);
-      const buffer = await buildCotizacionExcelBuffer(solicitud);
+      const buffer = await buildCotizacionExcelBuffer(solicitud, 'interno');
+
+      const nombreArchivo = `Cotizacion Interna - ${solicitud.cliente.razonSocial}${
+        solicitud.numeroReferenciaCliente ? ` - ${solicitud.numeroReferenciaCliente}` : ''
+      }.xlsx`.replace(/[/\\?%*:|"<>]/g, '-');
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
+      res.send(buffer);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async exportarExcelExterno(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const solicitud = await solicitudCotizacionService.findById(req.params.id);
+      const buffer = await buildCotizacionExcelBuffer(solicitud, 'externo');
 
       const nombreArchivo = `Cotizacion - ${solicitud.cliente.razonSocial}${
         solicitud.numeroReferenciaCliente ? ` - ${solicitud.numeroReferenciaCliente}` : ''

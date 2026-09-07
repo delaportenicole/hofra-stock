@@ -699,6 +699,7 @@ Cuatro tarjetas con conteos en tiempo real sobre los ítems de la solicitud:
   - **Marcar como No Disponible**: acción directa (con confirmación) para marcar el ítem como no disponible en cualquier momento, sin pasar por Mercado Libre
   - **Pegar URL de producto**: permite pegar el link de un producto externo (ej. una publicación de Mercado Libre) como opción de compra para ese ítem. Una vez guardada la URL, se puede **Aceptar** (marca el ítem como `no_disponible`, guarda la URL) o **Declinar** (la descarta)
 - **Precio Unitario**: campo editable por ítem. Al aceptar un artículo del catálogo que tiene costo cargado (`costoInicialEstimado`) y el ítem todavía no tiene precio, se prellena con ese valor como punto de partida — siempre se puede sobreescribir a mano. La URL externa **no** trae precio automático; se carga siempre a mano
+- **Mark Up %**: campo editable por ítem (`mark_up`, migración 026). Es el margen que antes Nicole tipeaba a mano directamente en la columna P del Excel descargado (sin quedar guardado en ningún lado); ahora se carga en la app y con eso el sistema puede calcular el precio final también para el Excel Externo, que no tiene esa columna (ver más abajo)
 - **Subtotal**: cantidad × precio unitario (calculado)
 - La grilla tiene ancho mínimo con scroll horizontal (columnas con `min-width` propio) para que ninguna columna quede cortada en pantallas chicas (ej. notebooks de 13")
 
@@ -714,9 +715,15 @@ La API pública de Mercado Libre dejó de permitir búsquedas y consultas de pro
 - **Embeber la página de Mercado Libre en un iframe no es viable**: el sitio manda headers `X-Frame-Options`/`Content-Security-Policy` que lo bloquean explícitamente, y ni siquiera el scraping server-side funciona (también devuelve 403, ML bloquea tráfico automatizado)
 - El precio y la foto de un producto externo **no se traen automáticamente**: por eso el flujo de "Pegar URL" requiere cargar el precio a mano. Automatizarlo requeriría dar de alta una app en developers.mercadolibre.com.ar, autorizarla con una cuenta de ML y manejar tokens OAuth en el backend — quedó como mejora futura, no implementada
 
-#### Exportar la Cotización (Excel; Google Sheets reconectado pero sin cuenta autorizada)
+#### Exportar la Cotización (Excel Interno/Externo; Google Sheets reconectado pero sin cuenta autorizada)
 
-Desde la pantalla de detalle hay un botón **"Exportar a Excel"** que genera un `.xlsx` real (con fórmulas, vía `exceljs`), replicando celda por celda el archivo que Nicole armaba a mano (`Downloads/2 - Cristián - TC Argentina - Cotización 8.20 - #274.xlsx`, usado como referencia). Toda la lógica de armado vive en `backend/src/services/cotizacionExport.service.ts` (`buildCotizacionSheetData()` para la matriz de datos, `buildCotizacionExcelBuffer()` para el formato específico de xlsx: texto enriquecido, colores, merges, imágenes).
+Desde la pantalla de detalle hay dos botones: **"Descargar Excel Interno"** y **"Descargar Excel Externo"**, ambos generan un `.xlsx` real (con fórmulas, vía `exceljs`). El interno replica celda por celda el archivo que Nicole armaba a mano (`Downloads/2 - Cristián - TC Argentina - Cotización 8.20 - #274.xlsx`, usado como referencia), con todas las columnas incluidas costos y márgenes. El externo es el mismo archivo pero pensado para mandarle al cliente: **no incluye las columnas de Proveedor, Costo, Costo Total, Mark Up ni Venta con IVA** (columnas M-Q del interno) — se eliminan del todo, no se ocultan, porque un archivo que va al cliente con columnas ocultas se puede desocultar y mostrar el margen. Toda la lógica de armado vive en `backend/src/services/cotizacionExport.service.ts`: `buildCotizacionSheetData(solicitud, modo)` arma la matriz de datos, `buildCotizacionExcelBuffer(solicitud, modo)` el formato específico de xlsx (texto enriquecido, colores, merges, imágenes), con `modo: 'interno' | 'externo'` (default `'interno'`).
+
+**Cómo funciona la exclusión de columnas sin romper los precios finales**: la lista `TODAS_LAS_COLUMNAS` describe las 24 columnas del archivo (ancho, color, si fusiona el header en dos filas, y si es `soloInterno`); el modo externo filtra las `soloInterno`. El problema es que Precio Unit. Sin IVA / Total Sin IVA (y su par en USD) **dependen** de Costo y Mark Up mediante fórmulas de Excel (`Q = N×((P+100)/100)`, `R = INT(Q/1.21)`, etc.) — si esas columnas no existen, no hay de dónde colgar la fórmula. Por eso:
+- En modo **interno**, esas 4 columnas de precio final siguen siendo fórmulas en vivo (igual que siempre), editables si Nicole ajusta Costo o Mark Up a mano después de descargar.
+- En modo **externo**, se calculan en TypeScript (`calcularPreciosItem()`, misma matemática que las fórmulas de Excel, `Math.floor` en vez de `INT()`) y se escriben como **valores fijos**, usando `item.precioUnitario` y el nuevo campo `item.markUp` (ver abajo) — ya no dependen de ninguna celda vecina.
+
+**Mark Up por ítem** (nuevo campo, necesario para que el Excel Externo pueda calcular el precio final sin la columna Mark Up): columna `mark_up NUMERIC(6,2)` en `solicitud_cotizacion_items` (migración 026), editable en la grilla de revisión junto a Precio Unitario. Antes este valor solo existía tipeado a mano en la columna P del Excel descargado y nunca se guardaba en el sistema — por eso el Excel Externo no podía calcular nada sin él.
 
 **Cabecera del archivo (filas 1-6)**:
 - **B1**: título (cliente + "Cotización" + referencia)
@@ -735,30 +742,32 @@ Los 5 campos editables se cargan en la pantalla de detalle, en la sección "Dato
 
 **Exportar a Google Sheets — código reconectado, cuenta de Google suspendida**: el botón y las rutas de Google (`google.routes.ts`, `google.controller.ts`, endpoint `exportarGoogleSheets`) volvieron a estar montados en el backend ahora que corre en Railway (proceso Node normal, ya no aplica el límite de Vercel que forzó a desconectarlo el 2 de septiembre). Sin embargo, **Google suspendió la cuenta de Google Cloud usada para el OAuth**, marcándola como "creada por un bot" — Nicole apeló la suspensión, resultado pendiente. Hasta que se resuelva, el botón de exportar a Google Sheets no va a funcionar aunque el código esté activo. La tabla `google_integracion` (migración 023) sigue existiendo en la base, sin uso por ahora.
 
-**Mapeo de columnas** (header partido en dos filas, 7 y 8, igual estructura que el archivo de referencia pero corrida un renglón por "Lugar de Entrega" — las columnas de título corto están fusionadas verticalmente):
+**Mapeo de columnas** (letras del **Excel Interno**; header partido en dos filas, 7 y 8, igual estructura que el archivo de referencia pero corrida un renglón por "Lugar de Entrega" — las columnas de título corto están fusionadas verticalmente). Las marcadas **"No" en Excel Externo** se eliminan del todo en ese archivo (las columnas posteriores se corren para ocupar su lugar, p. ej. R pasa a ser M):
 
-| Columna | Contenido | Color de fondo | Formato | Fórmula / Origen |
-|---|---|---|---|---|
-| A-F: ITEM, DESCRIPCION, DESCRIPCION EN INGLES, ETM, MARCA, MODELO | Lo solicitado por el cliente | Celeste | — | Campos del ítem tal cual se importaron |
-| G: CANT | Cantidad solicitada | Verde | — | — |
-| H: Item Ofrecido - Descripción | Artículo aceptado del catálogo | Verde | — | `item.articulo.nombre` |
-| I: Unidad de Medida | "Unidad" | Celeste, texto amarillo | — | Fijo, solo si hay artículo ofrecido |
-| J: Marca, K: Modelo (del ofrecido) | Marca del artículo / vacío | Verde | — | `item.articulo.marca`; Modelo no se trackea, se completa a mano |
-| L: Imagen de lo Ofrecido | Fórmula `=IMAGE(url)` | Verde | — | `articulo.imagenUrl` (Cloudinary), si existe |
-| M: Proveedor | Proveedor del artículo, o la URL externa | Rojo, texto amarillo | — | `articulo.proveedorNombre` o `item.urlExterna` si es `no_disponible` |
-| N: Costo por Unidad | Precio unitario cargado en la solicitud | Rojo, texto amarillo | — | `item.precioUnitario` |
-| O: Costo Total | Fórmula `=Cant×Costo` | Rojo, texto amarillo | — | `=G{fila}*N{fila}` |
-| P: Mark Up | — | Rojo, texto amarillo | — | **En blanco, se completa a mano en Excel** |
-| Q: Venta con IVA | Fórmula costo+markup | Rojo, texto amarillo | `"$" #,##0.00` | `=N{fila}*((P{fila}+100)/100)` |
-| R: Precio Unit. Sin IVA | Fórmula quitando 21% IVA | Celeste | `"$" #,##0.00` | `=INT(Q{fila}/1.21)` |
-| S: Total Sin IVA | Fórmula | Celeste | `"$" #,##0.00` | `=G{fila}*R{fila}` |
-| T | Separadora, sin contenido | Sin color | — | — |
-| U: Precio Unit. Sin IVA (USD) | Fórmula convirtiendo a USD | Verde | `"USD" #,##0.00` | `=INT(R{fila}/$O$4*100)/100` (usa el tipo de cambio Oficial Compra del header, referencia absoluta) |
-| V: Total Sin IVA (USD) | Fórmula | Verde | `"USD" #,##0.00` | `=INT(G{fila}*U{fila}*100)/100` |
-| W: Plazo de Entrega | — | Verde | — | **En blanco, se completa a mano en Excel** |
-| X: Comentarios | — | Verde | — | **En blanco, se completa a mano en Excel** |
+| Columna | Contenido | Color de fondo | Formato | Fórmula (interno) / Valor (externo) | ¿En Excel Externo? |
+|---|---|---|---|---|---|
+| A-F: ITEM, DESCRIPCION, DESCRIPCION EN INGLES, ETM, MARCA, MODELO | Lo solicitado por el cliente | Celeste | — | Campos del ítem tal cual se importaron | Sí |
+| G: CANT | Cantidad solicitada | Verde | — | — | Sí |
+| H: Item Ofrecido - Descripción | Artículo aceptado del catálogo | Verde | — | `item.articulo.nombre` | Sí |
+| I: Unidad de Medida | "Unidad" | Celeste, texto amarillo | — | Fijo, solo si hay artículo ofrecido | Sí |
+| J: Marca, K: Modelo (del ofrecido) | Marca del artículo / vacío | Verde | — | `item.articulo.marca`; Modelo no se trackea, se completa a mano | Sí |
+| L: Imagen de lo Ofrecido | Fórmula `=IMAGE(url)` | Verde | — | `articulo.imagenUrl` (Cloudinary), si existe | Sí |
+| M: Proveedor | Proveedor del artículo, o la URL externa | Rojo, texto amarillo | — | `articulo.proveedorNombre` o `item.urlExterna` si es `no_disponible` | **No** |
+| N: Costo por Unidad | Precio unitario cargado en la solicitud | Rojo, texto amarillo | — | `item.precioUnitario` | **No** |
+| O: Costo Total | Fórmula `=Cant×Costo` | Rojo, texto amarillo | — | `=G{fila}*N{fila}` | **No** |
+| P: Mark Up | Margen cargado en la solicitud | Rojo, texto amarillo | — | `item.markUp` | **No** |
+| Q: Venta con IVA | Fórmula costo+markup | Rojo, texto amarillo | `"$" #,##0.00` | `=N{fila}*((P{fila}+100)/100)` | **No** |
+| R: Precio Unit. Sin IVA | Fórmula quitando 21% IVA | Celeste | `"$" #,##0.00` | Interno: `=INT(Q{fila}/1.21)` · Externo: valor calculado en TS | Sí |
+| S: Total Sin IVA | Fórmula | Celeste | `"$" #,##0.00` | Interno: `=G{fila}*R{fila}` · Externo: valor calculado | Sí |
+| T | Separadora, sin contenido | Sin color | — | — | Sí |
+| U: Precio Unit. Sin IVA (USD) | Fórmula convirtiendo a USD | Verde | `"USD" #,##0.00` | Interno: `=INT(R{fila}/$O$4*100)/100` (tipo de cambio Oficial Compra del header, referencia absoluta) · Externo: valor calculado | Sí |
+| V: Total Sin IVA (USD) | Fórmula | Verde | `"USD" #,##0.00` | Interno: `=INT(G{fila}*U{fila}*100)/100` · Externo: valor calculado | Sí |
+| W: Plazo de Entrega | — | Verde | — | **En blanco, se completa a mano en Excel** | Sí |
+| X: Comentarios | — | Verde | — | **En blanco, se completa a mano en Excel** | Sí |
 
-El diseño intencional es que la app resuelve el matching/catálogo/cantidades y arma toda la cadena de fórmulas, pero **Mark Up, Plazo de Entrega y Comentarios se completan a mano en el Excel después de descargarlo** — igual que en la planilla original de Nicole, donde esos datos se negocian/ajustan fuera del sistema. El separador de miles/decimales real que se ve en Excel depende de la configuración regional del programa (punto y coma en una instalación en español de Argentina), no del código de formato en sí — el código siempre usa `#,##0.00` con el símbolo de moneda literal (`$` o `USD`) según corresponda.
+En el Excel Externo, R/S/U/V dejan de ser fórmulas (no hay N/P/Q de los que colgarlas) y se calculan en `calcularPreciosItem()` (`backend/src/services/cotizacionExport.service.ts`) con la misma matemática, usando `Math.floor` en lugar de `INT()` de Excel (equivalentes para valores no negativos).
+
+El diseño intencional es que la app resuelve el matching/catálogo/cantidades/costo/mark up y arma toda la cadena de fórmulas, pero **Plazo de Entrega y Comentarios se completan a mano en el Excel después de descargarlo** — igual que en la planilla original de Nicole, donde esos datos se negocian/ajustan fuera del sistema. El separador de miles/decimales real que se ve en Excel depende de la configuración regional del programa (punto y coma en una instalación en español de Argentina), no del código de formato en sí — el código siempre usa `#,##0.00` con el símbolo de moneda literal (`$` o `USD`) según corresponda.
 
 **Integración con Google (OAuth)**:
 - Se conecta **una sola cuenta de Google** para todo el sistema (no por usuario) desde **Configuraciones → Google Drive**.
@@ -773,7 +782,7 @@ El diseño intencional es que la app resuelve el matching/catálogo/cantidades y
 | Tabla | Campo | Notas |
 |-------|-------|-------|
 | solicitudes_cotizacion | `cliente_id`, `numero_referencia_cliente`, `nombre_archivo`, `fecha_solicitud`, `estado`, `observaciones`, `fecha_entrega`, `lugar_entrega`, `solicitado_por`, `usd_oficial_compra`, `usd_oficial_venta` | Cabecera. Los últimos 5 campos son para el header del Excel (migraciones 024 y 025) |
-| solicitud_cotizacion_items | `solicitud_id`, `orden`, `etm_solicitado`, `descripcion_solicitada`, `descripcion_ingles_solicitada`, `marca_solicitada`, `modelo_solicitado`, `cantidad_solicitada`, `articulo_id`, `match_confianza`, `estado_item`, `precio_unitario`, `url_externa` | Detalle |
+| solicitud_cotizacion_items | `solicitud_id`, `orden`, `etm_solicitado`, `descripcion_solicitada`, `descripcion_ingles_solicitada`, `marca_solicitada`, `modelo_solicitado`, `cantidad_solicitada`, `articulo_id`, `match_confianza`, `estado_item`, `precio_unitario`, `mark_up`, `url_externa` | Detalle. `mark_up` es el margen % del ítem (migración 026), usado para calcular el precio final en el Excel Externo |
 | google_integracion | `refresh_token`, `connected_email`, `connected_at` | Una sola fila: la cuenta de Google conectada para exportar |
 
 #### API
@@ -782,10 +791,11 @@ GET    /api/solicitudes-cotizacion                       # Lista paginada con fi
 GET    /api/solicitudes-cotizacion/:id                    # Ver detalle con items y matching
 POST   /api/solicitudes-cotizacion                        # Crear solicitud (corre el matching automático por ítem)
 PUT    /api/solicitudes-cotizacion/:id                    # Actualizar cabecera (referencia, observaciones, fecha de entrega, lugar de entrega, solicitado por, USD oficial compra/venta)
-PUT    /api/solicitudes-cotizacion/:id/items/:itemId      # Actualizar un ítem (artículo, estado, precio, URL externa)
+PUT    /api/solicitudes-cotizacion/:id/items/:itemId      # Actualizar un ítem (artículo, estado, precio, mark up, URL externa)
 POST   /api/solicitudes-cotizacion/:id/marcar-cotizada    # Marca como cotizada (valida que no queden ítems pendientes/sin precio)
 POST   /api/solicitudes-cotizacion/:id/cancelar           # Cancela la solicitud
-GET    /api/solicitudes-cotizacion/:id/exportar-excel     # Descarga el .xlsx de la cotización
+GET    /api/solicitudes-cotizacion/:id/exportar-excel          # Descarga el .xlsx interno (todas las columnas, con fórmulas)
+GET    /api/solicitudes-cotizacion/:id/exportar-excel-externo  # Descarga el .xlsx externo (sin Proveedor/Costo/Costo Total/Mark Up/Venta con IVA)
 POST   /api/solicitudes-cotizacion/:id/exportar-google-sheets  # Crea la planilla en el Drive conectado (sin uso mientras la cuenta de Google está suspendida)
 ```
 
@@ -819,6 +829,7 @@ Los endpoints de `/api/google/*` (auth-url, oauth/callback, status) ya están mo
 - `database/migrations/023_add_google_integracion.sql`
 - `database/migrations/024_add_datos_cabecera_cotizacion.sql`
 - `database/migrations/025_add_lugar_entrega_cotizacion.sql`
+- `database/migrations/026_add_mark_up_solicitud_items.sql`
 
 ---
 
@@ -1448,6 +1459,8 @@ npm run db:seed          # Datos iniciales
     - Campos `fecha_entrega DATE`, `solicitado_por VARCHAR(200)`, `usd_oficial_compra NUMERIC(10,2)`, `usd_oficial_venta NUMERIC(10,2)` en `solicitudes_cotizacion`
 24. **025_add_lugar_entrega_cotizacion.sql**: Lugar de Entrega para el Excel de la cotización
     - Campo `lugar_entrega VARCHAR(300)` en `solicitudes_cotizacion`
+25. **026_add_mark_up_solicitud_items.sql**: Mark Up por ítem de cotización
+    - Campo `mark_up NUMERIC(6,2)` en `solicitud_cotizacion_items`
 
 ---
 
@@ -2259,3 +2272,24 @@ Con el backend ya estable en Railway, se retomó la integración de Google Sheet
 - `backend/src/services/cotizacionExport.service.ts` - Costo por Unidad desde `precioUnitario`, fila de Lugar de Entrega (corrimiento de filas 3→9), `defaultColWidth`, alturas de fila, centrado global, formato moneda Q/R/S/U/V
 - `shared/src/types/index.ts`, `shared/src/validators/index.ts` - Campo `lugarEntrega` en `SolicitudCotizacion` y su DTO de actualización
 - `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx` - Campo "Lugar de Entrega" en la sección "Datos para el Excel de cotización"
+
+#### Excel Interno/Externo + Mark Up por ítem
+
+**Objetivo**: el archivo que se le manda al cliente no debe mostrar Proveedor, Costo, Costo Total, Mark Up ni Venta con IVA (columnas M-Q) — información puramente interna. El botón único "Exportar a Excel" se separó en dos: **"Descargar Excel Interno"** (el de siempre, todas las columnas) y **"Descargar Excel Externo"** (nuevo, sin esas 5 columnas).
+
+**El problema real no era sacar columnas, era el Mark Up**: Precio Unit. Sin IVA / Total Sin IVA y su par en USD (R, S, U, V) son fórmulas que dependen de Costo (N) y Mark Up (P) — sin esas columnas no hay de dónde colgarlas. Costo ya se resolvió el 7 de septiembre (viene de `precioUnitario`), pero **Mark Up nunca se guardaba en ningún lado**: Nicole lo tipeaba a mano directamente en la columna P del Excel ya descargado. Se agregó `mark_up NUMERIC(6,2)` a `solicitud_cotizacion_items` (migración 026), editable por ítem en la grilla de revisión (mismo patrón que Precio Unitario). Con Costo y Mark Up ya conocidos por el sistema, el Excel Externo calcula R/S/U/V como **valores fijos en TypeScript** (`calcularPreciosItem()`, misma matemática que las fórmulas de Excel) en vez de fórmulas — y esos valores no dependen de ninguna columna que se haya sacado. El Excel Interno no cambió: sigue usando fórmulas en vivo, ahora simplemente con Mark Up pre-cargado si ya se completó en la app (igual que ya pasaba con Costo).
+
+Se evaluó armar el Excel "en la web" (una previsualización/editor propio) como alternativa, pero se descartó: no resolvía el problema de fondo (falta el dato de Mark Up) y sumaba una superficie nueva para mantener sin necesidad — la solución real era simplemente capturar ese dato en la app.
+
+**Refactor de `cotizacionExport.service.ts`**: las 24 columnas (ancho, color de header, si fusiona filas 7-8, y si es exclusiva del interno) pasaron a describirse en una sola lista de datos (`TODAS_LAS_COLUMNAS`); tanto `buildCotizacionSheetData()` como `buildCotizacionExcelBuffer()` reciben un parámetro `modo: 'interno' | 'externo'` y arman header/colores/anchos/merges filtrando esa lista, en vez de tener arrays de columnas hardcodeados por separado para cada variante — así ambos modos no se pueden desincronizar entre sí a futuro.
+
+##### Archivos Nuevos
+- `database/migrations/026_add_mark_up_solicitud_items.sql`
+
+##### Archivos Modificados
+- `backend/src/services/cotizacionExport.service.ts` - Reescrito sobre una lista de columnas data-driven (`TODAS_LAS_COLUMNAS`), parámetro `modo` en ambas funciones de armado, `calcularPreciosItem()` para los valores fijos del externo
+- `backend/src/controllers/solicitudCotizacion.controller.ts`, `backend/src/routes/solicitudCotizacion.routes.ts` - Nuevo endpoint `exportarExcelExterno` / `GET .../exportar-excel-externo`
+- `backend/src/repositories/solicitudCotizacion.repository.ts` - `mark_up` en `updateItem()` y en el mapeo de `getItems()`
+- `shared/src/types/index.ts`, `shared/src/validators/index.ts` - Campo `markUp` en `SolicitudCotizacionItem` y su DTO de actualización
+- `frontend/src/services/solicitudesCotizacion.service.ts` - Método `exportarExcelExterno()`
+- `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx` - Botones renombrados ("Descargar Excel Interno"/"Descargar Excel Externo"), columna "Mark Up %" editable en la grilla de ítems
