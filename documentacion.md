@@ -699,7 +699,7 @@ Cuatro tarjetas con conteos en tiempo real sobre los ítems de la solicitud:
   - **Marcar como No Disponible**: acción directa (con confirmación) para marcar el ítem como no disponible en cualquier momento, sin pasar por Mercado Libre
   - **Pegar URL de producto**: permite pegar el link de un producto externo (ej. una publicación de Mercado Libre) como opción de compra para ese ítem. Una vez guardada la URL, se puede **Aceptar** (marca el ítem como `no_disponible`, guarda la URL) o **Declinar** (la descarta)
 - **Precio Unitario**: campo editable por ítem. Al aceptar un artículo del catálogo que tiene costo cargado (`costoInicialEstimado`) y el ítem todavía no tiene precio, se prellena con ese valor como punto de partida — siempre se puede sobreescribir a mano. La URL externa **no** trae precio automático; se carga siempre a mano
-- **Mark Up %**: campo editable por ítem (`mark_up`, migración 026). Es el margen que antes Nicole tipeaba a mano directamente en la columna P del Excel descargado (sin quedar guardado en ningún lado); ahora se carga en la app y con eso el sistema puede calcular el precio final también para el Excel Externo, que no tiene esa columna (ver más abajo)
+- **Mark Up**: campo editable por ítem, número **entero** (`mark_up INTEGER`, migraciones 026-027). Es el margen que antes Nicole tipeaba a mano directamente en la columna P del Excel descargado (sin quedar guardado en ningún lado); ahora se carga en la app y con eso el sistema puede calcular el precio final también para el Excel Externo, que no tiene esa columna (ver más abajo). Sigue funcionando como porcentaje dentro de la fórmula (`(MarkUp+100)/100`), pero la UI no lo etiqueta ni lo formatea como tal — es un input numérico simple, no de moneda
 - **Subtotal**: cantidad × precio unitario (calculado)
 - La grilla tiene ancho mínimo con scroll horizontal (columnas con `min-width` propio) para que ninguna columna quede cortada en pantallas chicas (ej. notebooks de 13")
 
@@ -723,7 +723,7 @@ Desde la pantalla de detalle hay dos botones: **"Descargar Excel Interno"** y **
 - En modo **interno**, esas 4 columnas de precio final siguen siendo fórmulas en vivo (igual que siempre), editables si Nicole ajusta Costo o Mark Up a mano después de descargar.
 - En modo **externo**, se calculan en TypeScript (`calcularPreciosItem()`, misma matemática que las fórmulas de Excel, `Math.floor` en vez de `INT()`) y se escriben como **valores fijos**, usando `item.precioUnitario` y el nuevo campo `item.markUp` (ver abajo) — ya no dependen de ninguna celda vecina.
 
-**Mark Up por ítem** (nuevo campo, necesario para que el Excel Externo pueda calcular el precio final sin la columna Mark Up): columna `mark_up NUMERIC(6,2)` en `solicitud_cotizacion_items` (migración 026), editable en la grilla de revisión junto a Precio Unitario. Antes este valor solo existía tipeado a mano en la columna P del Excel descargado y nunca se guardaba en el sistema — por eso el Excel Externo no podía calcular nada sin él.
+**Mark Up por ítem** (nuevo campo, necesario para que el Excel Externo pueda calcular el precio final sin la columna Mark Up): columna `mark_up INTEGER` en `solicitud_cotizacion_items` (migración 026, tipada originalmente `NUMERIC(6,2)` y pasada a entero en la migración 027), editable en la grilla de revisión junto a Precio Unitario, como input numérico simple (no de moneda). Antes este valor solo existía tipeado a mano en la columna P del Excel descargado y nunca se guardaba en el sistema — por eso el Excel Externo no podía calcular nada sin él.
 
 **Cabecera del archivo (filas 1-6)**:
 - **B1**: título (cliente + "Cotización" + referencia)
@@ -782,7 +782,7 @@ El diseño intencional es que la app resuelve el matching/catálogo/cantidades/c
 | Tabla | Campo | Notas |
 |-------|-------|-------|
 | solicitudes_cotizacion | `cliente_id`, `numero_referencia_cliente`, `nombre_archivo`, `fecha_solicitud`, `estado`, `observaciones`, `fecha_entrega`, `lugar_entrega`, `solicitado_por`, `usd_oficial_compra`, `usd_oficial_venta` | Cabecera. Los últimos 5 campos son para el header del Excel (migraciones 024 y 025) |
-| solicitud_cotizacion_items | `solicitud_id`, `orden`, `etm_solicitado`, `descripcion_solicitada`, `descripcion_ingles_solicitada`, `marca_solicitada`, `modelo_solicitado`, `cantidad_solicitada`, `articulo_id`, `match_confianza`, `estado_item`, `precio_unitario`, `mark_up`, `url_externa` | Detalle. `mark_up` es el margen % del ítem (migración 026), usado para calcular el precio final en el Excel Externo |
+| solicitud_cotizacion_items | `solicitud_id`, `orden`, `etm_solicitado`, `descripcion_solicitada`, `descripcion_ingles_solicitada`, `marca_solicitada`, `modelo_solicitado`, `cantidad_solicitada`, `articulo_id`, `match_confianza`, `estado_item`, `precio_unitario`, `mark_up`, `url_externa` | Detalle. `mark_up` es el margen del ítem, número entero (migraciones 026-027), usado para calcular el precio final en el Excel Externo |
 | google_integracion | `refresh_token`, `connected_email`, `connected_at` | Una sola fila: la cuenta de Google conectada para exportar |
 
 #### API
@@ -830,6 +830,7 @@ Los endpoints de `/api/google/*` (auth-url, oauth/callback, status) ya están mo
 - `database/migrations/024_add_datos_cabecera_cotizacion.sql`
 - `database/migrations/025_add_lugar_entrega_cotizacion.sql`
 - `database/migrations/026_add_mark_up_solicitud_items.sql`
+- `database/migrations/027_mark_up_a_entero.sql`
 
 ---
 
@@ -1461,6 +1462,8 @@ npm run db:seed          # Datos iniciales
     - Campo `lugar_entrega VARCHAR(300)` en `solicitudes_cotizacion`
 25. **026_add_mark_up_solicitud_items.sql**: Mark Up por ítem de cotización
     - Campo `mark_up NUMERIC(6,2)` en `solicitud_cotizacion_items`
+26. **027_mark_up_a_entero.sql**: Mark Up pasa a número entero
+    - `mark_up` cambia de `NUMERIC(6,2)` a `INTEGER`
 
 ---
 
@@ -2292,4 +2295,9 @@ Se evaluó armar el Excel "en la web" (una previsualización/editor propio) como
 - `backend/src/repositories/solicitudCotizacion.repository.ts` - `mark_up` en `updateItem()` y en el mapeo de `getItems()`
 - `shared/src/types/index.ts`, `shared/src/validators/index.ts` - Campo `markUp` en `SolicitudCotizacionItem` y su DTO de actualización
 - `frontend/src/services/solicitudesCotizacion.service.ts` - Método `exportarExcelExterno()`
-- `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx` - Botones renombrados ("Descargar Excel Interno"/"Descargar Excel Externo"), columna "Mark Up %" editable en la grilla de ítems
+- `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx` - Botones renombrados ("Descargar Excel Interno"/"Descargar Excel Externo"), columna "Mark Up" editable en la grilla de ítems
+
+##### Ajustes de UI (mismo día)
+- **Mark Up es un número entero, no moneda**: pasó de `CurrencyInput` (formato con coma decimal y separador de miles, pensado para plata) a un `<input type="number" step="1">` simple. La columna `mark_up` se convirtió de `NUMERIC(6,2)` a `INTEGER` (migración 027) para reflejar esto en la base también
+- **"Datos para el Excel de cotización" en un solo renglón**: el grid de Fecha/Lugar de Entrega, Solicitado por y USD Oficial Compra/Venta pasó de `md:grid-cols-4` (se partía en dos líneas) a `md:grid-cols-5`, para que los 5 campos entren en una fila en pantallas medianas/grandes
+- **Botones de acción arriba de la grilla de ítems**: "Descargar Excel Interno/Externo", "Exportar a Google Sheets", "Imprimir Cotización", "Cancelar Solicitud" y "Marcar como Cotizada" se movieron de debajo de la tabla de ítems a arriba (entre las tarjetas de indicadores y la tabla), para no tener que scrollear hasta el final para volver a descargar/exportar

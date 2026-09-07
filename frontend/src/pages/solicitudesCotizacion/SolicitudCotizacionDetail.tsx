@@ -409,7 +409,7 @@ export function SolicitudCotizacionDetailPage() {
 
         <div className="mt-4 pt-4 border-t border-gray-100">
           <p className="text-xs font-medium text-gray-500 uppercase mb-3">Datos para el Excel de cotización</p>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
             <div>
               <label className="block text-gray-500 mb-1">Fecha de Entrega</label>
               <input
@@ -486,6 +486,37 @@ export function SolicitudCotizacionDetailPage() {
         </div>
       </div>
 
+      <div className="flex flex-wrap justify-end gap-3">
+        <button onClick={handleExportarExcel} className="btn-secondary">
+          <Download className="w-4 h-4 mr-2" />
+          Descargar Excel Interno
+        </button>
+        <button onClick={handleExportarExcelExterno} className="btn-secondary">
+          <Download className="w-4 h-4 mr-2" />
+          Descargar Excel Externo
+        </button>
+        <button onClick={handleExportarGoogleSheets} disabled={isExportingSheets} className="btn-secondary disabled:opacity-50">
+          {isExportingSheets ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <HardDrive className="w-4 h-4 mr-2" />}
+          Exportar a Google Sheets
+        </button>
+        <button onClick={handlePrint} className="btn-secondary">
+          <Printer className="w-4 h-4 mr-2" />
+          Imprimir Cotización
+        </button>
+        {solicitud.estado === 'en_revision' && (
+          <>
+            <button onClick={handleCancelar} className="btn-danger">
+              <XCircle className="w-4 h-4 mr-2" />
+              Cancelar Solicitud
+            </button>
+            <button onClick={handleMarcarCotizada} disabled={!puedeMarcarCotizada} className="btn-primary disabled:opacity-50">
+              <FileCheck className="w-4 h-4 mr-2" />
+              Marcar como Cotizada
+            </button>
+          </>
+        )}
+      </div>
+
       <div className="card p-0 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1230px] divide-y divide-gray-200 text-sm">
@@ -496,7 +527,7 @@ export function SolicitudCotizacionDetailPage() {
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[220px]">Aceptado</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[260px]">Acciones</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[150px]">Precio Unit.</th>
-                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[120px]">Mark Up %</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[120px]">Mark Up</th>
                 <th className="px-3 py-3 text-right font-medium text-gray-500 uppercase text-xs min-w-[120px]">Subtotal</th>
               </tr>
             </thead>
@@ -735,12 +766,21 @@ export function SolicitudCotizacionDetailPage() {
                     </td>
 
                     <td className="px-3 py-3 min-w-[120px]">
-                      <CurrencyInput
-                        value={markUps[item.id]}
-                        onChange={(val) => setMarkUps((prev) => ({ ...prev, [item.id]: val }))}
+                      <input
+                        type="number"
+                        step="1"
+                        min="0"
+                        className="input"
+                        value={markUps[item.id] ?? ''}
+                        onChange={(e) =>
+                          setMarkUps((prev) => ({
+                            ...prev,
+                            [item.id]: e.target.value === '' ? undefined : parseInt(e.target.value, 10),
+                          }))
+                        }
                         onBlur={() => handleMarkUpBlur(item)}
                         disabled={disabled}
-                        placeholder="0,00"
+                        placeholder="0"
                       />
                     </td>
 
@@ -759,37 +799,6 @@ export function SolicitudCotizacionDetailPage() {
             </tfoot>
           </table>
         </div>
-      </div>
-
-      <div className="flex flex-wrap justify-end gap-3">
-        <button onClick={handleExportarExcel} className="btn-secondary">
-          <Download className="w-4 h-4 mr-2" />
-          Descargar Excel Interno
-        </button>
-        <button onClick={handleExportarExcelExterno} className="btn-secondary">
-          <Download className="w-4 h-4 mr-2" />
-          Descargar Excel Externo
-        </button>
-        <button onClick={handleExportarGoogleSheets} disabled={isExportingSheets} className="btn-secondary disabled:opacity-50">
-          {isExportingSheets ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <HardDrive className="w-4 h-4 mr-2" />}
-          Exportar a Google Sheets
-        </button>
-        <button onClick={handlePrint} className="btn-secondary">
-          <Printer className="w-4 h-4 mr-2" />
-          Imprimir Cotización
-        </button>
-        {solicitud.estado === 'en_revision' && (
-          <>
-            <button onClick={handleCancelar} className="btn-danger">
-              <XCircle className="w-4 h-4 mr-2" />
-              Cancelar Solicitud
-            </button>
-            <button onClick={handleMarcarCotizada} disabled={!puedeMarcarCotizada} className="btn-primary disabled:opacity-50">
-              <FileCheck className="w-4 h-4 mr-2" />
-              Marcar como Cotizada
-            </button>
-          </>
-        )}
       </div>
     </div>
   );
