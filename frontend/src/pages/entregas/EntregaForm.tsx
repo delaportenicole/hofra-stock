@@ -53,7 +53,7 @@ export function EntregaFormPage() {
   const loadData = async () => {
     try {
       const [articulosRes, clientesData] = await Promise.all([
-        articulosService.getAll({ limit: 500, activo: true }),
+        articulosService.getAll({ limit: 1000, activo: true }),
         clientesService.getActive(),
       ]);
       setArticulos(articulosRes.data);

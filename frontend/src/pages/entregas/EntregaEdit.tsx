@@ -58,7 +58,7 @@ export function EntregaEditPage() {
     try {
       const [entregaData, articulosRes, clientesData] = await Promise.all([
         stockService.getEntregaById(id!),
-        articulosService.getAll({ limit: 500, activo: true }),
+        articulosService.getAll({ limit: 1000, activo: true }),
         clientesService.getActive(),
       ]);
 

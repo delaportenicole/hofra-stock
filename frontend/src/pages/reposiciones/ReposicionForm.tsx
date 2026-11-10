@@ -82,7 +82,7 @@ export function ReposicionFormPage() {
   const loadData = async () => {
     try {
       const [articulosRes, proveedoresData] = await Promise.all([
-        articulosService.getAll({ limit: 500, activo: true }),
+        articulosService.getAll({ limit: 1000, activo: true }),
         proveedoresService.getActive(),
       ]);
       setArticulos(articulosRes.data);
