@@ -218,10 +218,12 @@ export class ArticuloService {
 
     // Calcular valor del stock inicial (sin reposición)
     const valorStockInicial = stockSinCosto * (articulo.costoInicialEstimado || 0);
+    const valorStockInicialUSD = stockSinCosto * (articulo.costoInicialEstimadoUsd || 0);
 
     // Valor total
     const valorTotalARS = valorCapasARS + valorStockInicial;
-    const valorTotalUSD = valorCapasUSD > 0 ? valorCapasUSD : null;
+    const valorTotalUSDSuma = valorCapasUSD + valorStockInicialUSD;
+    const valorTotalUSD = valorTotalUSDSuma > 0 ? valorTotalUSDSuma : null;
 
     // Costo promedio
     const costoPromedioARS = articulo.stock > 0 ? valorTotalARS / articulo.stock : null;

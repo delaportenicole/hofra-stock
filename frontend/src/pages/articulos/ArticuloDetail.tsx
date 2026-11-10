@@ -448,18 +448,23 @@ export function ArticuloDetailPage() {
               </div>
 
               <div className="space-y-4">
-                {/* Valor Total */}
+                {/* Valor Total (ARS) */}
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
                   <p className="text-sm text-green-600 mb-1">Valor Total del Stock</p>
                   <p className="text-2xl font-bold text-green-800">
                     ${valuacion.valorTotalARS.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                   </p>
-                  {valuacion.valorTotalUSD && valuacion.valorTotalUSD > 0 && (
-                    <p className="text-sm text-green-600 mt-1">
-                      ≈ USD {valuacion.valorTotalUSD.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-                    </p>
-                  )}
                 </div>
+
+                {/* Valor Total (USD) */}
+                {valuacion.valorTotalUSD && valuacion.valorTotalUSD > 0 && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                    <p className="text-sm text-green-600 mb-1">Valor Total del Stock (USD)</p>
+                    <p className="text-2xl font-bold text-green-800">
+                      USD {valuacion.valorTotalUSD.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                )}
 
                 {/* Costo Promedio */}
                 {valuacion.costoPromedioARS && (
