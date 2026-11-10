@@ -178,7 +178,7 @@ export function ArticuloDetailPage() {
                   <dd>
                     {articulo.costoInicialEstimado ? (
                       <div className="space-y-0.5">
-                        <div>${Number(articulo.costoInicialEstimado).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        <div>ARS ${Number(articulo.costoInicialEstimado).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                         {articulo.costoInicialEstimadoUsd && (
                           <div className="text-xs text-gray-500">
                             USD {Number(articulo.costoInicialEstimadoUsd).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -450,9 +450,9 @@ export function ArticuloDetailPage() {
               <div className="space-y-4">
                 {/* Valor Total (ARS) */}
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-                  <p className="text-sm text-green-600 mb-1">Valor Total del Stock</p>
+                  <p className="text-sm text-green-600 mb-1">Valor Total del Stock (ARS)</p>
                   <p className="text-2xl font-bold text-green-800">
-                    ${valuacion.valorTotalARS.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                    ARS ${valuacion.valorTotalARS.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
 
@@ -469,9 +469,9 @@ export function ArticuloDetailPage() {
                 {/* Costo Promedio */}
                 {valuacion.costoPromedioARS && (
                   <div className="text-center py-2">
-                    <p className="text-xs text-gray-500">Costo Promedio Unitario</p>
+                    <p className="text-xs text-gray-500">Costo Promedio Unitario (ARS)</p>
                     <p className="text-lg font-semibold text-gray-900">
-                      ${valuacion.costoPromedioARS.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                      ARS ${valuacion.costoPromedioARS.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                     </p>
                   </div>
                 )}
