@@ -190,7 +190,7 @@ class ImportarService {
         const stockMinimo = Math.max(0, row.stockMinimo || 0);
 
         // Create article
-        const articulo = await articuloRepository.create({
+        await articuloRepository.create({
           codigo,
           nombre: row.nombre.trim(),
           rubroId: rubro.id,
@@ -208,11 +208,6 @@ class ImportarService {
           valorDolarCostoInicial: null,
           createdBy: userId,
         });
-
-        // If stockMinimo = 0, set article as inactive
-        if (stockMinimo === 0) {
-          await articuloRepository.update(articulo.id, { activo: false }, userId);
-        }
 
         result.imported++;
       } catch (error) {
