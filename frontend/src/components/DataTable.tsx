@@ -39,6 +39,8 @@ interface DataTableProps<T> {
   emptyMessage?: string;
   defaultSort?: SortConfig;
   minRows?: number; // Minimum number of rows to show (for consistent height)
+  sortConfig?: SortConfig | null; // Controlled sort state (e.g. driven by server-side sorting)
+  onSortChange?: (config: SortConfig) => void; // If provided, sorting is controlled by the parent
 }
 
 // Approximate row height in pixels (for minRows calculation)
@@ -57,28 +59,32 @@ export function DataTable<T>({
   emptyMessage = 'No hay datos para mostrar',
   defaultSort,
   minRows,
+  sortConfig: controlledSortConfig,
+  onSortChange,
 }: DataTableProps<T>) {
-  const [sortConfig, setSortConfig] = useState<SortConfig | null>(defaultSort || null);
+  const isControlled = !!onSortChange;
+  const [internalSortConfig, setInternalSortConfig] = useState<SortConfig | null>(defaultSort || null);
+  const sortConfig = isControlled ? controlledSortConfig ?? null : internalSortConfig;
 
   const handleSort = (column: Column<T>) => {
     if (!column.sortable) return;
 
     const sortKey = column.sortKey || column.key;
+    const nextConfig: SortConfig =
+      sortConfig?.key === sortKey && sortConfig.direction === 'asc'
+        ? { key: sortKey, direction: 'desc' }
+        : { key: sortKey, direction: 'asc' };
 
-    setSortConfig((current) => {
-      if (current?.key === sortKey) {
-        // Toggle direction or remove sort
-        if (current.direction === 'asc') {
-          return { key: sortKey, direction: 'desc' };
-        }
-        return { key: sortKey, direction: 'asc' };
-      }
-      // New sort column, default to ascending
-      return { key: sortKey, direction: 'asc' };
-    });
+    if (isControlled) {
+      onSortChange(nextConfig);
+    } else {
+      setInternalSortConfig(nextConfig);
+    }
   };
 
   const sortedData = useMemo(() => {
+    // Controlled sorting is resolved by the parent (e.g. server-side ORDER BY); don't re-sort locally.
+    if (isControlled) return data;
     if (!sortConfig) return data;
 
     const column = columns.find(c => (c.sortKey || c.key) === sortConfig.key);
@@ -112,7 +118,7 @@ export function DataTable<T>({
 
       return sortConfig.direction === 'asc' ? comparison : -comparison;
     });
-  }, [data, sortConfig, columns]);
+  }, [data, sortConfig, columns, isControlled]);
 
   const handleRowClick = (item: T, event: React.MouseEvent) => {
     // Si hay un href, abrir en nueva pestaña

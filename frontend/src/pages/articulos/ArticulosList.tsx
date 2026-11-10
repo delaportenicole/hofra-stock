@@ -30,6 +30,8 @@ export function ArticulosListPage() {
   const [rubroId, setRubroId] = useState(searchParams.get('rubroId') || '');
   const [stockBajo, setStockBajo] = useState(searchParams.get('stockBajo') === 'true');
   const [estadoFiltro, setEstadoFiltro] = useState<string>(searchParams.get('activo') || '');
+  const [sortBy, setSortBy] = useState<string>('nombre');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const debouncedBusqueda = useDebounce(busqueda, 300);
 
@@ -39,7 +41,7 @@ export function ArticulosListPage() {
 
   useEffect(() => {
     loadArticulos();
-  }, [page, limit, debouncedBusqueda, rubroId, stockBajo, estadoFiltro]);
+  }, [page, limit, debouncedBusqueda, rubroId, stockBajo, estadoFiltro, sortBy, sortOrder]);
 
   const loadArticulos = async () => {
     setIsLoading(true);
@@ -51,8 +53,8 @@ export function ArticulosListPage() {
         rubroId: rubroId || undefined,
         stockBajo: stockBajo || undefined,
         activo: estadoFiltro === '' ? undefined : estadoFiltro === 'true',
-        sortBy: 'nombre',
-        sortOrder: 'asc',
+        sortBy,
+        sortOrder,
       };
       const result = await articulosService.getAll(filtros);
       setArticulos(result.data);
@@ -111,6 +113,7 @@ export function ArticulosListPage() {
     {
       key: 'codigo',
       header: 'Código',
+      sortable: true,
       render: (item: ArticuloConRelaciones) => (
         <span className="font-mono text-sm">{item.codigo}</span>
       ),
@@ -125,6 +128,7 @@ export function ArticulosListPage() {
     {
       key: 'nombre',
       header: 'Nombre',
+      sortable: true,
       render: (item: ArticuloConRelaciones) => (
         <p className="font-medium">{item.nombre}</p>
       ),
@@ -267,6 +271,11 @@ export function ArticulosListPage() {
         }}
         onPageChange={setPage}
         onLimitChange={setLimit}
+        sortConfig={{ key: sortBy, direction: sortOrder }}
+        onSortChange={(config) => {
+          setSortBy(config.key);
+          setSortOrder(config.direction);
+        }}
         getRowHref={(item) => `/articulos/${item.id}`}
         emptyMessage="No se encontraron artículos"
       />
