@@ -20,7 +20,7 @@ export const env = {
   // JWT
   JWT_SECRET: process.env.JWT_SECRET || 'default-secret-change-me',
   JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || 'default-refresh-secret-change-me',
-  JWT_ACCESS_EXPIRY: '15m',
+  JWT_ACCESS_EXPIRY: '2h',
   JWT_REFRESH_EXPIRY: '7d',
 
   // Cloudinary

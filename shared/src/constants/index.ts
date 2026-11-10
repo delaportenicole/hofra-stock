@@ -74,7 +74,7 @@ export const PAGINATION = {
 // ============================================
 
 export const JWT_CONFIG = {
-  ACCESS_TOKEN_EXPIRY: '15m',
+  ACCESS_TOKEN_EXPIRY: '2h',
   REFRESH_TOKEN_EXPIRY: '7d',
 } as const;
 
