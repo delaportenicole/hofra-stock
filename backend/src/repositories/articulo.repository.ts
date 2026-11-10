@@ -305,7 +305,7 @@ export class ArticuloRepository extends BaseRepository<Articulo> {
     }
 
     const whereClause = conditions.join(' AND ');
-    const orderColumn = sortBy === 'rubro' ? 'r.nombre' : `a.${sortBy}`;
+    const orderByClause = this.buildOrderByClause(sortBy, sortOrder);
 
     const [rows, countResult] = await Promise.all([
       query<Record<string, unknown>>(
@@ -316,7 +316,7 @@ export class ArticuloRepository extends BaseRepository<Articulo> {
          LEFT JOIN rubros r ON r.id = a.rubro_id
          LEFT JOIN proveedores p ON p.id = a.proveedor_id
          WHERE ${whereClause}
-         ORDER BY ${orderColumn} ${sortOrder.toUpperCase()}
+         ORDER BY ${orderByClause}
          LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
         [...values, limit, offset]
       ),
@@ -337,6 +337,41 @@ export class ArticuloRepository extends BaseRepository<Articulo> {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  // Columnas que se pueden usar para ordenar (whitelist: sortBy llega desde query params sin validar).
+  private static readonly SORT_COLUMNS: Record<string, string> = {
+    nombre: 'a.nombre',
+    codigo: 'a.codigo',
+    sku: 'a.sku',
+    etm: 'a.etm',
+    marca: 'a.marca',
+    stock: 'a.stock',
+    stockMinimo: 'a.stock_minimo',
+    presentacion: 'a.presentacion',
+    activo: 'a.activo',
+    createdAt: 'a.created_at',
+    updatedAt: 'a.updated_at',
+    rubro: 'r.nombre',
+  };
+
+  private buildOrderByClause(sortBy: string, sortOrder: string): string {
+    const dir = sortOrder.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+
+    if (sortBy === 'codigo') {
+      // Orden natural: separa el prefijo de letras del número final (AB1, AB2, ..., AB10, AB11)
+      // en vez del orden lexicográfico puro, que pondría "AB10" antes que "AB2".
+      return `regexp_replace(a.codigo, '[0-9]+$', '') ${dir}, ` +
+        `substring(a.codigo from '[0-9]+$')::bigint ${dir} NULLS LAST, ` +
+        `a.codigo ${dir}`;
+    }
+
+    if (sortBy === 'nombre') {
+      return `LOWER(a.nombre) ${dir}`;
+    }
+
+    const column = ArticuloRepository.SORT_COLUMNS[sortBy] || ArticuloRepository.SORT_COLUMNS.nombre;
+    return `${column} ${dir}`;
   }
 
   async findStockBajo(limit: number = 10): Promise<ArticuloConRelaciones[]> {
