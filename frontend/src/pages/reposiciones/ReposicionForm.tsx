@@ -12,7 +12,7 @@ import { Badge, StockBadge } from '../../components/Badge';
 import { PageLoader } from '../../components/LoadingSpinner';
 import { getErrorMessage } from '../../services/api';
 import toast from 'react-hot-toast';
-import type { Proveedor, ArticuloConRelaciones, CreateReposicionDto } from '@hofra/shared';
+import type { Proveedor, ArticuloConRelaciones, CreateReposicionDto, ReposicionConRelaciones } from '@hofra/shared';
 
 type FormData = CreateReposicionDto;
 
@@ -26,6 +26,7 @@ export function ReposicionFormPage() {
   const [articulos, setArticulos] = useState<ArticuloConRelaciones[]>([]);
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [selectedArticulo, setSelectedArticulo] = useState<ArticuloConRelaciones | null>(null);
+  const [ultimaReposicion, setUltimaReposicion] = useState<ReposicionConRelaciones | null>(null);
 
   const {
     register,
@@ -63,6 +64,12 @@ export function ReposicionFormPage() {
       ? (importeTotal / watchValorDolar).toFixed(2)
       : null;
 
+  // Último costo cargado para el artículo seleccionado: la reposición más reciente si existe,
+  // o si no tuvo ninguna, el costo inicial estimado cargado al crear el artículo.
+  const costoAnteriorArs = ultimaReposicion?.costoReposicion ?? selectedArticulo?.costoInicialEstimado ?? null;
+  const costoAnteriorUsd = ultimaReposicion?.costoReposicionDolares ?? selectedArticulo?.costoInicialEstimadoUsd ?? null;
+  const costoAnteriorOrigen = ultimaReposicion ? 'última reposición' : 'costo inicial estimado';
+
   useEffect(() => {
     loadData();
   }, []);
@@ -78,6 +85,17 @@ export function ReposicionFormPage() {
       setSelectedArticulo(null);
     }
   }, [watchArticuloId, articulos]);
+
+  useEffect(() => {
+    if (!watchArticuloId) {
+      setUltimaReposicion(null);
+      return;
+    }
+    articulosService
+      .getHistorial(watchArticuloId, 1)
+      .then((historial) => setUltimaReposicion(historial.reposiciones[0] || null))
+      .catch(() => setUltimaReposicion(null));
+  }, [watchArticuloId]);
 
   const loadData = async () => {
     try {
@@ -393,6 +411,30 @@ export function ReposicionFormPage() {
                 </div>
               )}
             </dl>
+
+            {costoAnteriorArs != null && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <p className="text-sm text-gray-500 mb-2">
+                  Último costo cargado <span className="text-xs">({costoAnteriorOrigen})</span>
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs text-gray-500">ARS</p>
+                    <p className="font-semibold text-gray-900">
+                      ${Number(costoAnteriorArs).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">USD</p>
+                    <p className="font-semibold text-gray-900">
+                      {costoAnteriorUsd != null
+                        ? `USD ${Number(costoAnteriorUsd).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        : '-'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {watchCantidad > 0 && (
               <div className="mt-4 pt-4 border-t border-gray-200">
