@@ -17,6 +17,10 @@ TRUNCATE TABLE entregas CASCADE;
 -- Reposiciones
 TRUNCATE TABLE reposiciones CASCADE;
 
+-- Solicitudes de cotización (items primero por la FK)
+TRUNCATE TABLE solicitud_cotizacion_items CASCADE;
+TRUNCATE TABLE solicitudes_cotizacion CASCADE;
+
 -- Artículos
 TRUNCATE TABLE articulos CASCADE;
 
@@ -29,7 +33,10 @@ TRUNCATE TABLE marcas CASCADE;
 -- Sugerencias
 TRUNCATE TABLE sugerencias CASCADE;
 
--- NO se eliminan: users, roles, user_roles, role_permissions
+-- Reiniciar el correlativo de número de cotización (vuelve a arrancar desde 250)
+ALTER SEQUENCE solicitudes_cotizacion_numero_seq RESTART WITH 250;
+
+-- NO se eliminan: usuarios, roles, permisos, roles_permisos, usuarios_roles, google_integracion
 
 -- Reactivar triggers
 SET session_replication_role = 'origin';

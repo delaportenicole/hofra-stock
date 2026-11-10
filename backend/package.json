@@ -10,6 +10,7 @@
     "start": "node dist/app.js",
     "migrate": "ts-node --esm src/scripts/migrate.ts",
     "seed": "ts-node --esm src/scripts/seed.ts",
+    "reset-data": "ts-node --esm src/scripts/reset-data.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts"
   },
