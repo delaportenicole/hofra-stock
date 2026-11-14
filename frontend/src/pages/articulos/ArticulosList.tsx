@@ -213,13 +213,13 @@ export function ArticulosListPage() {
             data={articulos}
             filename="articulos"
             columns={[
-              { key: 'codigo', header: 'Código' },
-              { key: 'nombre', header: 'Nombre' },
-              { key: 'rubro', header: 'Rubro', format: (v: unknown) => (v as { nombre: string })?.nombre || '' },
-              { key: 'proveedor', header: 'Proveedor', format: (v: unknown) => (v as { razonSocial: string } | null)?.razonSocial || '' },
-              { key: 'stock', header: 'Stock' },
-              { key: 'stockMinimo', header: 'Stock Mínimo' },
-              { key: 'presentacion', header: 'Presentación' },
+              { key: 'codigo', header: 'Código', type: 'text' },
+              { key: 'nombre', header: 'Nombre', type: 'text' },
+              { key: 'rubro', header: 'Rubro', type: 'text', value: (item) => item.rubro?.nombre },
+              { key: 'proveedor', header: 'Proveedor', type: 'text', value: (item) => item.proveedor?.razonSocial },
+              { key: 'stock', header: 'Stock', type: 'number' },
+              { key: 'stockMinimo', header: 'Stock Mínimo', type: 'number' },
+              { key: 'presentacion', header: 'Presentación', type: 'text' },
             ]}
             getExportData={async () => {
               const result = await articulosService.getAll({ ...buildFiltros(), page: 1, limit: 1000 });

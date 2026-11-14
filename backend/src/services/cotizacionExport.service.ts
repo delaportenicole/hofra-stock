@@ -49,7 +49,7 @@ const TODAS_LAS_COLUMNAS: ColumnaConfig[] = [
   { key: 'modeloOfrecido', header1: 'Modelo', header2: 'Modelo', width: 25, color: 'verde', mergeHeader: true, soloInterno: false },
   { key: 'imagen', header1: 'Imagen de', header2: 'lo Ofrecido', width: 28.75, color: 'verde', mergeHeader: false, soloInterno: false },
   { key: 'proveedor', header1: 'Proveedor', header2: 'Proveedor', width: 36, color: 'rojoAmarillo', mergeHeader: true, soloInterno: true },
-  { key: 'costo', header1: 'Costo', header2: 'por Unidad', width: 20.25, color: 'rojoAmarillo', mergeHeader: false, soloInterno: true },
+  { key: 'costo', header1: 'Costo', header2: 'por Unidad', width: 20.25, color: 'rojoAmarillo', mergeHeader: false, soloInterno: true, formato: 'pesos' },
   { key: 'costoTotal', header1: 'Costo Total', header2: 'Costo Total', width: 20.25, color: 'rojoAmarillo', mergeHeader: true, soloInterno: true },
   { key: 'markUp', header1: 'Mark Up', header2: 'Mark Up', width: 18.75, color: 'rojoAmarillo', mergeHeader: true, soloInterno: true },
   { key: 'ventaConIva', header1: 'Venta ', header2: 'con iva', width: 21, color: 'rojoAmarillo', mergeHeader: false, soloInterno: true, formato: 'pesos' },
@@ -134,11 +134,11 @@ function valorColumnaItem(
     case 'proveedor':
       return proveedor;
     case 'costo':
-      return item.precioUnitario ?? '';
+      return item.precioUnitario ?? null;
     case 'costoTotal':
       return { formula: `G${filaNum}*N${filaNum}` };
     case 'markUp':
-      return item.markUp ?? '';
+      return item.markUp ?? null;
     case 'ventaConIva':
       return { formula: `N${filaNum}*((P${filaNum}+100)/100)` };
     case 'precioUnitSinIva':
@@ -195,12 +195,12 @@ export function buildCotizacionSheetData(
     [
       null, `Solicitado por: ${solicitud.solicitadoPor || ''}`,
       null, null, null, null, null, null, null, null, null, null, null, // C..M (11 columnas)
-      'USD Oficial Compra', solicitud.usdOficialCompra ?? '',
+      'USD Oficial Compra', solicitud.usdOficialCompra ?? null,
     ],
     [
       null, null,
       null, null, null, null, null, null, null, null, null, null, null,
-      'USD Oficial Venta', solicitud.usdOficialVenta ?? '',
+      'USD Oficial Venta', solicitud.usdOficialVenta ?? null,
     ],
     [],
     columnas.map((col) => col.header1),

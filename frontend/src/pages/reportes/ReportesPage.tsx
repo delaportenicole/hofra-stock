@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileText, Download, Users, Truck, Package, ChevronDown, ChevronRight } from 'lucide-react';
+import { FileText, Users, Truck, Package, ChevronDown, ChevronRight } from 'lucide-react';
 import {
   reportesService,
   type EntregasPorClienteItem,
@@ -8,10 +8,13 @@ import {
   type ArticulosPorProveedorItem,
   type ResumenMensualItem,
 } from '../../services/reportes.service';
+import { ExportButtons, type ExportColumn } from '../../components/ExportButtons';
 import { getErrorMessage } from '../../services/api';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+
+type ExportRow = Record<string, unknown>;
 
 type TabType = 'entregas-cliente' | 'reposiciones-proveedor' | 'proveedores-articulo' | 'articulos-proveedor';
 
@@ -92,51 +95,97 @@ export function ReportesPage() {
     setExpandedRows(newExpanded);
   };
 
-  const exportToCSV = () => {
-    let csvContent = '';
-    let filename = '';
-
+  // Arma filas y columnas tipadas (number/currency/date/text) para el reporte activo,
+  // en vez de armar un CSV de texto a mano (que no puede distinguir tipos de celda).
+  const getExportInfo = (): { filename: string; columns: ExportColumn<ExportRow>[]; rows: ExportRow[] } => {
     switch (activeTab) {
       case 'entregas-cliente':
-        filename = `entregas-por-cliente-${MESES[mes - 1]}-${anio}.csv`;
-        csvContent = 'Cliente,Total Entregas,Total Artículos\n';
-        entregasPorCliente.forEach(item => {
-          csvContent += `"${item.razonSocial}",${item.totalEntregas},${item.totalArticulos}\n`;
-        });
-        break;
+        return {
+          filename: `entregas-por-cliente-${MESES[mes - 1]}-${anio}`,
+          columns: [
+            { key: 'cliente', header: 'Cliente', type: 'text' },
+            { key: 'totalEntregas', header: 'Total Entregas', type: 'number' },
+            { key: 'totalArticulos', header: 'Total Artículos', type: 'number' },
+          ],
+          rows: entregasPorCliente.map((item) => ({
+            cliente: item.razonSocial,
+            totalEntregas: item.totalEntregas,
+            totalArticulos: item.totalArticulos,
+          })),
+        };
       case 'reposiciones-proveedor':
-        filename = `reposiciones-por-proveedor-${MESES[mes - 1]}-${anio}.csv`;
-        csvContent = 'Proveedor,Total Reposiciones,Total Artículos,Costo Total ARS,Costo Total USD\n';
-        reposicionesPorProveedor.forEach(item => {
-          csvContent += `"${item.razonSocial}",${item.totalReposiciones},${item.totalArticulos},${item.totalCostoARS.toFixed(2)},${item.totalCostoUSD.toFixed(2)}\n`;
-        });
-        break;
-      case 'proveedores-articulo':
-        filename = `proveedores-por-articulo.csv`;
-        csvContent = 'Código,Artículo,Proveedor,Total Reposiciones,Última Reposición,Costo Promedio\n';
-        proveedoresPorArticulo.forEach(item => {
-          item.proveedores.forEach(prov => {
-            csvContent += `"${item.articuloCodigo}","${item.articuloNombre}","${prov.razonSocial}",${prov.totalReposiciones},"${prov.ultimaReposicion ? format(new Date(prov.ultimaReposicion), 'dd/MM/yyyy') : '-'}",${prov.costoPromedio.toFixed(2)}\n`;
+        return {
+          filename: `reposiciones-por-proveedor-${MESES[mes - 1]}-${anio}`,
+          columns: [
+            { key: 'proveedor', header: 'Proveedor', type: 'text' },
+            { key: 'totalReposiciones', header: 'Total Reposiciones', type: 'number' },
+            { key: 'totalArticulos', header: 'Total Artículos', type: 'number' },
+            { key: 'totalCostoARS', header: 'Costo Total ARS', type: 'currency' },
+            { key: 'totalCostoUSD', header: 'Costo Total USD', type: 'currency' },
+          ],
+          rows: reposicionesPorProveedor.map((item) => ({
+            proveedor: item.razonSocial,
+            totalReposiciones: item.totalReposiciones,
+            totalArticulos: item.totalArticulos,
+            totalCostoARS: item.totalCostoARS,
+            totalCostoUSD: item.totalCostoUSD,
+          })),
+        };
+      case 'proveedores-articulo': {
+        const rows: ExportRow[] = [];
+        proveedoresPorArticulo.forEach((item) => {
+          item.proveedores.forEach((prov) => {
+            rows.push({
+              codigo: item.articuloCodigo,
+              articulo: item.articuloNombre,
+              proveedor: prov.razonSocial,
+              totalReposiciones: prov.totalReposiciones,
+              ultimaReposicion: prov.ultimaReposicion ? new Date(prov.ultimaReposicion) : null,
+              costoPromedio: prov.costoPromedio,
+            });
           });
         });
-        break;
-      case 'articulos-proveedor':
-        filename = `articulos-por-proveedor.csv`;
-        csvContent = 'Proveedor,Código,Artículo,Total Reposiciones,Total Cantidad,Última Reposición\n';
-        articulosPorProveedor.forEach(item => {
-          item.articulos.forEach(art => {
-            csvContent += `"${item.razonSocial}","${art.codigo}","${art.nombre}",${art.totalReposiciones},${art.totalCantidad},"${art.ultimaReposicion ? format(new Date(art.ultimaReposicion), 'dd/MM/yyyy') : '-'}"\n`;
+        return {
+          filename: 'proveedores-por-articulo',
+          columns: [
+            { key: 'codigo', header: 'Código', type: 'text' },
+            { key: 'articulo', header: 'Artículo', type: 'text' },
+            { key: 'proveedor', header: 'Proveedor', type: 'text' },
+            { key: 'totalReposiciones', header: 'Total Reposiciones', type: 'number' },
+            { key: 'ultimaReposicion', header: 'Última Reposición', type: 'date' },
+            { key: 'costoPromedio', header: 'Costo Promedio', type: 'currency' },
+          ],
+          rows,
+        };
+      }
+      case 'articulos-proveedor': {
+        const rows: ExportRow[] = [];
+        articulosPorProveedor.forEach((item) => {
+          item.articulos.forEach((art) => {
+            rows.push({
+              proveedor: item.razonSocial,
+              codigo: art.codigo,
+              articulo: art.nombre,
+              totalReposiciones: art.totalReposiciones,
+              totalCantidad: art.totalCantidad,
+              ultimaReposicion: art.ultimaReposicion ? new Date(art.ultimaReposicion) : null,
+            });
           });
         });
-        break;
+        return {
+          filename: 'articulos-por-proveedor',
+          columns: [
+            { key: 'proveedor', header: 'Proveedor', type: 'text' },
+            { key: 'codigo', header: 'Código', type: 'text' },
+            { key: 'articulo', header: 'Artículo', type: 'text' },
+            { key: 'totalReposiciones', header: 'Total Reposiciones', type: 'number' },
+            { key: 'totalCantidad', header: 'Total Cantidad', type: 'number' },
+            { key: 'ultimaReposicion', header: 'Última Reposición', type: 'date' },
+          ],
+          rows,
+        };
+      }
     }
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    link.click();
-    toast.success('Reporte exportado');
   };
 
   const renderFilters = () => {
@@ -173,10 +222,10 @@ export function ReportesPage() {
           </>
         )}
         <div className="flex-1" />
-        <button onClick={exportToCSV} className="btn-secondary">
-          <Download className="w-4 h-4 mr-2" />
-          Exportar CSV
-        </button>
+        {(() => {
+          const { rows, filename, columns } = getExportInfo();
+          return <ExportButtons data={rows} filename={filename} columns={columns} />;
+        })()}
       </div>
     );
   };
