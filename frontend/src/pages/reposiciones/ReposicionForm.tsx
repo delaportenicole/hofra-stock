@@ -77,7 +77,9 @@ export function ReposicionFormPage() {
   const proveedorAnterior = proveedorAnteriorEntidad
     ? proveedorAnteriorEntidad.nombreFantasia || proveedorAnteriorEntidad.razonSocial
     : null;
-  const linkCompraAnterior = ultimaReposicion?.linkCompra ?? null;
+  // Si nunca tuvo reposición, cae a la URL de referencia cargada en el artículo
+  // (ej. la publicación de Mercado Libre de la que se sacó el costo inicial).
+  const linkCompraAnterior = ultimaReposicion?.linkCompra ?? selectedArticulo?.url ?? null;
 
   useEffect(() => {
     loadData();
@@ -466,15 +468,18 @@ export function ReposicionFormPage() {
                       </div>
                     )}
                     {linkCompraAnterior && (
-                      <a
-                        href={linkCompraAnterior}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 hover:underline"
-                      >
-                        <ExternalLink className="w-4 h-4 flex-shrink-0" />
-                        <span className="truncate">Ver link de compra</span>
-                      </a>
+                      <div className="flex items-start gap-2 text-sm">
+                        <ExternalLink className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                        <a
+                          href={linkCompraAnterior}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary-600 hover:text-primary-700 hover:underline break-all"
+                          title={linkCompraAnterior}
+                        >
+                          {linkCompraAnterior}
+                        </a>
+                      </div>
                     )}
                   </div>
                 )}
