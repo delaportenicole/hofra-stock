@@ -6,7 +6,7 @@ import { rubrosService } from '../../services/rubros.service';
 import { proveedoresService } from '../../services/proveedores.service';
 import { DataTable } from '../../components/DataTable';
 import { SearchInput } from '../../components/SearchInput';
-import { Badge, StockBadge, StatusBadge } from '../../components/Badge';
+import { Badge, StockBadge } from '../../components/Badge';
 import { PermissionGuard } from '../../components/PermissionGuard';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { ExportButtons } from '../../components/ExportButtons';
@@ -125,16 +125,20 @@ export function ArticulosListPage() {
     {
       key: 'sku',
       header: 'SKU',
+      className: 'max-w-[90px]',
       render: (item: ArticuloConRelaciones) => (
-        <span className="font-mono text-sm text-gray-600">{item.sku || '-'}</span>
+        <span className="font-mono text-sm text-gray-600 truncate block" title={item.sku || undefined}>
+          {item.sku || '-'}
+        </span>
       ),
     },
     {
       key: 'nombre',
       header: 'Nombre',
       sortable: true,
+      className: 'max-w-[240px]',
       render: (item: ArticuloConRelaciones) => (
-        <p className="font-medium">{item.nombre}</p>
+        <p className="font-medium truncate" title={item.nombre}>{item.nombre}</p>
       ),
     },
     {
@@ -146,7 +150,7 @@ export function ArticulosListPage() {
     },
     {
       key: 'stock',
-      header: 'Stock',
+      header: 'Stock actual',
       render: (item: ArticuloConRelaciones) => (
         <StockBadge stock={item.stock} stockMinimo={item.stockMinimo} />
       ),
@@ -157,11 +161,6 @@ export function ArticulosListPage() {
       render: (item: ArticuloConRelaciones) => (
         <span className="text-gray-600">{item.presentacion || '-'}</span>
       ),
-    },
-    {
-      key: 'activo',
-      header: 'Estado',
-      render: (item: ArticuloConRelaciones) => <StatusBadge activo={item.activo} />,
     },
     {
       key: 'acciones',
