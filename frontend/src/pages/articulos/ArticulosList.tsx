@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, Eye, Edit, Copy, Trash2, X, Image as ImageIcon } from 'lucide-react';
 import { articulosService } from '../../services/articulos.service';
 import { rubrosService } from '../../services/rubros.service';
+import { proveedoresService } from '../../services/proveedores.service';
 import { DataTable } from '../../components/DataTable';
 import { SearchInput } from '../../components/SearchInput';
 import { Badge, StockBadge, StatusBadge } from '../../components/Badge';
@@ -13,12 +14,13 @@ import { usePagination } from '../../hooks/usePagination';
 import { useDebounce } from '../../hooks/useDebounce';
 import { getErrorMessage } from '../../services/api';
 import toast from 'react-hot-toast';
-import type { ArticuloConRelaciones, Rubro, ArticuloFiltros } from '@hofra/shared';
+import type { ArticuloConRelaciones, Rubro, Proveedor, ArticuloFiltros } from '@hofra/shared';
 
 export function ArticulosListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [articulos, setArticulos] = useState<ArticuloConRelaciones[]>([]);
   const [rubros, setRubros] = useState<Rubro[]>([]);
+  const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -28,6 +30,7 @@ export function ArticulosListPage() {
   const { page, limit, setPage, setLimit } = usePagination();
   const [busqueda, setBusqueda] = useState(searchParams.get('busqueda') || '');
   const [rubroId, setRubroId] = useState(searchParams.get('rubroId') || '');
+  const [proveedorId, setProveedorId] = useState(searchParams.get('proveedorId') || '');
   const [stockBajo, setStockBajo] = useState(searchParams.get('stockBajo') === 'true');
   const [estadoFiltro, setEstadoFiltro] = useState<string>(searchParams.get('activo') || '');
   const [sortBy, setSortBy] = useState<string>('nombre');
@@ -37,26 +40,27 @@ export function ArticulosListPage() {
 
   useEffect(() => {
     rubrosService.getActive().then(setRubros);
+    proveedoresService.getActive().then(setProveedores);
   }, []);
 
   useEffect(() => {
     loadArticulos();
-  }, [page, limit, debouncedBusqueda, rubroId, stockBajo, estadoFiltro, sortBy, sortOrder]);
+  }, [page, limit, debouncedBusqueda, rubroId, proveedorId, stockBajo, estadoFiltro, sortBy, sortOrder]);
+
+  const buildFiltros = (): ArticuloFiltros & { sortBy?: string; sortOrder?: 'asc' | 'desc' } => ({
+    busqueda: debouncedBusqueda || undefined,
+    rubroId: rubroId || undefined,
+    proveedorId: proveedorId || undefined,
+    stockBajo: stockBajo || undefined,
+    activo: estadoFiltro === '' ? undefined : estadoFiltro === 'true',
+    sortBy,
+    sortOrder,
+  });
 
   const loadArticulos = async () => {
     setIsLoading(true);
     try {
-      const filtros: ArticuloFiltros & { page: number; limit: number; sortBy?: string; sortOrder?: 'asc' | 'desc' } = {
-        page,
-        limit,
-        busqueda: debouncedBusqueda || undefined,
-        rubroId: rubroId || undefined,
-        stockBajo: stockBajo || undefined,
-        activo: estadoFiltro === '' ? undefined : estadoFiltro === 'true',
-        sortBy,
-        sortOrder,
-      };
-      const result = await articulosService.getAll(filtros);
+      const result = await articulosService.getAll({ ...buildFiltros(), page, limit });
       setArticulos(result.data);
       setTotal(result.pagination.total);
     } catch (error) {
@@ -212,10 +216,15 @@ export function ArticulosListPage() {
               { key: 'codigo', header: 'Código' },
               { key: 'nombre', header: 'Nombre' },
               { key: 'rubro', header: 'Rubro', format: (v: unknown) => (v as { nombre: string })?.nombre || '' },
+              { key: 'proveedor', header: 'Proveedor', format: (v: unknown) => (v as { razonSocial: string } | null)?.razonSocial || '' },
               { key: 'stock', header: 'Stock' },
               { key: 'stockMinimo', header: 'Stock Mínimo' },
               { key: 'presentacion', header: 'Presentación' },
             ]}
+            getExportData={async () => {
+              const result = await articulosService.getAll({ ...buildFiltros(), page: 1, limit: 1000 });
+              return result.data;
+            }}
           />
           <PermissionGuard modulo="articulos" accion="crear">
             <Link to="/articulos/nuevo" className="btn-primary">
@@ -243,6 +252,18 @@ export function ArticulosListPage() {
             {rubros.map((rubro) => (
               <option key={rubro.id} value={rubro.id}>
                 {rubro.nombre}
+              </option>
+            ))}
+          </select>
+          <select
+            value={proveedorId}
+            onChange={(e) => setProveedorId(e.target.value)}
+            className="input"
+          >
+            <option value="">Todos los proveedores</option>
+            {proveedores.map((proveedor) => (
+              <option key={proveedor.id} value={proveedor.id}>
+                {proveedor.nombreFantasia || proveedor.razonSocial}
               </option>
             ))}
           </select>
