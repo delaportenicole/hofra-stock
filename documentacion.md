@@ -30,6 +30,7 @@ hofra-stock/
 - Refresh tokens con JWT
 - Middleware de autenticación
 - Sistema de permisos por roles
+- **Duración de sesión**: access token de **2 horas** (`JWT_ACCESS_EXPIRY`, antes 15 minutos), refresh token de 7 días (`JWT_REFRESH_EXPIRY`). El frontend renueva el access token automáticamente y en segundo plano cuando vence (interceptor de axios en `frontend/src/services/api.ts`), así que en la práctica la sesión dura hasta que vence el refresh token, sin pedir reingresar credenciales.
 
 ### 2. Artículos
 - **Campos**: código (autogenerado), nombre, rubro, proveedor, stock, stockMinimo, presentación (texto libre), marca, SKU, ETM, stockActual, ubicación, url, imagen, costoInicialEstimado, valorDolarCostoInicial, costoInicialEstimadoUsd, activo
@@ -155,6 +156,7 @@ Una entrega puede contener múltiples artículos, similar a un ticket de superme
   - Campos modificados con valores anteriores y nuevos
   - Registro de cambios de estado y afectacion de stock
 - Registro en auditoria
+- **Último Costo Cargado** (14 de noviembre de 2026): al elegir un artículo en el formulario de nueva reposición, el panel lateral muestra el costo de la última reposición registrada para ese artículo (ARS y USD), o el Costo Inicial Estimado si nunca tuvo una. Sirve como referencia para comparar contra el costo nuevo que se está cargando y detectar fluctuaciones de precio
 
 ### 8. Dashboard
 
@@ -359,7 +361,7 @@ Módulo para importar artículos masivamente desde archivos Excel.
 | E - ETM | etm | |
 | F - Presentacion | presentacion | |
 | G - Stock Actual | stockActual | |
-| H - Stock Mínimo | stockMinimo | Si es 0, el artículo se crea como **inactivo** |
+| H - Stock Mínimo | stockMinimo | Solo define el umbral de alerta de stock bajo, no afecta si el artículo queda activo |
 | I - Costo Inicial | costoInicialEstimado | En pesos argentinos |
 | J - Costo USD | costoInicialEstimadoUsd | Costo inicial en dólares |
 | K - Proveedor | proveedor | Se crea automáticamente si no existe |
@@ -389,7 +391,7 @@ Módulo para importar artículos masivamente desde archivos Excel.
 - **Nombre vacío**: El artículo se omite
 - **Rubro vacío**: El artículo se omite
 - **Stock negativo**: Se convierte a 0
-- **Stock Mínimo = 0**: El artículo se crea como **inactivo** (`activo = false`)
+- **Stock Mínimo = 0**: El artículo se crea **activo**, igual que cualquier otro (regla eliminada el 14 de noviembre de 2026, ver Changelog — antes lo marcaba incorrectamente como inactivo y eso lo excluía de la Valuación Total del dashboard)
 - **Código no proporcionado**: Se genera automáticamente basado en el prefijo del rubro
 - **Código proporcionado**: Se usa el código del Excel tal cual
 
@@ -924,8 +926,8 @@ stockSinCosto = stockTotal - Σ(capa.stockDisponible)
 - Costo Unitario (USD) - auto-calculado
 
 **Detalle de Artículo**: Sección "Valuación del Stock" con:
-- Valor total (ARS y USD)
-- Costo promedio unitario
+- **Valor Total del Stock (ARS)** y, en un cuadro propio debajo, **Valor Total del Stock (USD)** — hasta el 14 de noviembre de 2026 este último solo sumaba las capas de reposiciones; el stock sin reposición (`costoInicialEstimadoUsd × stockSinCosto`) quedaba afuera del total en USD aunque sí se sumaba en ARS. Se corrigió en `articulo.service.ts` → `getValuacion()` para que sume ambos, igual que ya hacía el total en ARS
+- **Costo Promedio Unitario (ARS)** — y el monto de **Costo Inicial Estimado** en la ficha del artículo, con el prefijo "ARS $" explícito para no confundirlo con el valor en USD que se muestra al lado
 - Desglose de stock con/sin costo
 - Advertencia si hay stock sin costo asignado
 - Detalle de cada capa (reposición con stock disponible)
@@ -980,6 +982,9 @@ Todas las grillas del sistema ahora se ordenan **alfabéticamente de A-Z** en el
 | Proveedores | `razon_social` | A-Z |
 | Rubros | `nombre` | A-Z |
 | Marcas | `nombre` | A-Z |
+
+#### Ordenamiento clickeable en la grilla de Artículos (14 de noviembre de 2026)
+Los headers "Código" y "Nombre" de `/articulos` son clickeables (ordenamiento controlado por el padre, no el sort local del `DataTable`, porque la grilla pagina server-side). Para **Código** se usa **orden natural** en vez de alfabético puro: los códigos no tienen ceros a la izquierda (ej. `AB1`, `AB2`, ..., `AB10`, `AB11`), así que un `ORDER BY` de texto normal pondría `AB10` antes que `AB2`. El backend (`articulo.repository.ts` → `buildOrderByClause()`) separa el prefijo de letras del número final y compara el número como entero. De paso, `sortBy` pasó a validarse contra una whitelist de columnas (antes se interpolaba sin validar en el `ORDER BY`, riesgo de inyección SQL).
 
 #### Implementación Técnica
 - **Backend**: Los repositorios tienen un `defaultSortBy` configurado
@@ -1403,6 +1408,11 @@ npm run build --workspace=backend  # Solo backend
 # Base de datos
 npm run db:migrate       # Ejecuta migraciones
 npm run db:seed          # Datos iniciales
+npm run reset-data       # (dentro de backend/) Borra datos operativos (articulos, marcas, rubros,
+                          # proveedores, clientes, reposiciones, entregas, sugerencias, cotizaciones)
+                          # para reimportar desde cero. Mantiene usuarios/roles/permisos.
+                          # Pide confirmación escribiendo "BORRAR" antes de ejecutar.
+                          # Ver backend/src/scripts/reset-data.ts y database/scripts/clean_database_keep_users.sql
 ```
 
 ---
@@ -2318,3 +2328,64 @@ Se evaluó armar el Excel "en la web" (una previsualización/editor propio) como
 - `shared/src/types/index.ts` - Campo `numeroCotizacion` en `SolicitudCotizacion`
 - `backend/src/repositories/solicitudCotizacion.repository.ts` - `numero_cotizacion` en el mapeo de `mapToConRelaciones()`
 - `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx` - Tarjeta "Cotización Número" en vez de "Referencia del Cliente"; botones de Google Sheets e Imprimir detrás de flags `MOSTRAR_*`
+
+### 9-14 de noviembre de 2026 — Reset de datos, fixes de ordenamiento/valuación, buscador de Entregas/Reposiciones, sesión de 2hs
+
+Tanda de cambios a partir de una ronda de pruebas de Nicole con un import real de ~666 artículos (tras resetear la base para repetir el import varias veces).
+
+#### Script de reset de datos para reimportar
+Antes no existía forma de vaciar los datos operativos sin tocar usuarios/roles. Se armó `backend/src/scripts/reset-data.ts`, que corre `database/scripts/clean_database_keep_users.sql` contra `DATABASE_URL` (pidiendo confirmación escribiendo "BORRAR"). El SQL ya existía pero estaba incompleto: le faltaban `solicitud_cotizacion_items`/`solicitudes_cotizacion` (migración 019, agregada después) y no reseteaba el correlativo `solicitudes_cotizacion_numero_seq`. Se completó y se agregó el comando `reset-data` a `backend/package.json`.
+
+##### Archivos Nuevos
+- `backend/src/scripts/reset-data.ts`
+
+##### Archivos Modificados
+- `database/scripts/clean_database_keep_users.sql` - Agrega truncate de solicitudes de cotización y reinicio de la secuencia de número de cotización
+- `backend/package.json` - Script `reset-data`
+
+#### Fix: orden alfabético por Código salía mal (AB1, AB10, AB100... antes que AB2)
+Los códigos de artículo no tienen ceros a la izquierda (`${prefijo}${siguienteNum}` en `articuloService.generateCodigo()`), así que un `ORDER BY codigo` de texto plano compara caracter por caracter y pone "AB10" antes que "AB2". Se agregó ordenamiento clickeable en los headers "Código" y "Nombre" de `/articulos` (antes no eran sorteables), con **orden natural** para Código: se separa el prefijo de letras del número final y se compara el número como `bigint`. De paso, `sortBy` pasó a validarse contra una whitelist de columnas en vez de interpolarse directo en el SQL (riesgo de inyección preexistente). `DataTable.tsx` ganó soporte de sorting "controlado" (`sortConfig`/`onSortChange`) para que el padre delegue el orden al backend en vistas paginadas server-side, en vez de ordenar solo la página cargada en memoria.
+
+##### Archivos Modificados
+- `backend/src/repositories/articulo.repository.ts` - `buildOrderByClause()` con orden natural para `codigo` y whitelist de columnas
+- `frontend/src/components/DataTable.tsx` - Props `sortConfig`/`onSortChange` para sorting controlado
+- `frontend/src/pages/articulos/ArticulosList.tsx` - `sortable: true` en columnas Código/Nombre, estado de sort conectado al fetch
+
+#### Fix: Valuación Total en USD no sumaba el stock sin reposición
+Nicole detectó que la suma de su columna de costo USD en el Excel importado (~$138.113) no coincidía con la Valuación Total en USD del dashboard (~$111.975). Causa real, encontrada comparando con la base: 224 artículos habían quedado marcados `activo = false` porque el import los creaba inactivos cuando `Stock Mínimo = 0` (regla agregada el 16 de junio de 2026, ver changelog de esa fecha) — y el cálculo de Valuación Total filtra por `activo = true`, así que esos artículos (con stock y costo reales) quedaban afuera de la cuenta por completo.
+
+**Se eliminó la regla**: `Stock Mínimo = 0` ya no marca el artículo como inactivo en el import (`importar.service.ts`). Los 224 artículos ya importados se reactivaron con un `UPDATE` puntual sobre la base de producción (no requirió reimportar).
+
+Aparte, se encontró y corrigió un segundo bug relacionado: en la valuación **por artículo individual** (`GET /articulos/:id/valuacion`, usada en el detalle del artículo), el total en USD solo sumaba las capas de reposiciones y nunca el stock sin reposición (`costoInicialEstimadoUsd × stockSinCosto`), aunque sí se sumaba correctamente en ARS. La Valuación Total del *dashboard* ya sumaba ambos correctamente desde antes; solo la del detalle de artículo tenía el bug.
+
+Una vez resuelto lo anterior, quedó una diferencia residual de ~$100 entre la suma del Excel y el sistema (~$138.113 vs ~$138.213) — **no es un bug**: es redondeo acumulado porque `costo_inicial_estimado_usd` es `NUMERIC(12,2)` (2 decimales), mientras que la columna del Excel de Nicole calculaba el costo USD con una fórmula de precisión completa (`=Costo_ARS/1545`) antes de multiplicar por stock. Confirmado reproduciendo ambos cálculos contra el archivo real (`Inventario Hofra - Normalizado 4.xlsx`). Se decidió dejarlo así (diferencia de ~0,07% sobre el total, inmaterial).
+
+##### Archivos Modificados
+- `backend/src/services/importar.service.ts` - Se eliminó el bloque que marcaba `activo = false` cuando `stockMinimo === 0`
+- `backend/src/services/articulo.service.ts` - `getValuacion()` ahora suma `stockSinCosto × costoInicialEstimadoUsd` al `valorTotalUSD`, igual que ya hacía con ARS
+
+#### Aclaración de moneda (ARS) en el detalle de artículo
+"Valor Total del Stock" y "Costo Promedio Unitario" no dejaban claro que eran en pesos, ahora que hay un cuadro equivalente en USD al lado. Se renombraron a "Valor Total del Stock (ARS)" y "Costo Promedio Unitario (ARS)", con el prefijo "ARS $" explícito en los montos (también en "Costo Inicial Estimado"). Se agregó un cuadro propio para "Valor Total del Stock (USD)" (antes era solo una líneita chica debajo del monto en pesos).
+
+##### Archivos Modificados
+- `frontend/src/pages/articulos/ArticuloDetail.tsx`
+
+#### Fix: el buscador de artículos en Entregas/Reposiciones no encontraba artículos más allá de los primeros 500
+Reportado con un caso concreto: tipear "LL20" no sugería nada pese a que el artículo existía y tenía stock. El combobox de artículos (`ArticuloCombobox.tsx`) busca en memoria sobre una lista ya cargada, pero esa carga inicial (`EntregaForm.tsx`, `EntregaEdit.tsx`, `ReposicionForm.tsx`) estaba fijada a `limit: 500`. Con más de 500 artículos activos (pasó a haber 666 tras reactivar los 224 del fix anterior), los que quedan fuera de ese límite nunca llegan a cargarse, y ninguna búsqueda los encuentra, sin importar qué se tipee. Se subió el límite a `1000` (el máximo que permite `paginationSchema` en el backend) en los tres formularios. Sigue siendo "cargar todo y filtrar en el navegador", no una búsqueda real en el servidor — si el catálogo activo supera los 1000 artículos, haría falta convertirlo a búsqueda server-side.
+
+##### Archivos Modificados
+- `frontend/src/pages/entregas/EntregaForm.tsx`, `EntregaEdit.tsx`
+- `frontend/src/pages/reposiciones/ReposicionForm.tsx`
+
+#### Nueva Reposición: panel de "Último costo cargado" (ARS/USD)
+A pedido de Nicole, para poder ver la fluctuación de precio mientras se carga una reposición nueva. Al elegir un artículo, se busca su última reposición (`GET /articulos/:id/historial`, ya existía para el historial del detalle de artículo) y se muestra su costo en ARS y USD en el panel lateral "Artículo Seleccionado". Si el artículo nunca tuvo una reposición, usa como referencia el Costo Inicial Estimado cargado al crear el artículo.
+
+##### Archivos Modificados
+- `frontend/src/pages/reposiciones/ReposicionForm.tsx`
+
+#### Sesión activa extendida de 15 minutos a 2 horas
+`JWT_ACCESS_EXPIRY` estaba hardcodeado en `'15m'`. El refresh token (7 días) no cambió, y el frontend ya renovaba el access token en segundo plano cuando vencía (`frontend/src/services/api.ts`), así que esto no cambia cada cuánto hay que volver a loguearse — reduce la frecuencia del refresh automático de cada 15 minutos a cada 2 horas.
+
+##### Archivos Modificados
+- `backend/src/config/env.ts` - `JWT_ACCESS_EXPIRY: '2h'`
+- `shared/src/constants/index.ts` - `JWT_CONFIG.ACCESS_TOKEN_EXPIRY` (constante duplicada, no se usaba en el código, se actualizó igual para no quedar desactualizada)
