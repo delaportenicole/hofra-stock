@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
-import { ArrowLeft, Save, Package, DollarSign, Calculator } from 'lucide-react';
+import { ArrowLeft, Save, Package, DollarSign, Calculator, History, Truck, ExternalLink } from 'lucide-react';
 import { stockService } from '../../services/stock.service';
 import { articulosService } from '../../services/articulos.service';
 import { configuracionDolarService } from '../../services/configuracionDolar.service';
@@ -70,6 +70,14 @@ export function ReposicionFormPage() {
   const costoAnteriorArs = ultimaReposicion?.costoReposicion ?? selectedArticulo?.costoInicialEstimado ?? null;
   const costoAnteriorUsd = ultimaReposicion?.costoReposicionDolares ?? selectedArticulo?.costoInicialEstimadoUsd ?? null;
   const costoAnteriorOrigen = ultimaReposicion ? 'última reposición' : 'costo inicial estimado';
+
+  // Proveedor y link de compra de esa misma última reposición (o del proveedor por
+  // defecto del artículo si nunca tuvo una reposición, igual que el costo de arriba)
+  const proveedorAnteriorEntidad = ultimaReposicion?.proveedor ?? selectedArticulo?.proveedor ?? null;
+  const proveedorAnterior = proveedorAnteriorEntidad
+    ? proveedorAnteriorEntidad.nombreFantasia || proveedorAnteriorEntidad.razonSocial
+    : null;
+  const linkCompraAnterior = ultimaReposicion?.linkCompra ?? null;
 
   useEffect(() => {
     loadData();
@@ -426,26 +434,50 @@ export function ReposicionFormPage() {
             </dl>
 
             {costoAnteriorArs != null && (
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <p className="text-sm text-gray-500 mb-2">
-                  Último costo cargado <span className="text-xs">({costoAnteriorOrigen})</span>
-                </p>
+              <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 text-amber-700 font-medium mb-3">
+                  <History className="w-5 h-5" />
+                  <span>Último Costo Cargado</span>
+                  <span className="text-xs font-normal text-amber-600">({costoAnteriorOrigen})</span>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <p className="text-xs text-gray-500">ARS</p>
-                    <p className="font-semibold text-gray-900">
+                    <p className="text-xs text-amber-700">ARS</p>
+                    <p className="text-xl font-bold text-amber-900">
                       ${Number(costoAnteriorArs).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">USD</p>
-                    <p className="font-semibold text-gray-900">
+                    <p className="text-xs text-amber-700">USD</p>
+                    <p className="text-xl font-bold text-amber-900">
                       {costoAnteriorUsd != null
                         ? `USD ${Number(costoAnteriorUsd).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                         : '-'}
                     </p>
                   </div>
                 </div>
+
+                {(proveedorAnterior || linkCompraAnterior) && (
+                  <div className="mt-3 pt-3 border-t border-amber-200 space-y-2">
+                    {proveedorAnterior && (
+                      <div className="flex items-center gap-2 text-sm text-amber-800">
+                        <Truck className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                        <span>{proveedorAnterior}</span>
+                      </div>
+                    )}
+                    {linkCompraAnterior && (
+                      <a
+                        href={linkCompraAnterior}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 hover:underline"
+                      >
+                        <ExternalLink className="w-4 h-4 flex-shrink-0" />
+                        <span className="truncate">Ver link de compra</span>
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
