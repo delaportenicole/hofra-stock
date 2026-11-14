@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Edit, ArrowUpFromLine, ArrowDownToLine, Package, AlertTriangle, ExternalLink, DollarSign } from 'lucide-react';
+import { ArrowLeft, Edit, Copy, ArrowUpFromLine, ArrowDownToLine, Package, AlertTriangle, ExternalLink, DollarSign } from 'lucide-react';
 import { format, isPast, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { articulosService, type ArticuloHistorial } from '../../services/articulos.service';
@@ -108,12 +108,20 @@ export function ArticuloDetailPage() {
           </button>
           <h1 className="text-2xl font-bold text-gray-900">{articulo.nombre}</h1>
         </div>
-        <PermissionGuard modulo="articulos" accion="actualizar">
-          <Link to={`/articulos/${id}/editar`} className="btn-primary">
-            <Edit className="w-5 h-5 mr-2" />
-            Editar
-          </Link>
-        </PermissionGuard>
+        <div className="flex items-center gap-3">
+          <PermissionGuard modulo="articulos" accion="crear">
+            <Link to={`/articulos/nuevo?duplicarDe=${id}`} className="btn-secondary">
+              <Copy className="w-5 h-5 mr-2" />
+              Duplicar artículo
+            </Link>
+          </PermissionGuard>
+          <PermissionGuard modulo="articulos" accion="actualizar">
+            <Link to={`/articulos/${id}/editar`} className="btn-primary">
+              <Edit className="w-5 h-5 mr-2" />
+              Editar
+            </Link>
+          </PermissionGuard>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

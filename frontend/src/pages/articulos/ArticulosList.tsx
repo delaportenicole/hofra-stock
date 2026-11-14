@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Plus, Eye, Edit, Trash2, X, Image as ImageIcon } from 'lucide-react';
+import { Plus, Eye, Edit, Copy, Trash2, X, Image as ImageIcon } from 'lucide-react';
 import { articulosService } from '../../services/articulos.service';
 import { rubrosService } from '../../services/rubros.service';
 import { DataTable } from '../../components/DataTable';
@@ -176,6 +176,15 @@ export function ArticulosListPage() {
               className="p-1 text-gray-400 hover:text-primary-600"
             >
               <Edit className="w-5 h-5" />
+            </Link>
+          </PermissionGuard>
+          <PermissionGuard modulo="articulos" accion="crear">
+            <Link
+              to={`/articulos/nuevo?duplicarDe=${item.id}`}
+              className="p-1 text-gray-400 hover:text-primary-600"
+              title="Duplicar artículo"
+            >
+              <Copy className="w-5 h-5" />
             </Link>
           </PermissionGuard>
           <PermissionGuard modulo="articulos" accion="eliminar">

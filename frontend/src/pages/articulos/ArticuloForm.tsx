@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useForm, useWatch, Controller } from 'react-hook-form';
 import { ArrowLeft, Save, Loader2, DollarSign, Plus } from 'lucide-react';
 import { articulosService } from '../../services/articulos.service';
@@ -19,9 +19,11 @@ type FormData = CreateArticuloDto & { activo?: boolean; valorDolarCostoInicial?:
 export function ArticuloFormPage() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const duplicarDeId = searchParams.get('duplicarDe');
   const isEditing = !!id;
 
-  const [isLoading, setIsLoading] = useState(isEditing);
+  const [isLoading, setIsLoading] = useState(isEditing || !!duplicarDeId);
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingCodigo, setIsGeneratingCodigo] = useState(false);
   const [rubros, setRubros] = useState<Rubro[]>([]);
@@ -103,14 +105,16 @@ export function ArticuloFormPage() {
       setProveedores(proveedoresData);
       setMarcas(marcasData);
 
-      // Then load article if editing
+      // Then load article if editing or duplicating
       if (isEditing) {
         await loadArticulo();
+      } else if (duplicarDeId) {
+        await loadArticuloParaDuplicar(duplicarDeId);
       }
     };
 
     loadData();
-  }, [id]);
+  }, [id, duplicarDeId]);
 
   const loadArticulo = async () => {
     try {
@@ -137,6 +141,35 @@ export function ArticuloFormPage() {
     } catch (error) {
       toast.error(getErrorMessage(error));
       navigate('/articulos');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadArticuloParaDuplicar = async (origenId: string) => {
+    try {
+      const articulo = await articulosService.getById(origenId);
+      // No se copian: código (se autogenera al elegir el rubro, como en cualquier
+      // artículo nuevo), imagen (evita que borrar la imagen del duplicado borre
+      // también el archivo del original en Cloudinary) ni stock (siempre arranca en 0).
+      reset({
+        nombre: `${articulo.nombre} (copia)`,
+        rubroId: articulo.rubroId,
+        proveedorId: articulo.proveedorId || undefined,
+        stockMinimo: articulo.stockMinimo,
+        presentacion: articulo.presentacion || undefined,
+        marca: articulo.marca || undefined,
+        sku: articulo.sku || undefined,
+        etm: articulo.etm || undefined,
+        ubicacion: articulo.ubicacion || undefined,
+        url: articulo.url || undefined,
+        costoInicialEstimado: articulo.costoInicialEstimado || undefined,
+        valorDolarCostoInicial: articulo.valorDolarCostoInicial || undefined,
+      });
+      setCostoUsdGuardado(articulo.costoInicialEstimadoUsd || null);
+      toast.success(`Datos precargados desde "${articulo.codigo} - ${articulo.nombre}"`);
+    } catch (error) {
+      toast.error(getErrorMessage(error));
     } finally {
       setIsLoading(false);
     }
@@ -241,7 +274,7 @@ export function ArticuloFormPage() {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-2xl font-bold text-gray-900">
-          {isEditing ? 'Editar Artículo' : 'Nuevo Artículo'}
+          {isEditing ? 'Editar Artículo' : duplicarDeId ? 'Duplicar Artículo' : 'Nuevo Artículo'}
         </h1>
       </div>
 
