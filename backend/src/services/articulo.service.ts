@@ -2,6 +2,7 @@ import { articuloRepository } from '../repositories/articulo.repository.js';
 import { reposicionRepository } from '../repositories/reposicion.repository.js';
 import { entregaRepository } from '../repositories/entrega.repository.js';
 import { rubroRepository } from '../repositories/rubro.repository.js';
+import { configuracionDolarRepository } from '../repositories/configuracionDolar.repository.js';
 import { uploadImage, deleteImage } from '../config/cloudinary.js';
 import { NotFoundError, ConflictError } from '../utils/errors.js';
 import type {
@@ -69,7 +70,7 @@ export class ArticuloService {
       throw new ConflictError('Ya existe un artículo con ese código');
     }
 
-    return articuloRepository.create({
+    const articulo = await articuloRepository.create({
       codigo: data.codigo,
       nombre: data.nombre,
       rubroId: data.rubroId,
@@ -86,6 +87,12 @@ export class ArticuloService {
       valorDolarCostoInicial: data.valorDolarCostoInicial,
       createdBy,
     });
+
+    if (data.valorDolarCostoInicial) {
+      await configuracionDolarRepository.setVigente(data.valorDolarCostoInicial, createdBy);
+    }
+
+    return articulo;
   }
 
   async update(id: string, data: UpdateArticuloDto, updatedBy?: string): Promise<Articulo> {
@@ -105,6 +112,10 @@ export class ArticuloService {
 
     if (!updated) {
       throw new NotFoundError('Artículo');
+    }
+
+    if (data.valorDolarCostoInicial) {
+      await configuracionDolarRepository.setVigente(data.valorDolarCostoInicial, updatedBy);
     }
 
     return updated;

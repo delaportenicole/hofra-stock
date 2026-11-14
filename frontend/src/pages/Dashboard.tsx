@@ -71,7 +71,7 @@ export function DashboardPage() {
       </div>
 
       {/* Movement Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard
           title="Entregas del Mes"
           value={stats.entregasMes}
@@ -84,6 +84,7 @@ export function DashboardPage() {
           icon={ArrowDownToLine}
           color="green"
         />
+        <UltimoDolarCard valor={stats.valorDolarOficialVigente} />
       </div>
 
       {/* Charts */}
@@ -286,6 +287,36 @@ function ValuacionCard({ title, valueARS, valueUSD }: ValuacionCardProps) {
           )}
         </div>
         <div className="p-3 rounded-lg bg-green-50 text-green-600">
+          <DollarSign className="w-6 h-6" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface UltimoDolarCardProps {
+  valor: number | null;
+}
+
+function UltimoDolarCard({ valor }: UltimoDolarCardProps) {
+  const formatted =
+    valor != null
+      ? new Intl.NumberFormat('es-AR', {
+          style: 'currency',
+          currency: 'ARS',
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(valor)
+      : 'Sin definir';
+
+  return (
+    <div className="card p-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-gray-500">Último Valor Dólar Oficial</p>
+          <p className="text-3xl font-bold text-gray-900 mt-1">{formatted}</p>
+        </div>
+        <div className="p-3 rounded-lg bg-blue-50 text-blue-600">
           <DollarSign className="w-6 h-6" />
         </div>
       </div>

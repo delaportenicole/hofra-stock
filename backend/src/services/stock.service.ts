@@ -2,6 +2,7 @@ import { transaction } from '../config/database.js';
 import { articuloRepository } from '../repositories/articulo.repository.js';
 import { reposicionRepository } from '../repositories/reposicion.repository.js';
 import { entregaRepository } from '../repositories/entrega.repository.js';
+import { configuracionDolarRepository } from '../repositories/configuracionDolar.repository.js';
 import { NotFoundError, InsufficientStockError } from '../utils/errors.js';
 import type {
   Reposicion,
@@ -66,6 +67,10 @@ export class StockService {
 
     // Stock is NOT updated - it will be updated when the reposicion is confirmed
 
+    if (data.valorDolarOficial) {
+      await configuracionDolarRepository.setVigente(data.valorDolarOficial, createdBy);
+    }
+
     return reposicion;
   }
 
@@ -80,7 +85,13 @@ export class StockService {
       throw new Error('Solo se pueden editar reposiciones en curso');
     }
 
-    return reposicionRepository.update(id, data, updatedBy);
+    const updated = await reposicionRepository.update(id, data, updatedBy);
+
+    if (data.valorDolarOficial) {
+      await configuracionDolarRepository.setVigente(data.valorDolarOficial, updatedBy);
+    }
+
+    return updated;
   }
 
   async cancelReposicion(id: string, updatedBy?: string): Promise<Reposicion> {

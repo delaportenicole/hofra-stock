@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useForm, useWatch, Controller } from 'react-hook-form';
 import { ArrowLeft, Save, Loader2, DollarSign, Plus } from 'lucide-react';
 import { articulosService } from '../../services/articulos.service';
+import { configuracionDolarService } from '../../services/configuracionDolar.service';
 import { rubrosService } from '../../services/rubros.service';
 import { proveedoresService } from '../../services/proveedores.service';
 import { marcasService } from '../../services/marcas.service';
@@ -110,6 +111,16 @@ export function ArticuloFormPage() {
         await loadArticulo();
       } else if (duplicarDeId) {
         await loadArticuloParaDuplicar(duplicarDeId);
+      } else {
+        // Artículo nuevo "de cero": precargar el último valor del dólar oficial usado
+        try {
+          const { valorDolarOficial } = await configuracionDolarService.getVigente();
+          if (valorDolarOficial != null) {
+            setValue('valorDolarCostoInicial', valorDolarOficial);
+          }
+        } catch (error) {
+          console.error('Error loading valor dolar vigente:', error);
+        }
       }
     };
 

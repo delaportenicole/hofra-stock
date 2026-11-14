@@ -4,6 +4,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { ArrowLeft, Save, Package, DollarSign, Calculator } from 'lucide-react';
 import { stockService } from '../../services/stock.service';
 import { articulosService } from '../../services/articulos.service';
+import { configuracionDolarService } from '../../services/configuracionDolar.service';
 import { proveedoresService } from '../../services/proveedores.service';
 import { FormField, Input, Select, Textarea } from '../../components/FormField';
 import { CurrencyInput } from '../../components/CurrencyInput';
@@ -73,6 +74,18 @@ export function ReposicionFormPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    // Precargar el último valor del dólar oficial usado, independiente del artículo elegido
+    configuracionDolarService
+      .getVigente()
+      .then(({ valorDolarOficial }) => {
+        if (valorDolarOficial != null) {
+          setValue('valorDolarOficial', valorDolarOficial);
+        }
+      })
+      .catch((error) => console.error('Error loading valor dolar vigente:', error));
+  }, [setValue]);
 
   useEffect(() => {
     if (watchArticuloId) {

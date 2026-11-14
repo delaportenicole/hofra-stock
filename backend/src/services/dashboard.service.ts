@@ -1,5 +1,6 @@
 import { query, queryOne } from '../config/database.js';
 import { articuloRepository } from '../repositories/articulo.repository.js';
+import { configuracionDolarRepository } from '../repositories/configuracionDolar.repository.js';
 import { stockService } from './stock.service.js';
 import type { DashboardStats, MovimientoReciente, ArticuloStockBajo } from '@hofra/shared';
 
@@ -11,6 +12,7 @@ export class DashboardService {
       articulosStockBajo,
       stockStats,
       valuacion,
+      configuracionDolar,
     ] = await Promise.all([
       queryOne<{ count: string }>(
         `SELECT COUNT(*) as count FROM articulos WHERE deleted_at IS NULL AND activo = true`
@@ -24,6 +26,7 @@ export class DashboardService {
       ),
       stockService.getStats(),
       this.getValuacionTotal(),
+      configuracionDolarRepository.getVigente(),
     ]);
 
     return {
@@ -34,6 +37,7 @@ export class DashboardService {
       reposicionesMes: stockStats.reposicionesMes,
       valuacionTotalARS: valuacion.totalARS,
       valuacionTotalUSD: valuacion.totalUSD,
+      valorDolarOficialVigente: configuracionDolar?.valorDolarOficial ?? null,
     };
   }
 

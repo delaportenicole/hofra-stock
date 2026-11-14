@@ -368,6 +368,7 @@ export interface DashboardStats {
   reposicionesMes: number;
   valuacionTotalARS: number;
   valuacionTotalUSD: number | null;
+  valorDolarOficialVigente: number | null;
 }
 
 export interface MovimientoReciente {
@@ -652,4 +653,15 @@ export interface UpdateSugerenciaDto {
   descripcion?: string;
   prioridad?: PrioridadSugerencia;
   estado?: EstadoSugerencia;
+}
+
+// ============================================
+// CONFIGURACIÓN DEL DÓLAR OFICIAL
+// ============================================
+
+export interface ConfiguracionDolar {
+  id: string;
+  valorDolarOficial: number;
+  updatedAt: Date;
+  updatedBy: string | null;
 }
