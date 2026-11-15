@@ -159,7 +159,7 @@ export function ArticulosListPage() {
       className: 'max-w-[100px]',
       render: (item: ArticuloConRelaciones) => (
         item.stock === 0
-          ? <span className="text-sm font-medium text-danger-600">0</span>
+          ? <Badge variant="danger">0</Badge>
           : <StockBadge stock={item.stock} stockMinimo={item.stockMinimo} />
       ),
     },
