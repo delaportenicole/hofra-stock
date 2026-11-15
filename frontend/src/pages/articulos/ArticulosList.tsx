@@ -136,9 +136,9 @@ export function ArticulosListPage() {
       key: 'nombre',
       header: 'Nombre',
       sortable: true,
-      className: 'max-w-[280px]',
+      className: 'max-w-[280px] !whitespace-normal',
       render: (item: ArticuloConRelaciones) => (
-        <p className="font-medium truncate" title={item.nombre}>{item.nombre}</p>
+        <p className="font-medium">{item.nombre}</p>
       ),
     },
     {
