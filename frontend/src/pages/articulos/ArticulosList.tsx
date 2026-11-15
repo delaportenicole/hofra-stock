@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Plus, Eye, Edit, Copy, Trash2, X, Image as ImageIcon } from 'lucide-react';
+import { Plus, Copy, Trash2, X, Image as ImageIcon } from 'lucide-react';
 import { articulosService } from '../../services/articulos.service';
 import { rubrosService } from '../../services/rubros.service';
 import { proveedoresService } from '../../services/proveedores.service';
@@ -176,22 +176,9 @@ export function ArticulosListPage() {
     {
       key: 'acciones',
       header: 'Acciones',
+      className: 'w-20',
       render: (item: ArticuloConRelaciones) => (
         <div className="flex items-center gap-2">
-          <Link
-            to={`/articulos/${item.id}`}
-            className="p-1 text-gray-400 hover:text-primary-600"
-          >
-            <Eye className="w-5 h-5" />
-          </Link>
-          <PermissionGuard modulo="articulos" accion="actualizar">
-            <Link
-              to={`/articulos/${item.id}/editar`}
-              className="p-1 text-gray-400 hover:text-primary-600"
-            >
-              <Edit className="w-5 h-5" />
-            </Link>
-          </PermissionGuard>
           <PermissionGuard modulo="articulos" accion="crear">
             <Link
               to={`/articulos/nuevo?duplicarDe=${item.id}`}
