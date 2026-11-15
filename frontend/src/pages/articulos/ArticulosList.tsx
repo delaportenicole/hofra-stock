@@ -125,7 +125,7 @@ export function ArticulosListPage() {
     {
       key: 'sku',
       header: 'SKU',
-      className: 'max-w-[90px]',
+      className: 'max-w-[110px]',
       render: (item: ArticuloConRelaciones) => (
         <span className="font-mono text-sm text-gray-600 truncate block" title={item.sku || undefined}>
           {item.sku || '-'}
@@ -136,7 +136,7 @@ export function ArticulosListPage() {
       key: 'nombre',
       header: 'Nombre',
       sortable: true,
-      className: 'max-w-[240px]',
+      className: 'max-w-[280px]',
       render: (item: ArticuloConRelaciones) => (
         <p className="font-medium truncate" title={item.nombre}>{item.nombre}</p>
       ),
@@ -151,15 +151,21 @@ export function ArticulosListPage() {
     {
       key: 'stock',
       header: 'Stock actual',
+      className: 'max-w-[100px]',
       render: (item: ArticuloConRelaciones) => (
-        <StockBadge stock={item.stock} stockMinimo={item.stockMinimo} />
+        item.stock === 0
+          ? <span className="text-sm text-gray-900">0</span>
+          : <StockBadge stock={item.stock} stockMinimo={item.stockMinimo} />
       ),
     },
     {
       key: 'presentacion',
       header: 'Presentación',
+      className: 'max-w-[140px]',
       render: (item: ArticuloConRelaciones) => (
-        <span className="text-gray-600">{item.presentacion || '-'}</span>
+        <span className="text-gray-600 truncate block" title={item.presentacion || undefined}>
+          {item.presentacion || '-'}
+        </span>
       ),
     },
     {
