@@ -144,8 +144,13 @@ export function ArticulosListPage() {
     {
       key: 'rubro',
       header: 'Rubro',
+      className: 'max-w-[130px]',
       render: (item: ArticuloConRelaciones) => (
-        <Badge variant="primary">{item.rubro.nombre}</Badge>
+        <span title={item.rubro.nombre}>
+          <Badge variant="primary" className="max-w-full truncate">
+            {item.rubro.nombre}
+          </Badge>
+        </span>
       ),
     },
     {
@@ -154,7 +159,7 @@ export function ArticulosListPage() {
       className: 'max-w-[100px]',
       render: (item: ArticuloConRelaciones) => (
         item.stock === 0
-          ? <span className="text-sm text-gray-900">0</span>
+          ? <span className="text-sm font-medium text-danger-600">0</span>
           : <StockBadge stock={item.stock} stockMinimo={item.stockMinimo} />
       ),
     },
