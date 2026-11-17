@@ -8,6 +8,17 @@ export class ReposicionRepository extends BaseRepository<Reposicion> {
     super('reposiciones', 'fecha_reposicion');
   }
 
+  private mapToReposicion(row: Record<string, unknown>): Reposicion {
+    const reposicion = toCamelCase<Reposicion>(row);
+    return {
+      ...reposicion,
+      costoReposicion: reposicion.costoReposicion != null ? Number(reposicion.costoReposicion) : null,
+      valorDolarOficial: reposicion.valorDolarOficial != null ? Number(reposicion.valorDolarOficial) : null,
+      costoReposicionDolares:
+        reposicion.costoReposicionDolares != null ? Number(reposicion.costoReposicionDolares) : null,
+    };
+  }
+
   async create(data: {
     articuloId: string;
     proveedorId: string;
@@ -54,7 +65,7 @@ export class ReposicionRepository extends BaseRepository<Reposicion> {
 
     if (!row) throw new Error('Failed to create reposicion');
 
-    return toCamelCase<Reposicion>(row);
+    return this.mapToReposicion(row);
   }
 
   async update(id: string, data: UpdateReposicionDto, updatedBy?: string): Promise<Reposicion> {
@@ -130,7 +141,7 @@ export class ReposicionRepository extends BaseRepository<Reposicion> {
 
     if (!row) throw new Error('Reposicion not found');
 
-    return toCamelCase<Reposicion>(row);
+    return this.mapToReposicion(row);
   }
 
   async cancel(id: string, updatedBy?: string): Promise<Reposicion> {
@@ -145,7 +156,7 @@ export class ReposicionRepository extends BaseRepository<Reposicion> {
 
     if (!row) throw new Error('Reposicion not found or already cancelled');
 
-    return toCamelCase<Reposicion>(row);
+    return this.mapToReposicion(row);
   }
 
   async confirm(id: string, updatedBy?: string): Promise<Reposicion> {
@@ -160,7 +171,7 @@ export class ReposicionRepository extends BaseRepository<Reposicion> {
 
     if (!row) throw new Error('Reposicion not found or not in en_curso state');
 
-    return toCamelCase<Reposicion>(row);
+    return this.mapToReposicion(row);
   }
 
   async findByIdWithRelations(id: string): Promise<ReposicionConRelaciones | null> {
@@ -331,9 +342,9 @@ export class ReposicionRepository extends BaseRepository<Reposicion> {
       stock_disponible: row.stock_disponible,
       observaciones: row.observaciones,
       fecha_reposicion: row.fecha_reposicion,
-      costo_reposicion: row.costo_reposicion,
-      valor_dolar_oficial: row.valor_dolar_oficial,
-      costo_reposicion_dolares: row.costo_reposicion_dolares,
+      costo_reposicion: row.costo_reposicion != null ? Number(row.costo_reposicion) : null,
+      valor_dolar_oficial: row.valor_dolar_oficial != null ? Number(row.valor_dolar_oficial) : null,
+      costo_reposicion_dolares: row.costo_reposicion_dolares != null ? Number(row.costo_reposicion_dolares) : null,
       fecha_vencimiento: row.fecha_vencimiento,
       lote_partida: row.lote_partida,
       link_compra: row.link_compra,
@@ -427,9 +438,9 @@ export class ReposicionRepository extends BaseRepository<Reposicion> {
 
     return rows.map(row => ({
       id: row.id as string,
-      stockDisponible: row.stock_disponible as number,
-      costoReposicion: row.costo_reposicion as number | null,
-      costoReposicionDolares: row.costo_reposicion_dolares as number | null,
+      stockDisponible: Number(row.stock_disponible),
+      costoReposicion: row.costo_reposicion != null ? Number(row.costo_reposicion) : null,
+      costoReposicionDolares: row.costo_reposicion_dolares != null ? Number(row.costo_reposicion_dolares) : null,
       fechaReposicion: new Date(row.fecha_reposicion as string),
       lotePartida: row.lote_partida as string | null,
       proveedorNombre: row.proveedor_nombre as string,
@@ -497,9 +508,9 @@ export class ReposicionRepository extends BaseRepository<Reposicion> {
     return rows.map(row => ({
       reposicionId: row.reposicion_id as string,
       fechaReposicion: new Date(row.fecha_reposicion as string),
-      stockDisponible: row.stock_disponible as number,
-      costoUnitario: (row.costo_unitario as number) || 0,
-      costoUnitarioDolares: row.costo_unitario_dolares as number | null,
+      stockDisponible: Number(row.stock_disponible),
+      costoUnitario: row.costo_unitario != null ? Number(row.costo_unitario) : 0,
+      costoUnitarioDolares: row.costo_unitario_dolares != null ? Number(row.costo_unitario_dolares) : null,
       lotePartida: row.lote_partida as string | null,
       proveedorNombre: row.proveedor_nombre as string,
     }));

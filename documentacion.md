@@ -43,6 +43,10 @@ hofra-stock/
   - Cada rubro tiene un campo "Prefijo" (solo letras, ej: "ELE" para Electrónica)
   - El código es: PREFIJO + "-" + número secuencial (ej: ELE-0001, ELE-0002)
   - Cada rubro tiene su propia secuencia numérica
+- **Duplicar artículo** (14 de noviembre de 2026): acción disponible en el listado y en el detalle de cada artículo. Abre el formulario de "Nuevo Artículo" precargado con los datos del original — rubro, proveedor, stock mínimo, presentación, marca, SKU, ETM, ubicación, URL, costo inicial ARS/USD — excepto código (se autogenera), imagen (para no compartir el mismo archivo de Cloudinary entre dos artículos) y stock (arranca en 0). El nombre se precarga como `"<nombre original> (copia)"`. Al guardar se crea un artículo nuevo e independiente; el original no se modifica
+- **Filtro por Proveedor** (14 de noviembre de 2026) en el listado, además de los filtros existentes (rubro, estado, stock bajo)
+- **Exportar a Excel/CSV mejorado** (14 de noviembre de 2026): el botón de exportar trae el set **completo** que coincide con los filtros activos (hasta 1000 registros) en el momento de exportar, en vez de solo la página cargada en memoria. Los campos numéricos (Stock, Stock Mínimo) se exportan como número real de Excel, no como texto (ver sección "Tipado de Exportaciones")
+- **Ajustes de columnas del listado** (14-15 de noviembre de 2026): SKU y Nombre con ancho acotado y truncado con tooltip (Nombre después se cambió a salto de línea en vez de truncar); se agregó columna "Proveedor"; se renombró "Stock" a "Stock actual"; se eliminó la columna "Estado" (el filtro Activos/Inactivos se mantiene); la columna "Acciones" quedó reducida a Duplicar y Eliminar (Ver y Editar siguen disponibles clickeando la fila o desde el detalle); Rubro con ancho acotado y tooltip; stock en 0 se muestra como píldora roja igual que el resto de los estados
 
 ### 3. Rubros
 - **Ubicación**: Tab dentro del módulo **Configuraciones** (`/configuraciones`)
@@ -114,6 +118,7 @@ Una entrega puede contener múltiples artículos, similar a un ticket de superme
 - Al **cancelar desde `confirmada`**: El stock se restaura
 - **Edición**: Solo disponible para entregas en estado `en_curso`
 - Registro en auditoría para todas las operaciones
+- **Búsqueda en el listado** (17 de noviembre de 2026): igual mecánica que Reposiciones — busca por N° de cotización interna, cliente o purchase order, con debounce de 300ms
 
 ### 7. Reposiciones
 - **Campos**: articuloId, proveedorId, cantidad, stockDisponible, observaciones, fechaReposicion, costoReposicion (requerido), valorDolarOficial (requerido), costoReposicionDolares (autocalculado), fechaVencimiento, lotePartida, linkCompra, lugarCompra, estado
@@ -157,6 +162,9 @@ Una entrega puede contener múltiples artículos, similar a un ticket de superme
   - Registro de cambios de estado y afectacion de stock
 - Registro en auditoria
 - **Último Costo Cargado** (14 de noviembre de 2026): al elegir un artículo en el formulario de nueva reposición, el panel lateral muestra el costo de la última reposición registrada para ese artículo (ARS y USD), o el Costo Inicial Estimado si nunca tuvo una. Sirve como referencia para comparar contra el costo nuevo que se está cargando y detectar fluctuaciones de precio
+  - **Mejora visual** (14 de noviembre de 2026): pasó de una líneita chica a una caja destacada (fondo ámbar, ícono, montos grandes), para no confundirse con el cuadro de costo nuevo que se está cargando
+  - **Proveedor y link de compra** (14 de noviembre de 2026): debajo del costo se muestra el proveedor de esa misma última reposición y, si existe, el link de compra completo (clickeable, abre en pestaña nueva). Si el artículo nunca tuvo una reposición, cae al proveedor y a la URL de referencia cargados en el propio artículo (ej. la publicación de Mercado Libre usada para fijar el costo inicial)
+- **Precarga del Valor Dólar Oficial** (14 de noviembre de 2026): ver sección "Configuración del Dólar Oficial" más abajo
 
 ### 8. Dashboard
 
@@ -168,6 +176,7 @@ Panel principal con estadísticas del sistema.
 - **Valuación del Stock**: Valor total del inventario en ARS y USD
 - **Entregas del Mes**: Cantidad de entregas realizadas en el mes actual
 - **Reposiciones del Mes**: Cantidad de reposiciones del mes actual
+- **Último Valor Dólar Oficial** (14 de noviembre de 2026): el valor global vigente (ver "Configuración del Dólar Oficial" más abajo), en la misma fila que Entregas/Reposiciones del Mes. Muestra "Sin definir" si todavía no se cargó ninguno
 
 #### Gráficos
 - **Movimientos por Mes**: Gráfico de barras comparando entregas vs reposiciones (últimos 6 meses)
@@ -181,6 +190,46 @@ Panel principal con estadísticas del sistema.
 La valuación total del stock se calcula sumando:
 1. Stock disponible de reposiciones confirmadas × costo unitario
 2. Stock sin reposición × costo inicial estimado (si está definido)
+
+### 9. Configuración del Dólar Oficial (14 de noviembre de 2026)
+
+Guarda y reutiliza automáticamente el último valor del dólar oficial, compartido entre la creación de Artículos y Reposiciones, para no tener que tipearlo cada vez.
+
+#### Comportamiento
+- El sistema mantiene **un único valor global vigente** en la base de datos (tabla `configuracion_dolar`, una sola fila)
+- Al abrir **"Nuevo Artículo"** o **"Nueva Reposición"**, el campo "Valor Dólar Oficial" se precarga automáticamente con ese valor
+- Al **crear o editar** un artículo o una reposición con un valor de dólar distinto al vigente, el valor global se actualiza para las próximas operaciones
+- Si el usuario **no modifica** el campo precargado, el valor vigente no cambia
+- **No afecta valores históricos**: editar el valor global no modifica los `valorDolarCostoInicial`/`valorDolarOficial` ya guardados en artículos o reposiciones anteriores — cada uno mantiene su propio valor histórico
+- **No consulta ninguna cotización externa** — es enteramente manual, administrado por los usuarios
+- Al **duplicar** un artículo, se mantiene el comportamiento propio de esa función (copia el dólar del artículo original), no se pisa con el valor global
+- Al **editar** un artículo o reponer un artículo existente, el campo sigue mostrando el valor histórico propio de ese registro (no se sobrescribe con el global al abrir la pantalla) — el valor global solo se actualiza al **guardar** con un valor distinto
+
+#### Modelo de Datos
+| Tabla | Campo | Notas |
+|-------|-------|-------|
+| `configuracion_dolar` | `valor_dolar_oficial` | `NUMERIC(10,2)`, el valor vigente |
+| `configuracion_dolar` | `updated_at`, `updated_by` | Quién y cuándo lo actualizó por última vez |
+
+#### API
+```
+GET /api/configuracion/dolar   # Valor vigente (o null si nunca se cargó ninguno)
+```
+Protegido con `requireAnyPermission` (alcanza con permiso de crear artículos **o** crear reposiciones).
+
+#### Archivos
+**Backend**:
+- `database/migrations/029_add_configuracion_dolar.sql`
+- `backend/src/repositories/configuracionDolar.repository.ts`
+- `backend/src/controllers/configuracionDolar.controller.ts`
+- `backend/src/routes/configuracionDolar.routes.ts`
+- `backend/src/services/articulo.service.ts` (`create`/`update`) y `backend/src/services/stock.service.ts` (`createReposicion`/`updateReposicion`) actualizan el valor global
+- `backend/src/services/dashboard.service.ts` expone `valorDolarOficialVigente` para la card del Dashboard
+
+**Frontend**:
+- `frontend/src/services/configuracionDolar.service.ts`
+- `frontend/src/pages/articulos/ArticuloForm.tsx` y `frontend/src/pages/reposiciones/ReposicionForm.tsx` (precarga al crear)
+- `frontend/src/pages/Dashboard.tsx` (card "Último Valor Dólar Oficial")
 
 ### 10. Usuarios
 
@@ -1037,6 +1086,38 @@ El menú lateral (sidebar) puede colapsarse para mostrar solo iconos:
 - El contenido principal se ajusta automáticamente
 - Orden del menú: Dashboard, Artículos, Solicitudes de Cotización, Entregas, Reposiciones, Clientes, Proveedores, Configuraciones
 - Sección de Administración separada: Usuarios, Roles, Auditoría
+
+### Formato de Números y Moneda (17 de noviembre de 2026)
+Convención aplicada en **toda** la aplicación (no solo moneda):
+- **Separador de miles/millones**: punto (`.`) — ej. `1.234.567`. Se usa `.toLocaleString('es-AR')` en vez de interpolar el número crudo, tanto en campos monetarios como en cantidades, stock, contadores y totales (incluye los componentes compartidos `Badge.tsx`/`StockBadge` y `DataTable.tsx`, que cubren varias pantallas a la vez)
+- **Separador decimal**: coma (`,`), nunca punto
+- **Importes en Pesos Argentinos (ARS)**: sin decimales (ej. `$125.500`, no `$125.500,00`) — se prescinde de los centavos en toda la app
+- **Importes en Dólares (USD)**: siempre con 2 decimales fijos (ej. `USD 1.234,56`)
+- **Campos no monetarios** (stock, cantidad, contadores): número entero con separador de miles, sin decimales
+- Excepciones deliberadas (números que no llegan a necesitar separador en la práctica, no se tocaron): números de página, cantidad de rubros/marcas creados en un import, cantidad de ítems de una entrega/reposición, contadores de permisos/roles
+- El campo de carga `CurrencyInput` (donde se *tipea* un importe) no se restringió — ahí sí puede tener sentido cargar centavos (ej. el valor del dólar)
+- Las exportaciones a Excel/CSV (`ExportButtons.tsx`, cotizaciones) no se tocaron en este punto — ahí se prioriza la precisión del archivo generado sobre la visualización en pantalla
+
+### Tipado de Exportaciones a Excel/CSV (14 de noviembre de 2026)
+Revisión de **todos** los mecanismos de exportación del sistema para que el tipo de dato interno de cada celda sea el correcto (number/date/text reales, no todo convertido a texto), permitiendo sumar/ordenar/filtrar directamente en Excel sin conversiones manuales.
+
+**Problema encontrado**: `ExportButtons.tsx` (usado en Artículos y Reportes) forzaba **todo** a `String(...)` antes de escribir la celda — números y fechas quedaban como texto en el Excel generado.
+
+**Solución**: cada columna ahora declara `type: 'text' | 'number' | 'currency' | 'date'`:
+- `number`/`currency` → se escribe como `Number` real de JS (la librería `xlsx` lo tipa como celda numérica automáticamente)
+- `currency` además aplica el formato de celda `"$" #,##0.00` **sobre el valor numérico**, sin convertirlo a texto
+- `date` → se escribe como `Date` de JS (`xlsx` la convierte sola en fecha real de Excel, con formato de fecha)
+- Vacíos (`null`/`undefined`/`''`) → quedan como celda realmente vacía, no como texto `''` ni como `0`
+
+**Reportes** (`ReportesPage.tsx`) exportaba un **CSV armado a mano** con `.toFixed(2)` y fechas formateadas como string `dd/MM/yyyy` — un CSV no puede tener "tipo de celda" (es texto plano). Se reemplazó por el mismo mecanismo tipado de `ExportButtons`, generando un `.xlsx` real.
+
+**Cotizaciones** (`cotizacionExport.service.ts`, usa `exceljs`): "Costo por Unidad" y "Mark Up" usaban `''` en vez de `null` cuando no había valor cargado (mezclaba number/texto vacío en la misma columna), y "Costo por Unidad" no tenía formato de moneda asignado. Mismo fix de `'' → null` en "USD Oficial Compra/Venta" (fuente compartida con el export a Google Sheets).
+
+#### Archivos
+- `frontend/src/components/ExportButtons.tsx` (reescrito)
+- `frontend/src/pages/articulos/ArticulosList.tsx` (actualizado al nuevo `type` en vez de `format`)
+- `frontend/src/pages/reportes/ReportesPage.tsx` (CSV → xlsx tipado)
+- `backend/src/services/cotizacionExport.service.ts`
 
 ---
 
@@ -2389,3 +2470,85 @@ A pedido de Nicole, para poder ver la fluctuación de precio mientras se carga u
 ##### Archivos Modificados
 - `backend/src/config/env.ts` - `JWT_ACCESS_EXPIRY: '2h'`
 - `shared/src/constants/index.ts` - `JWT_CONFIG.ACCESS_TOKEN_EXPIRY` (constante duplicada, no se usaba en el código, se actualizó igual para no quedar desactualizada)
+
+### 14-17 de noviembre de 2026 — Duplicar Artículo, Dólar Global, mejoras de grillas, búsqueda en Entregas, tipado de exportaciones y formato numérico
+
+Tanda extensa de pedidos puntuales de Nicole sobre el listado/detalle de Artículos, Reposiciones y Entregas, más dos revisiones transversales (exportaciones y formato numérico).
+
+#### Duplicar Artículo
+Acción nueva en el listado de Artículos (ícono junto a Editar/Eliminar) y en el detalle (botón junto a "Editar"). Navega a `/articulos/nuevo?duplicarDe=<id>`; el formulario detecta ese query param y precarga los datos del artículo original. **No se copian**: código (se autogenera según el rubro, igual que cualquier artículo nuevo — copiar el original rompería el `UNIQUE` de la base), imagen (si se copiara y después se borra la imagen del duplicado, se borraría también el archivo de Cloudinary del original, que comparten), y stock (arranca en 0). El nombre se precarga como `"<nombre original> (copia)"`. Es 100% frontend: duplicar es solo abrir el formulario de creación precargado, el guardado usa el mismo `POST /articulos` de siempre.
+
+##### Archivos Modificados
+- `frontend/src/pages/articulos/ArticulosList.tsx`, `ArticuloDetail.tsx`, `ArticuloForm.tsx`
+
+#### Valor Global del Dólar Oficial
+Ver sección nueva "9. Configuración del Dólar Oficial" más arriba para el detalle completo (modelo de datos, API, comportamiento). Incluye la precarga en Artículos/Reposiciones, la actualización al crear **y** al editar, y la card nueva en el Dashboard.
+
+##### Archivos Nuevos
+- `database/migrations/029_add_configuracion_dolar.sql`
+- `backend/src/repositories/configuracionDolar.repository.ts`, `controllers/configuracionDolar.controller.ts`, `routes/configuracionDolar.routes.ts`
+- `frontend/src/services/configuracionDolar.service.ts`
+
+##### Archivos Modificados
+- `backend/src/services/articulo.service.ts`, `stock.service.ts`, `dashboard.service.ts`, `routes/index.ts`
+- `shared/src/types/index.ts` - `ConfiguracionDolar`, `DashboardStats.valorDolarOficialVigente`
+- `frontend/src/pages/articulos/ArticuloForm.tsx`, `reposiciones/ReposicionForm.tsx`, `Dashboard.tsx`
+
+#### Panel "Último Costo Cargado" en Reposición — mejora visual + proveedor/link de compra
+Pasó de una líneita chica a una caja destacada (fondo ámbar, ícono de historial, montos grandes) para no confundirse con el cuadro de costo nuevo. Se agregó el proveedor y el link de compra de esa misma última reposición. **Bug encontrado y corregido**: cuando el artículo nunca tuvo una reposición (ej. código `SO1`), no había de dónde sacar el link de compra aunque el artículo sí tuviera su propio campo URL cargado (la publicación de Mercado Libre usada para fijar el costo inicial) — se agregó ese fallback, igual que ya existía para el proveedor. De paso se cambió de mostrar un link genérico "Ver link de compra" a mostrar la URL completa como texto visible.
+
+##### Archivos Modificados
+- `frontend/src/pages/reposiciones/ReposicionForm.tsx`
+
+#### Filtro por Proveedor y export completo en el listado de Artículos
+El backend ya soportaba `proveedorId` como filtro (no estaba expuesto en la UI). El export de Excel/CSV exportaba solo la página cargada en memoria (hasta 500 registros); ahora busca el set **completo** filtrado (hasta 1000, el máximo del backend) al momento de exportar.
+
+##### Archivos Modificados
+- `frontend/src/components/ExportButtons.tsx` (prop `getExportData` opcional), `frontend/src/pages/articulos/ArticulosList.tsx`
+
+#### Tipado de Exportaciones a Excel/CSV y Formato de Números y Moneda
+Ver las secciones nuevas con el mismo nombre en "Características de UI" más arriba.
+
+#### Ajustes de columnas en el listado de Artículos (varias rondas)
+- SKU y Nombre: primero achicados y truncados con tooltip; después un poco más anchos (90→110px, 240→280px); Nombre finalmente pasó a hacer **wrap** en vez de truncar (hubo que forzar `!whitespace-normal` porque el estilo global `.table td` fuerza `white-space: nowrap` en todas las celdas con más especificidad que una clase simple)
+- Presentación y Stock actual: ancho acotado (antes sin límite); después Rubro también (con tooltip para nombres largos, ej. "Lubricantes - Pegamentos")
+- Header de "Stock" renombrado a "Stock actual"
+- Columna "Estado" eliminada del listado (el filtro Activos/Inactivos se mantiene en la barra de filtros)
+- Stock = 0: se probaron dos formatos (texto plano en rojo, después se volvió a la píldora `Badge` roja) para mantener la misma forma visual que el resto de los estados (Bajo/Normal)
+- Columna "Acciones": se sacaron los íconos de Ver y Editar (quedan Duplicar y Eliminar), ancho reducido a `w-20` — Ver sigue disponible clickeando la fila, Editar desde el detalle
+
+##### Archivos Modificados
+- `frontend/src/pages/articulos/ArticulosList.tsx`
+- `frontend/src/components/Badge.tsx` (fix de separador de miles en `StockBadge`, ver más abajo)
+
+#### Búsqueda por texto en Entregas
+No existía ningún filtro de texto en Entregas (Reposiciones sí tenía). Se agregó el mismo mecanismo: backend busca por N° de cotización interna, cliente o purchase order (`ILIKE`); frontend con el mismo input + ícono + debounce de 300ms que ya usaba Reposiciones.
+
+##### Archivos Modificados
+- `backend/src/repositories/entrega.repository.ts`, `services/stock.service.ts`, `controllers/stock.controller.ts`
+- `frontend/src/services/stock.service.ts`, `frontend/src/pages/entregas/EntregasList.tsx`
+
+#### Formato numérico: sin decimales en ARS, siempre separador de miles
+Dos rondas separadas:
+1. **Decimales en Pesos Argentinos**: todos los importes en ARS (no los de USD) pasaron de 2 decimales a 0 en ~15 pantallas — Dashboard, Artículos, Reposiciones, Entregas, Reportes, Solicitudes de Cotización.
+2. **Separador de miles en todo campo numérico**: relevamiento completo de números mostrados sin `.toLocaleString` (stock, cantidades, contadores, totales) en ~20 pantallas. Se corrigió además en los componentes compartidos `Badge.tsx` (`StockBadge`) y `DataTable.tsx` (paginación "Mostrando X-Y de Z" y el fallback genérico de columnas sin `render` propio), que arreglan varias pantallas de una sola vez. De paso aparecieron y se corrigieron varios importes en **USD** que habían quedado sin `.toLocaleString` o usaban `.toFixed(2)` (que no trae separador de miles): `ReposicionesList.tsx`, `ReposicionDetail.tsx`, `ArticuloDetail.tsx`, `ReposicionForm.tsx`/`Edit.tsx`, `ReportesPage.tsx`.
+
+Convención final: punto para miles/millones, coma para decimales, ARS sin decimales, USD con 2 decimales fijos, cantidades/stock como entero con separador de miles. No se tocaron: números de página, contadores de rubros/marcas creados en un import, cantidad de ítems de una entrega/reposición (`array.length`), el campo de carga `CurrencyInput`, ni las exportaciones a Excel/CSV.
+
+##### Archivos Modificados
+- `frontend/src/components/Badge.tsx`, `DataTable.tsx`, `ArticuloCombobox.tsx`
+- `frontend/src/pages/Dashboard.tsx`, `articulos/ArticuloDetail.tsx`, `articulos/ArticuloForm.tsx`, `auditoria/AuditoriaList.tsx`, `entregas/EntregaDetail.tsx`, `entregas/EntregaEdit.tsx`, `entregas/EntregaForm.tsx`, `entregas/EntregasList.tsx`, `importar/ImportarPage.tsx`, `reportes/ReportesPage.tsx`, `reposiciones/ReposicionDetail.tsx`, `reposiciones/ReposicionEdit.tsx`, `reposiciones/ReposicionForm.tsx`, `reposiciones/ReposicionesList.tsx`, `solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
+
+### 17 de noviembre de 2026 — Bug de fondo: columnas NUMERIC/DECIMAL llegaban como string desde Postgres
+
+El punto 2 del formato numérico (arriba) arregló el frontend para llamar `.toLocaleString('es-AR', ...)` en todos lados, pero en la grilla de Reposiciones (columna Costo, ARS y USD) seguía sin verse el separador de miles ni la coma decimal. Causa real: el driver `pg` devuelve las columnas `NUMERIC`/`DECIMAL` de Postgres como **string**, no como `number` — y `String.prototype.toLocaleString(locale, options)` existe pero ignora silenciosamente el locale y las opciones (no agrega separadores, no cambia el punto por coma), así que el código del frontend estaba bien pero no tenía efecto porque el dato ya llegaba como texto. El helper `toCamelCase()` del backend solo renombra claves snake_case → camelCase, no convierte tipos, así que el `string` pasaba intacto.
+
+Se encontró el mismo patrón repetido en varios repositorios (cualquier función que arma el objeto de respuesta a mano o con un simple `toCamelCase(row)` sin castear explícitamente los campos `NUMERIC`), y se corrigió agregando `Number(valor)` en cada uno:
+- `reposicion.repository.ts`: `costo_reposicion`, `valor_dolar_oficial`, `costo_reposicion_dolares` — faltaba en `mapToReposicionConRelaciones` (la grilla), y también en `create`/`update`/`cancel`/`confirm` (se centralizó en un nuevo método privado `mapToReposicion`) y en los helpers de valuación FIFO `findWithStockDisponible`/`getCapasStock` (tenían `as number`, que es solo una afirmación de tipo para TypeScript y no convierte nada en tiempo de ejecución).
+- `articulo.repository.ts`: `costo_inicial_estimado`, `valor_dolar_costo_inicial`, `costo_inicial_estimado_usd` — faltaba en `mapToArticuloConRelaciones`, en `create`/`update`, y en los métodos heredados de `BaseRepository` (`findAll`/`findById`, genéricos y sin conocimiento de qué columnas son numéricas) — se sobreescribieron ambos en `ArticuloRepository` para aplicar el cast después. Se centralizó en un nuevo método privado `mapArticulo`.
+- `solicitudCotizacion.repository.ts`: `precio_unitario`, `mark_up` (ítems) y `usd_oficial_compra`, `usd_oficial_venta` (cabecera) — faltaba en `create`, `updateHeader`, `updateEstado`, `updateItem` y `findItemById` (el método `findByIdWithRelations`, usado por el detalle, ya tenía el cast de una corrección anterior). Se centralizó en dos métodos privados nuevos `mapSolicitud`/`mapItem`.
+
+Se verificó el bug consultando la base de Railway directamente (`costo_reposicion` llegaba como `'2318.00'`, tipo `string`) y se confirmó con `tsc --noEmit` y build limpios después del fix. Como `BaseRepository` es genérico (no sabe qué columnas son `NUMERIC` para cada tabla), el cast se aplica en cada repositorio concreto, no en la clase base.
+
+##### Archivos Modificados
+- `backend/src/repositories/reposicion.repository.ts`, `articulo.repository.ts`, `solicitudCotizacion.repository.ts`

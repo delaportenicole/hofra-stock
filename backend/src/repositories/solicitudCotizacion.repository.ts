@@ -34,6 +34,24 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
     super('solicitudes_cotizacion', 'fecha_solicitud');
   }
 
+  private mapSolicitud(row: Record<string, unknown>): SolicitudCotizacion {
+    const solicitud = toCamelCase<SolicitudCotizacion>(row);
+    return {
+      ...solicitud,
+      usdOficialCompra: solicitud.usdOficialCompra != null ? Number(solicitud.usdOficialCompra) : null,
+      usdOficialVenta: solicitud.usdOficialVenta != null ? Number(solicitud.usdOficialVenta) : null,
+    };
+  }
+
+  private mapItem(row: Record<string, unknown>): SolicitudCotizacionItem {
+    const item = toCamelCase<SolicitudCotizacionItem>(row);
+    return {
+      ...item,
+      precioUnitario: item.precioUnitario != null ? Number(item.precioUnitario) : null,
+      markUp: item.markUp != null ? Number(item.markUp) : null,
+    };
+  }
+
   async create(data: {
     clienteId: string;
     numeroReferenciaCliente?: string | null;
@@ -58,7 +76,7 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
 
       if (!solicitudRows[0]) throw new Error('Failed to create solicitud de cotización');
 
-      const solicitud = toCamelCase<SolicitudCotizacion>(solicitudRows[0]);
+      const solicitud = this.mapSolicitud(solicitudRows[0]);
 
       const items: SolicitudCotizacionItem[] = [];
       for (const item of data.items) {
@@ -81,7 +99,7 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
           ]
         );
         if (itemRows[0]) {
-          items.push(toCamelCase<SolicitudCotizacionItem>(itemRows[0]));
+          items.push(this.mapItem(itemRows[0]));
         }
       }
 
@@ -148,7 +166,7 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       values
     );
 
-    return row ? toCamelCase<SolicitudCotizacion>(row) : null;
+    return row ? this.mapSolicitud(row) : null;
   }
 
   async updateEstado(
@@ -163,7 +181,7 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       [estado, updatedBy || null, id]
     );
 
-    return row ? toCamelCase<SolicitudCotizacion>(row) : null;
+    return row ? this.mapSolicitud(row) : null;
   }
 
   async updateItem(
@@ -210,7 +228,7 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       values
     );
 
-    return row ? toCamelCase<SolicitudCotizacionItem>(row) : null;
+    return row ? this.mapItem(row) : null;
   }
 
   async findItemById(itemId: string): Promise<SolicitudCotizacionItem | null> {
@@ -218,7 +236,7 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       `SELECT * FROM solicitud_cotizacion_items WHERE id = $1`,
       [itemId]
     );
-    return row ? toCamelCase<SolicitudCotizacionItem>(row) : null;
+    return row ? this.mapItem(row) : null;
   }
 
   async findByIdWithRelations(id: string): Promise<SolicitudCotizacionConRelaciones | null> {

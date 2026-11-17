@@ -8,13 +8,36 @@ export class ArticuloRepository extends BaseRepository<Articulo> {
     super('articulos', 'nombre');
   }
 
+  private mapArticulo(row: Record<string, unknown>): Articulo {
+    const articulo = toCamelCase<Articulo>(row);
+    return {
+      ...articulo,
+      costoInicialEstimado:
+        articulo.costoInicialEstimado != null ? Number(articulo.costoInicialEstimado) : null,
+      valorDolarCostoInicial:
+        articulo.valorDolarCostoInicial != null ? Number(articulo.valorDolarCostoInicial) : null,
+      costoInicialEstimadoUsd:
+        articulo.costoInicialEstimadoUsd != null ? Number(articulo.costoInicialEstimadoUsd) : null,
+    };
+  }
+
+  async findAll(options: FindOptions = {}): Promise<PaginatedResult<Articulo>> {
+    const result = await super.findAll(options);
+    return { ...result, data: result.data.map((row) => this.mapArticulo(row as unknown as Record<string, unknown>)) };
+  }
+
+  async findById(id: string, includeDeleted: boolean = false): Promise<Articulo | null> {
+    const articulo = await super.findById(id, includeDeleted);
+    return articulo ? this.mapArticulo(articulo as unknown as Record<string, unknown>) : null;
+  }
+
   async findByCodigo(codigo: string): Promise<Articulo | null> {
     const row = await queryOne<Record<string, unknown>>(
       `SELECT * FROM articulos WHERE codigo = $1 AND deleted_at IS NULL`,
       [codigo]
     );
 
-    return row ? toCamelCase<Articulo>(row) : null;
+    return row ? this.mapArticulo(row) : null;
   }
 
   async findByEtm(etm: string): Promise<Articulo | null> {
@@ -23,7 +46,7 @@ export class ArticuloRepository extends BaseRepository<Articulo> {
       [etm.trim()]
     );
 
-    return row ? toCamelCase<Articulo>(row) : null;
+    return row ? this.mapArticulo(row) : null;
   }
 
   async findByIdWithRelations(id: string): Promise<ArticuloConRelaciones | null> {
@@ -98,7 +121,7 @@ export class ArticuloRepository extends BaseRepository<Articulo> {
 
     if (!row) throw new Error('Failed to create articulo');
 
-    return toCamelCase<Articulo>(row);
+    return this.mapArticulo(row);
   }
 
   async update(
@@ -211,7 +234,7 @@ export class ArticuloRepository extends BaseRepository<Articulo> {
       values
     );
 
-    return row ? toCamelCase<Articulo>(row) : null;
+    return row ? this.mapArticulo(row) : null;
   }
 
   async updateImage(
@@ -408,9 +431,9 @@ export class ArticuloRepository extends BaseRepository<Articulo> {
       numero_cotizacion_interna: row.numero_cotizacion_interna,
       ubicacion: row.ubicacion,
       url: row.url,
-      costo_inicial_estimado: row.costo_inicial_estimado,
-      valor_dolar_costo_inicial: row.valor_dolar_costo_inicial,
-      costo_inicial_estimado_usd: row.costo_inicial_estimado_usd,
+      costo_inicial_estimado: row.costo_inicial_estimado != null ? Number(row.costo_inicial_estimado) : null,
+      valor_dolar_costo_inicial: row.valor_dolar_costo_inicial != null ? Number(row.valor_dolar_costo_inicial) : null,
+      costo_inicial_estimado_usd: row.costo_inicial_estimado_usd != null ? Number(row.costo_inicial_estimado_usd) : null,
       imagen_url: row.imagen_url,
       imagen_public_id: row.imagen_public_id,
       activo: row.activo,
