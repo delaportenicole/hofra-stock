@@ -49,7 +49,7 @@ export const stockService = {
   },
 
   // Entregas
-  async getEntregas(params: { page?: number; limit?: number } = {}): Promise<PaginatedResponse<EntregaConRelaciones>> {
+  async getEntregas(params: { page?: number; limit?: number; busqueda?: string } = {}): Promise<PaginatedResponse<EntregaConRelaciones>> {
     const response = await api.get<PaginatedResponse<EntregaConRelaciones>>('/stock/entregas', { params });
     return response.data;
   },

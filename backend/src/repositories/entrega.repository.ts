@@ -183,9 +183,26 @@ export class EntregaRepository extends BaseRepository<Entrega> {
     }));
   }
 
-  async findAllWithRelations(options: FindOptions = {}): Promise<PaginatedResult<EntregaConRelaciones>> {
-    const { page = 1, limit = 20, sortOrder = 'desc' } = options;
+  async findAllWithRelations(options: FindOptions & { busqueda?: string } = {}): Promise<PaginatedResult<EntregaConRelaciones>> {
+    const { page = 1, limit = 20, sortOrder = 'desc', busqueda } = options;
     const offset = (page - 1) * limit;
+
+    let whereClause = 'e.deleted_at IS NULL';
+    const params: unknown[] = [];
+    let paramIndex = 1;
+
+    if (busqueda) {
+      const searchTerm = `%${busqueda}%`;
+      whereClause += ` AND (
+        e.numero_cotizacion_interna ILIKE $${paramIndex} OR
+        e.purchase_order ILIKE $${paramIndex} OR
+        c.razon_social ILIKE $${paramIndex}
+      )`;
+      params.push(searchTerm);
+      paramIndex++;
+    }
+
+    params.push(limit, offset);
 
     const [rows, countResult] = await Promise.all([
       query<Record<string, unknown>>(
@@ -193,13 +210,17 @@ export class EntregaRepository extends BaseRepository<Entrega> {
                 c.id as cli_id, c.razon_social as cliente_razon_social, c.cuit as cliente_cuit
          FROM entregas e
          INNER JOIN clientes c ON c.id = e.cliente_id
-         WHERE e.deleted_at IS NULL
+         WHERE ${whereClause}
          ORDER BY e.fecha_entrega ${sortOrder.toUpperCase()}
-         LIMIT $1 OFFSET $2`,
-        [limit, offset]
+         LIMIT $${paramIndex++} OFFSET $${paramIndex}`,
+        params
       ),
       queryOne<{ count: string }>(
-        `SELECT COUNT(*) as count FROM entregas WHERE deleted_at IS NULL`
+        `SELECT COUNT(*) as count
+         FROM entregas e
+         INNER JOIN clientes c ON c.id = e.cliente_id
+         WHERE ${whereClause}`,
+        busqueda ? [`%${busqueda}%`] : []
       ),
     ]);
 

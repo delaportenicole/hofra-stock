@@ -141,7 +141,7 @@ export class StockService {
   // ENTREGAS
   // ============================================
 
-  async findAllEntregas(options: FindOptions = {}): Promise<PaginatedResult<EntregaConRelaciones>> {
+  async findAllEntregas(options: FindOptions & { busqueda?: string } = {}): Promise<PaginatedResult<EntregaConRelaciones>> {
     return entregaRepository.findAllWithRelations(options);
   }
 

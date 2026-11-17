@@ -130,7 +130,8 @@ export class StockController {
   async findAllEntregas(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { page, limit, sortOrder } = paginationSchema.parse(req.query);
-      const result = await stockService.findAllEntregas({ page, limit, sortOrder });
+      const busqueda = typeof req.query.busqueda === 'string' ? req.query.busqueda : undefined;
+      const result = await stockService.findAllEntregas({ page, limit, sortOrder, busqueda });
 
       sendPaginated(res, result.data, result.pagination);
     } catch (error) {
