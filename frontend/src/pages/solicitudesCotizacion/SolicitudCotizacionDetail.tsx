@@ -345,15 +345,15 @@ export function SolicitudCotizacionDetailPage() {
                 return `<tr>
                   <td>${item.descripcionSolicitada}</td>
                   <td>${item.marcaSolicitada || '-'}</td>
-                  <td class="text-right">${item.cantidadSolicitada}</td>
-                  <td class="text-right">$${(item.precioUnitario || 0).toLocaleString('es-AR')}</td>
-                  <td class="text-right">$${subtotal.toLocaleString('es-AR')}</td>
+                  <td class="text-right">${item.cantidadSolicitada.toLocaleString('es-AR')}</td>
+                  <td class="text-right">$${(item.precioUnitario || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}</td>
+                  <td class="text-right">$${subtotal.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</td>
                 </tr>`;
               })
               .join('')}
             <tr class="total-row">
               <td colspan="4" class="text-right">TOTAL</td>
-              <td class="text-right">$${total.toLocaleString('es-AR')}</td>
+              <td class="text-right">$${total.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</td>
             </tr>
           </tbody>
         </table>
@@ -551,7 +551,7 @@ export function SolicitudCotizacionDetailPage() {
                     <td className="px-3 py-3 max-w-xs">
                       <p className="font-medium text-gray-900">{item.descripcionSolicitada}</p>
                       <p className="text-xs text-gray-500">
-                        Cant: {item.cantidadSolicitada}
+                        Cant: {item.cantidadSolicitada.toLocaleString('es-AR')}
                         {item.marcaSolicitada && ` · Marca: ${item.marcaSolicitada}`}
                         {item.modeloSolicitado && ` · Modelo: ${item.modeloSolicitado}`}
                         {item.etmSolicitado && ` · ETM: ${item.etmSolicitado}`}
@@ -574,7 +574,7 @@ export function SolicitudCotizacionDetailPage() {
                         >
                           <p className="font-medium text-primary-700">{item.articulo.nombre}</p>
                           <p className="text-xs text-gray-500 font-mono">
-                            {item.articulo.codigo} · Stock: {item.articulo.stockActual}
+                            {item.articulo.codigo} · Stock: {item.articulo.stockActual.toLocaleString('es-AR')}
                             {item.articulo.marca && ` · ${item.articulo.marca}`}
                           </p>
                         </a>
@@ -795,7 +795,7 @@ export function SolicitudCotizacionDetailPage() {
                     </td>
 
                     <td className="px-3 py-3 text-right font-medium whitespace-nowrap">
-                      ${subtotal.toLocaleString('es-AR')}
+                      ${subtotal.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                     </td>
                   </tr>
                 );
@@ -804,7 +804,7 @@ export function SolicitudCotizacionDetailPage() {
             <tfoot className="bg-gray-50">
               <tr>
                 <td colSpan={6} className="px-3 py-3 text-right font-semibold">Total</td>
-                <td className="px-3 py-3 text-right font-semibold whitespace-nowrap">${total.toLocaleString('es-AR')}</td>
+                <td className="px-3 py-3 text-right font-semibold whitespace-nowrap">${total.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</td>
               </tr>
             </tfoot>
           </table>

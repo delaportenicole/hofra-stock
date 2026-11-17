@@ -325,7 +325,7 @@ export function EntregaEditPage() {
 
           {selectedArticulo && (
             <p className="mt-2 text-sm text-gray-500">
-              Stock disponible: {availableStock}
+              Stock disponible: {availableStock.toLocaleString('es-AR')}
             </p>
           )}
         </div>
@@ -408,7 +408,7 @@ export function EntregaEditPage() {
                       </td>
                       <td className="px-4 py-3 text-right font-medium">
                         {item.articulo.costoInicialEstimado
-                          ? `$${calcularSubtotal(item).toLocaleString('es-AR')}`
+                          ? `$${calcularSubtotal(item).toLocaleString('es-AR', { maximumFractionDigits: 0 })}`
                           : '-'}
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -429,7 +429,7 @@ export function EntregaEditPage() {
                       Total:
                     </td>
                     <td className="px-4 py-3 text-right font-bold text-lg text-primary-700">
-                      ${costoTotal.toLocaleString('es-AR')}
+                      ${costoTotal.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                     </td>
                     <td></td>
                   </tr>

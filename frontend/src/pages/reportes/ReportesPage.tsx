@@ -264,8 +264,8 @@ export function ReportesPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 font-medium">{item.razonSocial}</td>
-                  <td className="px-4 py-3 text-right">{item.totalEntregas}</td>
-                  <td className="px-4 py-3 text-right">{item.totalArticulos}</td>
+                  <td className="px-4 py-3 text-right">{item.totalEntregas.toLocaleString('es-AR')}</td>
+                  <td className="px-4 py-3 text-right">{item.totalArticulos.toLocaleString('es-AR')}</td>
                 </tr>
                 {expandedRows.has(item.clienteId) && (
                   <tr>
@@ -286,7 +286,7 @@ export function ReportesPage() {
                                   {format(new Date(e.fecha), 'dd/MM/yyyy HH:mm', { locale: es })}
                                 </td>
                                 <td className="px-2 py-1 font-mono text-primary-600">{e.numeroCotizacion}</td>
-                                <td className="px-2 py-1 text-right">{e.cantidadArticulos}</td>
+                                <td className="px-2 py-1 text-right">{e.cantidadArticulos.toLocaleString('es-AR')}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -339,13 +339,13 @@ export function ReportesPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 font-medium">{item.razonSocial}</td>
-                  <td className="px-4 py-3 text-right">{item.totalReposiciones}</td>
-                  <td className="px-4 py-3 text-right">{item.totalArticulos}</td>
+                  <td className="px-4 py-3 text-right">{item.totalReposiciones.toLocaleString('es-AR')}</td>
+                  <td className="px-4 py-3 text-right">{item.totalArticulos.toLocaleString('es-AR')}</td>
                   <td className="px-4 py-3 text-right font-medium">
-                    ${item.totalCostoARS.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                    ${item.totalCostoARS.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                   </td>
                   <td className="px-4 py-3 text-right text-gray-600">
-                    USD {item.totalCostoUSD.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                    USD {item.totalCostoUSD.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                 </tr>
                 {expandedRows.has(item.proveedorId) && (
@@ -369,9 +369,9 @@ export function ReportesPage() {
                                   {format(new Date(r.fecha), 'dd/MM/yyyy', { locale: es })}
                                 </td>
                                 <td className="px-2 py-1">{r.articuloNombre}</td>
-                                <td className="px-2 py-1 text-right">{r.cantidad}</td>
-                                <td className="px-2 py-1 text-right">${r.costoARS.toLocaleString('es-AR')}</td>
-                                <td className="px-2 py-1 text-right text-gray-600">USD {r.costoUSD.toLocaleString('es-AR')}</td>
+                                <td className="px-2 py-1 text-right">{r.cantidad.toLocaleString('es-AR')}</td>
+                                <td className="px-2 py-1 text-right">${r.costoARS.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</td>
+                                <td className="px-2 py-1 text-right text-gray-600">USD {r.costoUSD.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -442,11 +442,11 @@ export function ReportesPage() {
                             {item.proveedores.map(p => (
                               <tr key={p.proveedorId} className="hover:bg-gray-100">
                                 <td className="px-2 py-1">{p.razonSocial}</td>
-                                <td className="px-2 py-1 text-right">{p.totalReposiciones}</td>
+                                <td className="px-2 py-1 text-right">{p.totalReposiciones.toLocaleString('es-AR')}</td>
                                 <td className="px-2 py-1 text-right">
                                   {p.ultimaReposicion ? format(new Date(p.ultimaReposicion), 'dd/MM/yyyy') : '-'}
                                 </td>
-                                <td className="px-2 py-1 text-right">${p.costoPromedio.toLocaleString('es-AR')}</td>
+                                <td className="px-2 py-1 text-right">${p.costoPromedio.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -517,8 +517,8 @@ export function ReportesPage() {
                               <tr key={a.articuloId} className="hover:bg-gray-100">
                                 <td className="px-2 py-1 font-mono">{a.codigo}</td>
                                 <td className="px-2 py-1">{a.nombre}</td>
-                                <td className="px-2 py-1 text-right">{a.totalReposiciones}</td>
-                                <td className="px-2 py-1 text-right">{a.totalCantidad}</td>
+                                <td className="px-2 py-1 text-right">{a.totalReposiciones.toLocaleString('es-AR')}</td>
+                                <td className="px-2 py-1 text-right">{a.totalCantidad.toLocaleString('es-AR')}</td>
                                 <td className="px-2 py-1 text-right">
                                   {a.ultimaReposicion ? format(new Date(a.ultimaReposicion), 'dd/MM/yyyy') : '-'}
                                 </td>
@@ -564,13 +564,13 @@ export function ReportesPage() {
                   <td className={`px-3 py-2 ${isCurrentMonth ? 'font-medium text-primary-700' : ''}`}>
                     {MESES[item.mes - 1]}
                   </td>
-                  <td className="px-3 py-2 text-right">{item.totalEntregas || '-'}</td>
-                  <td className="px-3 py-2 text-right">{item.totalReposiciones || '-'}</td>
+                  <td className="px-3 py-2 text-right">{item.totalEntregas > 0 ? item.totalEntregas.toLocaleString('es-AR') : '-'}</td>
+                  <td className="px-3 py-2 text-right">{item.totalReposiciones > 0 ? item.totalReposiciones.toLocaleString('es-AR') : '-'}</td>
                   <td className="px-3 py-2 text-right">
-                    {item.totalCostoReposicionesARS > 0 ? `$${item.totalCostoReposicionesARS.toLocaleString('es-AR')}` : '-'}
+                    {item.totalCostoReposicionesARS > 0 ? `$${item.totalCostoReposicionesARS.toLocaleString('es-AR', { maximumFractionDigits: 0 })}` : '-'}
                   </td>
                   <td className="px-3 py-2 text-right text-gray-600">
-                    {item.totalCostoReposicionesUSD > 0 ? `USD ${item.totalCostoReposicionesUSD.toLocaleString('es-AR')}` : '-'}
+                    {item.totalCostoReposicionesUSD > 0 ? `USD ${item.totalCostoReposicionesUSD.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
                   </td>
                 </tr>
               );

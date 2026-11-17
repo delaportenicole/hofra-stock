@@ -511,7 +511,7 @@ export function AuditoriaListPage() {
             </div>
             <p className="text-sm text-gray-500">
               {total > 0 ? (
-                <>Mostrando {(page - 1) * limit + 1} a {Math.min(page * limit, total)} de {total} registros</>
+                <>Mostrando {((page - 1) * limit + 1).toLocaleString('es-AR')} a {Math.min(page * limit, total).toLocaleString('es-AR')} de {total.toLocaleString('es-AR')} registros</>
               ) : (
                 'Sin registros'
               )}

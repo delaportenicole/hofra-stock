@@ -157,7 +157,7 @@ export function EntregaDetailPage() {
                       <td className="px-4 py-3 font-mono text-sm">{item.articulo.codigo}</td>
                       <td className="px-4 py-3 font-medium">{item.articulo.nombre}</td>
                       <td className="px-4 py-3 text-center">
-                        <Badge variant="danger">-{item.cantidad}</Badge>
+                        <Badge variant="danger">-{item.cantidad.toLocaleString('es-AR')}</Badge>
                       </td>
                     </tr>
                   ))}
@@ -168,7 +168,7 @@ export function EntregaDetailPage() {
                       Total:
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <Badge variant="danger" className="text-base">-{totalItems}</Badge>
+                      <Badge variant="danger" className="text-base">-{totalItems.toLocaleString('es-AR')}</Badge>
                     </td>
                   </tr>
                 </tfoot>
@@ -230,7 +230,7 @@ export function EntregaDetailPage() {
               </div>
               <div>
                 <dt className="text-sm text-gray-500">Total Artículos</dt>
-                <dd>{entrega.items.length} tipos, {totalItems} unidades</dd>
+                <dd>{entrega.items.length} tipos, {totalItems.toLocaleString('es-AR')} unidades</dd>
               </div>
               {entrega.observaciones && (
                 <div>

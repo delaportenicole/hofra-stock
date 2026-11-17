@@ -503,7 +503,7 @@ export function ArticuloFormPage() {
                 <FormField label="Stock Actual">
                   <div className="flex items-center h-10 px-3 bg-gray-100 border border-gray-200 rounded-lg">
                     <span className="text-gray-700 font-medium">
-                      {stockActual ?? 0}
+                      {(stockActual ?? 0).toLocaleString('es-AR')}
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">

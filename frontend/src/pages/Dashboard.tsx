@@ -167,7 +167,7 @@ export function DashboardPage() {
                   </div>
                   <div className="text-right">
                     <Badge variant={articulo.stock === 0 ? 'danger' : 'warning'}>
-                      {articulo.stock} / {articulo.stockMinimo}
+                      {articulo.stock.toLocaleString('es-AR')} / {articulo.stockMinimo.toLocaleString('es-AR')}
                     </Badge>
                     <p className="text-xs text-gray-500 mt-1">{articulo.rubroNombre}</p>
                   </div>
@@ -205,7 +205,7 @@ export function DashboardPage() {
                   </div>
                   <div className="text-right">
                     <Badge variant={mov.tipo === 'entrega' ? 'danger' : 'success'}>
-                      {mov.tipo === 'entrega' ? '-' : '+'}{mov.cantidad}
+                      {mov.tipo === 'entrega' ? '-' : '+'}{mov.cantidad.toLocaleString('es-AR')}
                     </Badge>
                     <p className="text-xs text-gray-500 mt-1">
                       {format(new Date(mov.fecha), 'dd/MM HH:mm', { locale: es })}
@@ -245,7 +245,7 @@ function StatCard({ title, value, icon: Icon, color, alert, small }: StatCardPro
         <div>
           <p className="text-sm font-medium text-gray-500">{title}</p>
           <p className={`${small ? 'text-2xl' : 'text-3xl'} font-bold text-gray-900 mt-1`}>
-            {value}
+            {value.toLocaleString('es-AR')}
           </p>
         </div>
         <div className={`p-3 rounded-lg ${colorClasses[color]}`}>
@@ -304,8 +304,8 @@ function UltimoDolarCard({ valor }: UltimoDolarCardProps) {
       ? new Intl.NumberFormat('es-AR', {
           style: 'currency',
           currency: 'ARS',
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
         }).format(valor)
       : 'Sin definir';
 
@@ -335,9 +335,9 @@ function ArticulosCard({ activos, total }: ArticulosCardProps) {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-gray-500">Artículos Activos</p>
-          <p className="text-3xl font-bold text-gray-900 mt-1">{activos}</p>
+          <p className="text-3xl font-bold text-gray-900 mt-1">{activos.toLocaleString('es-AR')}</p>
           <p className="text-sm text-gray-500 mt-1">
-            {total} en sistema
+            {total.toLocaleString('es-AR')} en sistema
           </p>
         </div>
         <div className="p-3 rounded-lg bg-blue-50 text-blue-600">

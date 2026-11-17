@@ -31,7 +31,7 @@ export function StockBadge({ stock, stockMinimo }: { stock: number; stockMinimo:
 
   return (
     <Badge variant={isZero ? 'danger' : isLow ? 'warning' : 'success'}>
-      {stock} {isLow && !isZero && '(Bajo)'} {isZero && '(Sin stock)'}
+      {stock.toLocaleString('es-AR')} {isLow && !isZero && '(Bajo)'} {isZero && '(Sin stock)'}
     </Badge>
   );
 }

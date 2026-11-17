@@ -38,7 +38,7 @@ export function ReposicionEditPage() {
   // Calcular costo unitario en dólares
   const costoUnitarioDolares =
     watchCostoReposicion && watchValorDolar
-      ? (watchCostoReposicion / watchValorDolar).toFixed(2)
+      ? watchCostoReposicion / watchValorDolar
       : null;
 
   // Calcular importe total de reposición
@@ -50,7 +50,7 @@ export function ReposicionEditPage() {
   // Calcular importe total en dólares
   const importeTotalDolares =
     importeTotal && watchValorDolar
-      ? (importeTotal / watchValorDolar).toFixed(2)
+      ? importeTotal / watchValorDolar
       : null;
 
   useEffect(() => {
@@ -130,7 +130,7 @@ export function ReposicionEditPage() {
             <p className="font-semibold">{reposicion.articulo.nombre}</p>
             <p className="text-sm text-gray-500 font-mono">{reposicion.articulo.codigo}</p>
             <div className="mt-2">
-              <Badge variant="success">+{reposicion.cantidad} unidades</Badge>
+              <Badge variant="success">+{reposicion.cantidad.toLocaleString('es-AR')} unidades</Badge>
             </div>
           </div>
 
@@ -198,14 +198,14 @@ export function ReposicionEditPage() {
                   {costoUnitarioDolares && (
                     <div>
                       <p className="text-sm text-blue-600">Costo Unitario en USD</p>
-                      <p className="text-lg font-bold text-blue-800">USD {costoUnitarioDolares}</p>
+                      <p className="text-lg font-bold text-blue-800">USD {costoUnitarioDolares.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                     </div>
                   )}
                   {importeTotal && (
                     <div>
                       <p className="text-sm text-blue-600">Importe Total (ARS)</p>
                       <p className="text-lg font-bold text-blue-800">
-                        ${importeTotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                        ${importeTotal.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                       </p>
                     </div>
                   )}
@@ -213,9 +213,9 @@ export function ReposicionEditPage() {
                 {importeTotalDolares && reposicion && (
                   <div className="pt-3 border-t border-blue-200">
                     <p className="text-sm text-blue-600">Importe Total de Reposición en USD</p>
-                    <p className="text-2xl font-bold text-blue-900">USD {importeTotalDolares}</p>
+                    <p className="text-2xl font-bold text-blue-900">USD {importeTotalDolares.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                     <p className="text-xs text-blue-500 mt-1">
-                      = {reposicion.cantidad} unidades × ${watchCostoReposicion?.toLocaleString('es-AR')} c/u
+                      = {reposicion.cantidad.toLocaleString('es-AR')} unidades × ${watchCostoReposicion?.toLocaleString('es-AR', { maximumFractionDigits: 0 })} c/u
                     </p>
                   </div>
                 )}
@@ -315,7 +315,7 @@ export function ReposicionEditPage() {
             </div>
             <div>
               <dt className="text-sm text-gray-500">Stock Actual</dt>
-              <dd className="font-medium">{reposicion.articulo.stock}</dd>
+              <dd className="font-medium">{reposicion.articulo.stock.toLocaleString('es-AR')}</dd>
             </div>
           </dl>
 

@@ -126,7 +126,7 @@ export function ReposicionesListPage() {
         const prefix = item.estado === 'confirmada' ? '+' : '';
         return (
           <Badge variant={variant}>
-            {prefix}{item.cantidad}
+            {prefix}{item.cantidad.toLocaleString('es-AR')}
           </Badge>
         );
       },
@@ -138,9 +138,9 @@ export function ReposicionesListPage() {
         <div className="text-sm">
           {item.costoReposicion ? (
             <>
-              <p className="font-medium">${item.costoReposicion.toLocaleString('es-AR')}</p>
+              <p className="font-medium">${item.costoReposicion.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</p>
               {item.costoReposicionDolares && (
-                <p className="text-gray-500">USD {item.costoReposicionDolares}</p>
+                <p className="text-gray-500">USD {item.costoReposicionDolares.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               )}
             </>
           ) : (

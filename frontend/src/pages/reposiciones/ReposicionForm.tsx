@@ -50,7 +50,7 @@ export function ReposicionFormPage() {
   // Calcular costo unitario en dólares
   const costoUnitarioDolares =
     watchCostoReposicion && watchValorDolar
-      ? (watchCostoReposicion / watchValorDolar).toFixed(2)
+      ? watchCostoReposicion / watchValorDolar
       : null;
 
   // Calcular importe total de reposición
@@ -62,7 +62,7 @@ export function ReposicionFormPage() {
   // Calcular importe total en dólares
   const importeTotalDolares =
     importeTotal && watchValorDolar
-      ? (importeTotal / watchValorDolar).toFixed(2)
+      ? importeTotal / watchValorDolar
       : null;
 
   // Último costo cargado para el artículo seleccionado: la reposición más reciente si existe,
@@ -299,14 +299,14 @@ export function ReposicionFormPage() {
                   {costoUnitarioDolares && (
                     <div>
                       <p className="text-sm text-blue-600">Costo Unitario en USD</p>
-                      <p className="text-lg font-bold text-blue-800">USD {costoUnitarioDolares}</p>
+                      <p className="text-lg font-bold text-blue-800">USD {costoUnitarioDolares.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                     </div>
                   )}
                   {importeTotal && (
                     <div>
                       <p className="text-sm text-blue-600">Importe Total (ARS)</p>
                       <p className="text-lg font-bold text-blue-800">
-                        ${importeTotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                        ${importeTotal.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                       </p>
                     </div>
                   )}
@@ -314,9 +314,9 @@ export function ReposicionFormPage() {
                 {importeTotalDolares && (
                   <div className="pt-3 border-t border-blue-200">
                     <p className="text-sm text-blue-600">Importe Total de Reposición en USD</p>
-                    <p className="text-2xl font-bold text-blue-900">USD {importeTotalDolares}</p>
+                    <p className="text-2xl font-bold text-blue-900">USD {importeTotalDolares.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                     <p className="text-xs text-blue-500 mt-1">
-                      = {watchCantidad} unidades × ${watchCostoReposicion?.toLocaleString('es-AR')} c/u
+                      = {watchCantidad.toLocaleString('es-AR')} unidades × ${watchCostoReposicion?.toLocaleString('es-AR', { maximumFractionDigits: 0 })} c/u
                     </p>
                   </div>
                 )}
@@ -425,7 +425,7 @@ export function ReposicionFormPage() {
               </div>
               <div>
                 <dt className="text-sm text-gray-500">Stock Minimo</dt>
-                <dd className="font-medium">{selectedArticulo.stockMinimo}</dd>
+                <dd className="font-medium">{selectedArticulo.stockMinimo.toLocaleString('es-AR')}</dd>
               </div>
               {selectedArticulo.ubicacion && (
                 <div>
@@ -446,7 +446,7 @@ export function ReposicionFormPage() {
                   <div>
                     <p className="text-xs text-amber-700">ARS</p>
                     <p className="text-xl font-bold text-amber-900">
-                      ${Number(costoAnteriorArs).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      ${Number(costoAnteriorArs).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                     </p>
                   </div>
                   <div>
@@ -490,7 +490,7 @@ export function ReposicionFormPage() {
               <div className="mt-4 pt-4 border-t border-gray-200">
                 <p className="text-sm text-gray-500">Stock despues de reposicion:</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {selectedArticulo.stock + (watchCantidad || 0)}
+                  {(selectedArticulo.stock + (watchCantidad || 0)).toLocaleString('es-AR')}
                 </p>
               </div>
             )}

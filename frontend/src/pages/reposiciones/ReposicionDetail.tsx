@@ -59,13 +59,16 @@ const formatFieldValue = (field: string, value: unknown): string => {
     return estados[value as string] || String(value);
   }
   if (field === 'costoReposicion' || field === 'valorDolarOficial') {
-    return `$${Number(value).toLocaleString('es-AR')}`;
+    return `$${Number(value).toLocaleString('es-AR', { maximumFractionDigits: 0 })}`;
   }
   if (field === 'fechaVencimiento' && value) {
     return format(new Date(value as string), 'dd/MM/yyyy');
   }
   if (field === 'stockIncrementado' || field === 'stockDescontado') {
-    return `${value} unidades`;
+    return `${Number(value).toLocaleString('es-AR')} unidades`;
+  }
+  if (typeof value === 'number') {
+    return value.toLocaleString('es-AR');
   }
   return String(value);
 };
@@ -111,7 +114,7 @@ export function ReposicionDetailPage() {
     if (!reposicion) return;
 
     const mensaje = reposicion.estado === 'confirmada'
-      ? `¿Esta seguro de cancelar esta reposicion?\n\nEl stock se descontara en ${reposicion.cantidad} unidades.`
+      ? `¿Esta seguro de cancelar esta reposicion?\n\nEl stock se descontara en ${reposicion.cantidad.toLocaleString('es-AR')} unidades.`
       : `¿Esta seguro de cancelar esta reposicion?\n\nEl stock no sera afectado (la reposicion aun no estaba confirmada).`;
 
     if (!confirm(mensaje)) {
@@ -210,7 +213,7 @@ export function ReposicionDetailPage() {
                 <p className="font-mono text-sm text-gray-500">{reposicion.articulo.codigo}</p>
                 <p className="text-lg font-semibold">{reposicion.articulo.nombre}</p>
                 <div className="mt-2 text-sm text-gray-600">
-                  <span>Stock actual: <strong>{reposicion.articulo.stock}</strong></span>
+                  <span>Stock actual: <strong>{reposicion.articulo.stock.toLocaleString('es-AR')}</strong></span>
                 </div>
                 <Link
                   to={`/articulos/${reposicion.articuloId}`}
@@ -232,7 +235,7 @@ export function ReposicionDetailPage() {
             {/* Cantidad */}
             <div className="mb-6">
               <dt className="text-sm text-gray-500">Cantidad de artículos</dt>
-              <dd className="text-2xl font-bold text-green-600">+{reposicion.cantidad} unidades</dd>
+              <dd className="text-2xl font-bold text-green-600">+{reposicion.cantidad.toLocaleString('es-AR')} unidades</dd>
             </div>
 
             {/* Costos Unitarios */}
@@ -243,7 +246,7 @@ export function ReposicionDetailPage() {
                   <dt className="text-sm text-gray-500">Costo Unitario (ARS)</dt>
                   <dd className="text-xl font-semibold">
                     {reposicion.costoReposicion
-                      ? `$${reposicion.costoReposicion.toLocaleString('es-AR')}`
+                      ? `$${reposicion.costoReposicion.toLocaleString('es-AR', { maximumFractionDigits: 0 })}`
                       : '-'}
                   </dd>
                 </div>
@@ -251,7 +254,7 @@ export function ReposicionDetailPage() {
                   <dt className="text-sm text-gray-500">Valor Dólar</dt>
                   <dd className="text-xl font-semibold">
                     {reposicion.valorDolarOficial
-                      ? `$${reposicion.valorDolarOficial.toLocaleString('es-AR')}`
+                      ? `$${reposicion.valorDolarOficial.toLocaleString('es-AR', { maximumFractionDigits: 0 })}`
                       : '-'}
                   </dd>
                 </div>
@@ -259,7 +262,7 @@ export function ReposicionDetailPage() {
                   <dt className="text-sm text-gray-500">Costo Unitario (USD)</dt>
                   <dd className="text-xl font-semibold text-blue-600">
                     {reposicion.costoReposicionDolares
-                      ? `USD ${reposicion.costoReposicionDolares}`
+                      ? `USD ${reposicion.costoReposicionDolares.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                       : '-'}
                   </dd>
                 </div>
@@ -274,20 +277,20 @@ export function ReposicionDetailPage() {
                   <div>
                     <dt className="text-sm text-blue-600">Total (ARS)</dt>
                     <dd className="text-2xl font-bold text-blue-900">
-                      ${(reposicion.costoReposicion * reposicion.cantidad).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                      ${(reposicion.costoReposicion * reposicion.cantidad).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                     </dd>
                   </div>
                   {reposicion.costoReposicionDolares && (
                     <div>
                       <dt className="text-sm text-blue-600">Total (USD)</dt>
                       <dd className="text-2xl font-bold text-blue-900">
-                        USD {(reposicion.costoReposicionDolares * reposicion.cantidad).toFixed(2)}
+                        USD {(reposicion.costoReposicionDolares * reposicion.cantidad).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </dd>
                     </div>
                   )}
                 </dl>
                 <p className="text-xs text-blue-500 mt-2">
-                  = {reposicion.cantidad} unidades × ${reposicion.costoReposicion.toLocaleString('es-AR')} c/u
+                  = {reposicion.cantidad.toLocaleString('es-AR')} unidades × ${reposicion.costoReposicion.toLocaleString('es-AR', { maximumFractionDigits: 0 })} c/u
                 </p>
               </div>
             )}

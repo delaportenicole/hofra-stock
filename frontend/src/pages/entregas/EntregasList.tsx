@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Printer, Eye, Edit, MoreVertical, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Printer, Eye, Edit, MoreVertical, CheckCircle, XCircle, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { stockService } from '../../services/stock.service';
@@ -8,6 +8,7 @@ import { DataTable } from '../../components/DataTable';
 import { Badge } from '../../components/Badge';
 import { PermissionGuard } from '../../components/PermissionGuard';
 import { usePagination } from '../../hooks/usePagination';
+import { useDebounce } from '../../hooks/useDebounce';
 import { getErrorMessage } from '../../services/api';
 import toast from 'react-hot-toast';
 import type { EntregaConRelaciones, EstadoEntrega } from '@hofra/shared';
@@ -30,11 +31,20 @@ export function EntregasListPage() {
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState('');
+  const debouncedBusqueda = useDebounce(busqueda, 300);
   const { page, limit, setPage, setLimit } = usePagination();
 
   useEffect(() => {
     loadEntregas();
-  }, [page, limit]);
+  }, [page, limit, debouncedBusqueda]);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    if (debouncedBusqueda !== '') {
+      setPage(1);
+    }
+  }, [debouncedBusqueda]);
 
   useEffect(() => {
     const handleClickOutside = () => setOpenMenuId(null);
@@ -45,7 +55,11 @@ export function EntregasListPage() {
   const loadEntregas = async () => {
     setIsLoading(true);
     try {
-      const result = await stockService.getEntregas({ page, limit });
+      const result = await stockService.getEntregas({
+        page,
+        limit,
+        busqueda: debouncedBusqueda || undefined,
+      });
       setEntregas(result.data);
       setTotal(result.pagination.total);
     } catch (error) {
@@ -161,16 +175,16 @@ export function EntregasListPage() {
               <tr>
                 <td style="font-family: monospace;">${item.articulo.codigo}</td>
                 <td>${item.articulo.nombre}</td>
-                <td class="text-center">${item.cantidad}</td>
-                <td class="text-right">$${(item.articulo.costoInicialEstimado || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td>
-                <td class="text-right">$${((item.articulo.costoInicialEstimado || 0) * item.cantidad).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td>
+                <td class="text-center">${item.cantidad.toLocaleString('es-AR')}</td>
+                <td class="text-right">$${(item.articulo.costoInicialEstimado || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}</td>
+                <td class="text-right">$${((item.articulo.costoInicialEstimado || 0) * item.cantidad).toLocaleString('es-AR', { maximumFractionDigits: 0 })}</td>
               </tr>
             `).join('')}
             <tr class="total-row">
               <td colspan="2">TOTAL</td>
-              <td class="text-center">${entrega.items.reduce((sum, i) => sum + i.cantidad, 0)}</td>
+              <td class="text-center">${entrega.items.reduce((sum, i) => sum + i.cantidad, 0).toLocaleString('es-AR')}</td>
               <td></td>
-              <td class="text-right">$${costoTotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td>
+              <td class="text-right">$${costoTotal.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</td>
             </tr>
           </tbody>
         </table>
@@ -229,7 +243,7 @@ export function EntregasListPage() {
             <div key={idx} className="flex items-center gap-2">
               <span className="text-sm font-mono text-gray-500">{i.articulo.codigo}</span>
               <span className="text-sm">{i.articulo.nombre}</span>
-              <Badge variant="danger" className="text-xs">-{i.cantidad}</Badge>
+              <Badge variant="danger" className="text-xs">-{i.cantidad.toLocaleString('es-AR')}</Badge>
             </div>
           ))}
           {item.items.length > 2 && (
@@ -248,7 +262,7 @@ export function EntregasListPage() {
         const prefix = item.estado === 'confirmada' ? '-' : '';
         return (
           <Badge variant={variant}>
-            {prefix}{getTotalCantidad(item)}
+            {prefix}{getTotalCantidad(item).toLocaleString('es-AR')}
           </Badge>
         );
       },
@@ -347,6 +361,18 @@ export function EntregasListPage() {
             Nueva Entrega
           </Link>
         </PermissionGuard>
+      </div>
+
+      {/* Busqueda */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Buscar por N° cotización, cliente o purchase order..."
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          className="input w-full pl-10"
+        />
       </div>
 
       <DataTable

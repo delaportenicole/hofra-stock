@@ -387,12 +387,12 @@ export function ImportarPage() {
                       </td>
                       <td className="px-3 py-2 text-sm text-gray-600">
                         {row.stockActual < 0 ? (
-                          <span className="text-red-600">{row.stockActual} → 0</span>
+                          <span className="text-red-600">{row.stockActual.toLocaleString('es-AR')} → 0</span>
                         ) : (
-                          row.stockActual
+                          row.stockActual.toLocaleString('es-AR')
                         )}
                       </td>
-                      <td className="px-3 py-2 text-sm text-gray-600">{row.stockMinimo}</td>
+                      <td className="px-3 py-2 text-sm text-gray-600">{row.stockMinimo.toLocaleString('es-AR')}</td>
                       <td className="px-3 py-2 text-sm">
                         {row.marca ? (
                           <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
@@ -440,7 +440,7 @@ export function ImportarPage() {
           {/* Progress counter */}
           <div className="mt-4">
             <p className="text-3xl font-bold text-primary-600">
-              {progress.current} <span className="text-gray-400 text-lg">/ {progress.total}</span>
+              {progress.current.toLocaleString('es-AR')} <span className="text-gray-400 text-lg">/ {progress.total.toLocaleString('es-AR')}</span>
             </p>
             <div className="w-64 mx-auto mt-3 bg-gray-200 rounded-full h-2">
               <div
@@ -468,15 +468,15 @@ export function ImportarPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div className="p-4 bg-gray-50 rounded-lg text-center">
               <p className="text-sm text-gray-600">Total procesados</p>
-              <p className="text-2xl font-bold">{result.totalRows}</p>
+              <p className="text-2xl font-bold">{result.totalRows.toLocaleString('es-AR')}</p>
             </div>
             <div className="p-4 bg-green-50 rounded-lg text-center">
               <p className="text-sm text-green-600">Importados</p>
-              <p className="text-2xl font-bold text-green-700">{result.imported}</p>
+              <p className="text-2xl font-bold text-green-700">{result.imported.toLocaleString('es-AR')}</p>
             </div>
             <div className="p-4 bg-red-50 rounded-lg text-center">
               <p className="text-sm text-red-600">Omitidos</p>
-              <p className="text-2xl font-bold text-red-700">{result.skipped}</p>
+              <p className="text-2xl font-bold text-red-700">{result.skipped.toLocaleString('es-AR')}</p>
             </div>
             <div className="p-4 bg-blue-50 rounded-lg text-center">
               <p className="text-sm text-blue-600">Rubros creados</p>

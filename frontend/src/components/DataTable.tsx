@@ -12,6 +12,11 @@ export interface Column<T> {
   getSortValue?: (item: T) => string | number | null; // Custom function to get sort value
 }
 
+function formatCellValue(value: unknown): React.ReactNode {
+  if (typeof value === 'number') return value.toLocaleString('es-AR');
+  return value?.toString() as React.ReactNode;
+}
+
 export type SortDirection = 'asc' | 'desc';
 
 export interface SortConfig {
@@ -202,7 +207,7 @@ export function DataTable<T>({
                     <td key={column.key} className={column.className}>
                       {column.render
                         ? column.render(item)
-                        : (item as Record<string, unknown>)[column.key]?.toString()}
+                        : formatCellValue((item as Record<string, unknown>)[column.key])}
                     </td>
                   ))}
                 </tr>
@@ -233,9 +238,9 @@ export function DataTable<T>({
             <div className="text-sm text-gray-500">
               {pagination.total > 0 ? (
                 <>
-                  Mostrando {(pagination.page - 1) * pagination.limit + 1} -{' '}
-                  {Math.min(pagination.page * pagination.limit, pagination.total)} de{' '}
-                  {pagination.total}
+                  Mostrando {((pagination.page - 1) * pagination.limit + 1).toLocaleString('es-AR')} -{' '}
+                  {Math.min(pagination.page * pagination.limit, pagination.total).toLocaleString('es-AR')} de{' '}
+                  {pagination.total.toLocaleString('es-AR')}
                 </>
               ) : (
                 'Sin registros'

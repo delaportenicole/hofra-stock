@@ -184,9 +184,9 @@ export function ArticuloCombobox({
                         <span className="font-medium truncate">{articulo.nombre}</span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <span>Stock: {stock}</span>
+                        <span>Stock: {stock.toLocaleString('es-AR')}</span>
                         {articulo.costoInicialEstimado && (
-                          <span>• ${articulo.costoInicialEstimado.toLocaleString('es-AR')}</span>
+                          <span>• ${articulo.costoInicialEstimado.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</span>
                         )}
                       </div>
                     </div>
