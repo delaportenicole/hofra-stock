@@ -273,12 +273,12 @@ export function ArticulosListPage() {
             data={articulos}
             filename="articulos"
             columns={[
-              { key: 'codigo', header: 'Código', type: 'text' },
+              { key: 'codigo', header: 'Código', type: 'text', width: 6 },
               { key: 'nombre', header: 'Nombre', type: 'text', width: 40 },
               { key: 'rubro', header: 'Rubro', type: 'text', value: (item) => item.rubro?.nombre, width: 22 },
-              { key: 'proveedor', header: 'Proveedor', type: 'text', value: (item) => item.proveedor?.razonSocial, width: 28 },
-              { key: 'stock', header: 'Stock', type: 'number' },
-              { key: 'stockMinimo', header: 'Stock Mínimo', type: 'number' },
+              { key: 'proveedor', header: 'Proveedor', type: 'text', value: (item) => item.proveedor?.razonSocial, width: 22 },
+              { key: 'stock', header: 'Stock', type: 'number', width: 5 },
+              { key: 'stockMinimo', header: 'Stock Mínimo', type: 'number', width: 12 },
               { key: 'presentacion', header: 'Presentación', type: 'text' },
               ...(stockBajo
                 ? [

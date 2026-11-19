@@ -1149,7 +1149,7 @@ Revisión de **todos** los mecanismos de exportación del sistema para que el ti
 
 **Solución**: `ExportColumn<T>` ahora acepta un campo opcional `width` (en "caracteres", la unidad estándar de ancho de columna de xlsx). Al construir la hoja, `ExportButtons` setea `worksheet['!cols']` con el ancho de cada columna (`col.width` si se definió, o un default de 16 caracteres para las que no lo especifican) — confirmado a nivel de XML interno del `.xlsx` generado (`<cols><col ... customWidth="1"/>...`), por lo que Excel respeta esos anchos al abrir el archivo, no son solo una sugerencia.
 
-En el export de Artículos (`ArticulosList.tsx`) se usó explícitamente en los campos con texto/números más largos: Nombre (40), Rubro (22), Proveedor (28), Último costo (18) y Costo estimado de reposición (26); el resto de las columnas usa el default de 16.
+En el export de Artículos (`ArticulosList.tsx`) se usó explícitamente en los campos con texto/números más largos: Nombre (40), Rubro (22), Proveedor (22), Último costo (18) y Costo estimado de reposición (26); además Código (6), Stock (5) y Stock Mínimo (12) se angostaron al ancho de su propio encabezado (a pedido de Nicole, estas 3 columnas contienen valores cortos y no necesitan más espacio que el título); el resto de las columnas usa el default de 16.
 
 #### Archivos
 - `frontend/src/components/ExportButtons.tsx` (`ExportColumn.width`, `worksheet['!cols']`)
@@ -2649,4 +2649,11 @@ Nicole reportó que al descargar el Excel de Artículos, las columnas quedaban t
 
 ##### Archivos Modificados
 - `frontend/src/components/ExportButtons.tsx`
+- `frontend/src/pages/articulos/ArticulosList.tsx`
+
+### 19 de noviembre de 2026 (continuación 5) — Ajuste fino de anchos en el Excel: Código/Stock/Stock Mínimo angostas
+
+A pedido de Nicole, ajuste puntual de anchos sobre el fix anterior (mismo día): **Código** (width 6), **Stock** (width 5) y **Stock Mínimo** (width 12) se angostaron al ancho exacto de su propio encabezado — son columnas con valores cortos (un código, un número de stock) que no necesitaban el ancho default de 16. **Proveedor** se achicó un poco (28 → 22, mismo ancho que Rubro). Verificado de nuevo a mano que el XML interno del `.xlsx` generado refleja los anchos correctos.
+
+##### Archivos Modificados
 - `frontend/src/pages/articulos/ArticulosList.tsx`
