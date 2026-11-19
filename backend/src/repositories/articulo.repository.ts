@@ -457,6 +457,16 @@ export class ArticuloRepository extends BaseRepository<Articulo> {
       return `LOWER(a.nombre) ${dir}`;
     }
 
+    // Estos dos solo tienen sentido en el listado de stock bajo (depende del JOIN LATERAL
+    // `uc` de ULTIMO_COSTO_JOIN, presente en search()); no son columnas reales de la tabla.
+    if (sortBy === 'cantidadAReponer') {
+      return `GREATEST(0, a.stock_minimo - a.stock) ${dir}`;
+    }
+
+    if (sortBy === 'costoEstimadoReposicion') {
+      return `(GREATEST(0, a.stock_minimo - a.stock) * COALESCE(uc.costo_reposicion, a.costo_inicial_estimado)) ${dir} NULLS LAST`;
+    }
+
     const column = ArticuloRepository.SORT_COLUMNS[sortBy] || ArticuloRepository.SORT_COLUMNS.nombre;
     return `${column} ${dir}`;
   }

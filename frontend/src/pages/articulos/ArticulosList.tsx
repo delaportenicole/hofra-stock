@@ -210,6 +210,7 @@ export function ArticulosListPage() {
           {
             key: 'cantidadAReponer',
             header: 'Cantidad a reponer',
+            sortable: true,
             className: 'max-w-[110px]',
             render: (item: ArticuloConRelaciones) => (
               <span className="font-medium">{getCantidadAReponer(item).toLocaleString('es-AR')}</span>
@@ -218,6 +219,7 @@ export function ArticulosListPage() {
           {
             key: 'costoEstimadoReposicion',
             header: 'Costo estimado de reposición',
+            sortable: true,
             className: 'max-w-[150px]',
             render: (item: ArticuloConRelaciones) => {
               const costo = getCostoEstimadoReposicion(item);
@@ -230,32 +232,36 @@ export function ArticulosListPage() {
           },
         ]
       : []),
-    {
-      key: 'acciones',
-      header: 'Acciones',
-      className: 'w-20',
-      render: (item: ArticuloConRelaciones) => (
-        <div className="flex items-center gap-2">
-          <PermissionGuard modulo="articulos" accion="crear">
-            <Link
-              to={`/articulos/nuevo?duplicarDe=${item.id}`}
-              className="p-1 text-gray-400 hover:text-primary-600"
-              title="Duplicar artículo"
-            >
-              <Copy className="w-5 h-5" />
-            </Link>
-          </PermissionGuard>
-          <PermissionGuard modulo="articulos" accion="eliminar">
-            <button
-              onClick={() => setDeleteId(item.id)}
-              className="p-1 text-gray-400 hover:text-danger-600"
-            >
-              <Trash2 className="w-5 h-5" />
-            </button>
-          </PermissionGuard>
-        </div>
-      ),
-    },
+    ...(stockBajo
+      ? []
+      : [
+          {
+            key: 'acciones',
+            header: 'Acciones',
+            className: 'w-20',
+            render: (item: ArticuloConRelaciones) => (
+              <div className="flex items-center gap-2">
+                <PermissionGuard modulo="articulos" accion="crear">
+                  <Link
+                    to={`/articulos/nuevo?duplicarDe=${item.id}`}
+                    className="p-1 text-gray-400 hover:text-primary-600"
+                    title="Duplicar artículo"
+                  >
+                    <Copy className="w-5 h-5" />
+                  </Link>
+                </PermissionGuard>
+                <PermissionGuard modulo="articulos" accion="eliminar">
+                  <button
+                    onClick={() => setDeleteId(item.id)}
+                    className="p-1 text-gray-400 hover:text-danger-600"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </PermissionGuard>
+              </div>
+            ),
+          },
+        ]),
   ];
 
   return (

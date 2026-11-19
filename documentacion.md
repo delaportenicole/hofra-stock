@@ -57,7 +57,9 @@ Cuando el filtro **"Solo stock bajo"** del listado de Artículos está activo (i
   - **Cantidad a reponer**: `MAX(0, Stock Mínimo - Stock actual)`
   - **Costo estimado de reposición**: `Cantidad a reponer × Último costo` (vacío/"Sin costo registrado" si no hay último costo)
 - **Resumen de totales**: tarjeta sobre la grilla con Total de artículos con stock bajo, Total de unidades a reponer y Costo total estimado de reposición. Se recalcula solo con esos 3 valores, pedidos aparte vía `GET /articulos/resumen-reposicion` (mismos filtros que el listado: búsqueda, rubro, proveedor, estado) para que sume **todos** los artículos que matchean el filtro, no solo los de la página visible en pantalla. Si hay artículos sin costo registrado, se excluyen del costo total y se informa la cantidad excluida debajo del total, para no mostrar un costo total engañoso
-- **Exportación a Excel/CSV**: las 3 columnas nuevas se agregan también al export (tipadas como número/moneda reales, no texto — ver "Tipado de Exportaciones"), más una fila `TOTAL` al final con el total de unidades y el costo total estimado
+- **Exportación a Excel/CSV**: las 3 columnas nuevas se agregan también al export (tipadas como número/moneda reales, no texto — ver "Tipado de Exportaciones"), más una fila `TOTAL` al final con el total de unidades y el costo total estimado. El export respeta el `sortBy`/`sortOrder` vigente en la grilla al momento de exportar (misma lógica de siempre, el ordenamiento no es exclusivo de este modo) — la fila `TOTAL` queda siempre al final, fuera del ordenamiento
+- **Ordenamiento (19 de noviembre de 2026)**: "Cantidad a reponer" y "Costo estimado de reposición" son columnas ordenables (`sortable`) además de las que ya lo eran. Como no son columnas reales de `articulos`, el backend las resuelve en `buildOrderByClause` con expresiones calculadas (`GREATEST(0, stock_minimo - stock)`, y esa misma expresión multiplicada por `COALESCE(uc.costo_reposicion, costo_inicial_estimado)`), con `NULLS LAST` para que los artículos sin costo registrado queden siempre al final sin importar la dirección
+- **Columna Acciones (19 de noviembre de 2026)**: se oculta en este listado filtrado (Duplicar/Eliminar no están disponibles desde esta vista); se mantiene sin cambios en el listado general de Artículos
 
 ##### Archivos
 **Backend**:
@@ -2589,3 +2591,14 @@ Para la fila `TOTAL` del export se agregó un prop opcional `footerRows` a `Expo
 **Backend**: `backend/src/repositories/articulo.repository.ts`, `backend/src/services/articulo.service.ts`, `backend/src/controllers/articulo.controller.ts`, `backend/src/routes/articulo.routes.ts`, `shared/src/types/index.ts`
 
 **Frontend**: `frontend/src/pages/articulos/ArticulosList.tsx`, `frontend/src/services/articulos.service.ts`, `frontend/src/components/ExportButtons.tsx`
+
+### 19 de noviembre de 2026 (continuación) — Ordenamiento en Stock Bajo y columna Acciones oculta
+
+Dos ajustes puntuales sobre la vista de "Artículos con Stock Bajo" agregada más arriba el mismo día:
+
+1. **Ordenamiento por "Cantidad a reponer" y "Costo estimado de reposición"**: ambas columnas pasan a ser `sortable`. Como no son columnas reales de la tabla `articulos` (son calculadas), `buildOrderByClause()` en `ArticuloRepository` les agrega casos especiales con la expresión calculada (`GREATEST(0, stock_minimo - stock)`, y esa expresión × `COALESCE(uc.costo_reposicion, costo_inicial_estimado)` para el costo estimado), con `NULLS LAST` para que los artículos sin costo registrado no se mezclen arriba al ordenar descendente. El export a Excel/CSV ya reutilizaba el `sortBy`/`sortOrder` vigente de la grilla (no fue necesario tocar nada ahí), así que el archivo descargado queda en el mismo orden que se ve en pantalla al momento de exportar.
+2. **Columna "Acciones" oculta**: con el filtro "Solo stock bajo" activo, la columna Acciones (Duplicar/Eliminar) ya no se muestra — esta vista es de consulta/planificación de reposición, no de edición. Sin cambios en el listado general de Artículos.
+
+##### Archivos Modificados
+- `backend/src/repositories/articulo.repository.ts` (`buildOrderByClause`)
+- `frontend/src/pages/articulos/ArticulosList.tsx` (columnas `sortable`, columna Acciones condicional)
