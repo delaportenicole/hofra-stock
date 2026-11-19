@@ -27,6 +27,16 @@ export class ArticuloController {
     }
   }
 
+  async getResumenReposicion(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const filtros = articuloFiltrosSchema.parse(req.query);
+      const resumen = await articuloService.getResumenReposicion(filtros);
+      sendSuccess(res, resumen);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async findById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const articulo = await articuloService.findById(req.params.id);

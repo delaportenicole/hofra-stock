@@ -14,7 +14,14 @@ import { usePagination } from '../../hooks/usePagination';
 import { useDebounce } from '../../hooks/useDebounce';
 import { getErrorMessage } from '../../services/api';
 import toast from 'react-hot-toast';
-import type { ArticuloConRelaciones, Rubro, Proveedor, ArticuloFiltros } from '@hofra/shared';
+import type { ArticuloConRelaciones, Rubro, Proveedor, ArticuloFiltros, ResumenReposicion } from '@hofra/shared';
+
+const getCantidadAReponer = (item: ArticuloConRelaciones) => Math.max(0, item.stockMinimo - item.stock);
+
+const getCostoEstimadoReposicion = (item: ArticuloConRelaciones): number | null =>
+  item.ultimoCosto != null ? getCantidadAReponer(item) * item.ultimoCosto : null;
+
+const formatMoneda = (valor: number) => `$${valor.toLocaleString('es-AR', { maximumFractionDigits: 0 })}`;
 
 export function ArticulosListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -26,6 +33,7 @@ export function ArticulosListPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [imagenAmpliada, setImagenAmpliada] = useState<{ url: string; nombre: string } | null>(null);
+  const [resumenReposicion, setResumenReposicion] = useState<ResumenReposicion | null>(null);
 
   const { page, limit, setPage, setLimit } = usePagination();
   const [busqueda, setBusqueda] = useState(searchParams.get('busqueda') || '');
@@ -46,6 +54,19 @@ export function ArticulosListPage() {
   useEffect(() => {
     loadArticulos();
   }, [page, limit, debouncedBusqueda, rubroId, proveedorId, stockBajo, estadoFiltro, sortBy, sortOrder]);
+
+  // El resumen de reposición (totales) debe reflejar TODOS los artículos que cumplen el
+  // filtro, no solo la página actual, por eso se pide aparte en lugar de derivarlo de `articulos`.
+  useEffect(() => {
+    if (!stockBajo) {
+      setResumenReposicion(null);
+      return;
+    }
+    articulosService
+      .getResumenReposicion(buildFiltros())
+      .then(setResumenReposicion)
+      .catch((error) => toast.error(getErrorMessage(error)));
+  }, [stockBajo, debouncedBusqueda, rubroId, proveedorId, estadoFiltro]);
 
   const buildFiltros = (): ArticuloFiltros & { sortBy?: string; sortOrder?: 'asc' | 'desc' } => ({
     busqueda: debouncedBusqueda || undefined,
@@ -173,6 +194,42 @@ export function ArticulosListPage() {
         </span>
       ),
     },
+    ...(stockBajo
+      ? [
+          {
+            key: 'ultimoCosto',
+            header: 'Último costo',
+            className: 'max-w-[120px]',
+            render: (item: ArticuloConRelaciones) =>
+              item.ultimoCosto != null ? (
+                <span>{formatMoneda(item.ultimoCosto)}</span>
+              ) : (
+                <span className="text-gray-400 text-sm">Sin costo registrado</span>
+              ),
+          },
+          {
+            key: 'cantidadAReponer',
+            header: 'Cantidad a reponer',
+            className: 'max-w-[110px]',
+            render: (item: ArticuloConRelaciones) => (
+              <span className="font-medium">{getCantidadAReponer(item).toLocaleString('es-AR')}</span>
+            ),
+          },
+          {
+            key: 'costoEstimadoReposicion',
+            header: 'Costo estimado de reposición',
+            className: 'max-w-[150px]',
+            render: (item: ArticuloConRelaciones) => {
+              const costo = getCostoEstimadoReposicion(item);
+              return costo != null ? (
+                <span className="font-medium">{formatMoneda(costo)}</span>
+              ) : (
+                <span className="text-gray-400 text-sm">Sin costo registrado</span>
+              );
+            },
+          },
+        ]
+      : []),
     {
       key: 'acciones',
       header: 'Acciones',
@@ -217,7 +274,47 @@ export function ArticulosListPage() {
               { key: 'stock', header: 'Stock', type: 'number' },
               { key: 'stockMinimo', header: 'Stock Mínimo', type: 'number' },
               { key: 'presentacion', header: 'Presentación', type: 'text' },
+              ...(stockBajo
+                ? [
+                    {
+                      key: 'ultimoCosto',
+                      header: 'Último costo',
+                      type: 'currency' as const,
+                      value: (item: ArticuloConRelaciones) => item.ultimoCosto ?? null,
+                    },
+                    {
+                      key: 'cantidadAReponer',
+                      header: 'Cantidad a reponer',
+                      type: 'number' as const,
+                      value: (item: ArticuloConRelaciones) => getCantidadAReponer(item),
+                    },
+                    {
+                      key: 'costoEstimadoReposicion',
+                      header: 'Costo estimado de reposición',
+                      type: 'currency' as const,
+                      value: (item: ArticuloConRelaciones) => getCostoEstimadoReposicion(item),
+                    },
+                  ]
+                : []),
             ]}
+            footerRows={
+              stockBajo && resumenReposicion
+                ? [
+                    {
+                      'Código': 'TOTAL',
+                      'Nombre': null,
+                      'Rubro': null,
+                      'Proveedor': null,
+                      'Stock': null,
+                      'Stock Mínimo': null,
+                      'Presentación': null,
+                      'Último costo': null,
+                      'Cantidad a reponer': resumenReposicion.totalUnidadesAReponer,
+                      'Costo estimado de reposición': resumenReposicion.costoTotalEstimado,
+                    },
+                  ]
+                : undefined
+            }
             getExportData={async () => {
               const result = await articulosService.getAll({ ...buildFiltros(), page: 1, limit: 1000 });
               return result.data;
@@ -284,6 +381,34 @@ export function ArticulosListPage() {
           </label>
         </div>
       </div>
+
+      {stockBajo && resumenReposicion && (
+        <div className="card p-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <p className="text-sm text-gray-500">Total de artículos con stock bajo</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {resumenReposicion.totalArticulos.toLocaleString('es-AR')}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Total de unidades a reponer</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {resumenReposicion.totalUnidadesAReponer.toLocaleString('es-AR')}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Costo total estimado de reposición</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {formatMoneda(resumenReposicion.costoTotalEstimado)}
+            </p>
+            {resumenReposicion.articulosSinCosto > 0 && (
+              <p className="text-xs text-gray-400 mt-1">
+                {resumenReposicion.articulosSinCosto} artículo(s) sin costo registrado no incluido(s) en el total
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       <DataTable
         columns={columns}

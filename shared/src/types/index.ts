@@ -190,6 +190,9 @@ export interface Articulo extends BaseEntity {
 export interface ArticuloConRelaciones extends Articulo {
   rubro: Rubro;
   proveedor: Proveedor | null;
+  // Último costo de compra registrado (última reposición confirmada, o costo inicial estimado
+  // si todavía no tiene reposiciones). Solo se calcula en búsquedas que lo necesitan (search()).
+  ultimoCosto?: number | null;
 }
 
 export interface ArticuloFiltros {
@@ -198,6 +201,15 @@ export interface ArticuloFiltros {
   proveedorId?: string;
   stockBajo?: boolean;
   activo?: boolean;
+}
+
+export interface ResumenReposicion {
+  totalArticulos: number;
+  totalUnidadesAReponer: number;
+  costoTotalEstimado: number;
+  // Cantidad de artículos del resumen que no tienen costo registrado
+  // (no están incluidos en costoTotalEstimado, para no mostrar un total engañoso).
+  articulosSinCosto: number;
 }
 
 // ============================================

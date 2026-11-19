@@ -289,13 +289,9 @@ export class ArticuloRepository extends BaseRepository<Articulo> {
     return row?.max_num ? parseInt(row.max_num, 10) : 0;
   }
 
-  async search(
-    filtros: ArticuloFiltros,
-    options: FindOptions = {}
-  ): Promise<PaginatedResult<ArticuloConRelaciones>> {
-    const { page = 1, limit = 20, sortBy = 'nombre', sortOrder = 'asc' } = options;
-    const offset = (page - 1) * limit;
-
+  // Condiciones de búsqueda compartidas entre search() y getResumenReposicion(), para que
+  // el resumen siempre refleje exactamente los mismos artículos que ve el listado filtrado.
+  private buildFiltrosConditions(filtros: ArticuloFiltros): { conditions: string[]; values: unknown[] } {
     const conditions: string[] = ['a.deleted_at IS NULL'];
     const values: unknown[] = [];
     let paramIndex = 1;
@@ -327,6 +323,33 @@ export class ArticuloRepository extends BaseRepository<Articulo> {
       values.push(filtros.activo);
     }
 
+    return { conditions, values };
+  }
+
+  // Subquery del último costo de compra registrado: costo de la última reposición confirmada,
+  // o el costo inicial estimado del artículo si todavía no tiene ninguna reposición.
+  private static readonly ULTIMO_COSTO_JOIN = `
+    LEFT JOIN LATERAL (
+      SELECT ur.costo_reposicion
+      FROM reposiciones ur
+      WHERE ur.articulo_id = a.id
+        AND ur.deleted_at IS NULL
+        AND ur.estado = 'confirmada'
+        AND ur.costo_reposicion IS NOT NULL
+      ORDER BY ur.fecha_reposicion DESC, ur.created_at DESC
+      LIMIT 1
+    ) uc ON true
+  `;
+
+  async search(
+    filtros: ArticuloFiltros,
+    options: FindOptions = {}
+  ): Promise<PaginatedResult<ArticuloConRelaciones>> {
+    const { page = 1, limit = 20, sortBy = 'nombre', sortOrder = 'asc' } = options;
+    const offset = (page - 1) * limit;
+
+    const { conditions, values } = this.buildFiltrosConditions(filtros);
+    const paramIndex = values.length + 1;
     const whereClause = conditions.join(' AND ');
     const orderByClause = this.buildOrderByClause(sortBy, sortOrder);
 
@@ -334,10 +357,12 @@ export class ArticuloRepository extends BaseRepository<Articulo> {
       query<Record<string, unknown>>(
         `SELECT a.*,
                 r.id as rubro_id, r.nombre as rubro_nombre, r.descripcion as rubro_descripcion, r.prefijo as rubro_prefijo, r.activo as rubro_activo,
-                p.id as proveedor_id, p.razon_social as proveedor_razon_social, p.cuit as proveedor_cuit
+                p.id as proveedor_id, p.razon_social as proveedor_razon_social, p.cuit as proveedor_cuit,
+                COALESCE(uc.costo_reposicion, a.costo_inicial_estimado) as ultimo_costo
          FROM articulos a
          LEFT JOIN rubros r ON r.id = a.rubro_id
          LEFT JOIN proveedores p ON p.id = a.proveedor_id
+         ${ArticuloRepository.ULTIMO_COSTO_JOIN}
          WHERE ${whereClause}
          ORDER BY ${orderByClause}
          LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
@@ -359,6 +384,45 @@ export class ArticuloRepository extends BaseRepository<Articulo> {
         total,
         totalPages: Math.ceil(total / limit),
       },
+    };
+  }
+
+  async getResumenReposicion(filtros: ArticuloFiltros): Promise<{
+    totalArticulos: number;
+    totalUnidadesAReponer: number;
+    costoTotalEstimado: number;
+    articulosSinCosto: number;
+  }> {
+    const { conditions, values } = this.buildFiltrosConditions(filtros);
+    const whereClause = conditions.join(' AND ');
+
+    const row = await queryOne<{
+      total_articulos: string;
+      total_unidades: string;
+      costo_total: string;
+      articulos_sin_costo: string;
+    }>(
+      `WITH base AS (
+         SELECT GREATEST(0, a.stock_minimo - a.stock) AS cantidad_reponer,
+                COALESCE(uc.costo_reposicion, a.costo_inicial_estimado) AS ultimo_costo
+         FROM articulos a
+         ${ArticuloRepository.ULTIMO_COSTO_JOIN}
+         WHERE ${whereClause}
+       )
+       SELECT
+         COUNT(*) AS total_articulos,
+         COALESCE(SUM(cantidad_reponer), 0) AS total_unidades,
+         COALESCE(SUM(cantidad_reponer * ultimo_costo) FILTER (WHERE ultimo_costo IS NOT NULL), 0) AS costo_total,
+         COUNT(*) FILTER (WHERE ultimo_costo IS NULL) AS articulos_sin_costo
+       FROM base`,
+      values
+    );
+
+    return {
+      totalArticulos: parseInt(row?.total_articulos || '0', 10),
+      totalUnidadesAReponer: parseInt(row?.total_unidades || '0', 10),
+      costoTotalEstimado: row?.costo_total != null ? Number(row.costo_total) : 0,
+      articulosSinCosto: parseInt(row?.articulos_sin_costo || '0', 10),
     };
   }
 
@@ -477,7 +541,12 @@ export class ArticuloRepository extends BaseRepository<Articulo> {
         }
       : null;
 
-    return { ...articulo, rubro, proveedor };
+    return {
+      ...articulo,
+      rubro,
+      proveedor,
+      ultimoCosto: row.ultimo_costo != null ? Number(row.ultimo_costo) : null,
+    };
   }
 }
 

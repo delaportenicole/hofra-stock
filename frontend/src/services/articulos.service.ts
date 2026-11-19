@@ -8,6 +8,7 @@ import type {
   ReposicionConRelaciones,
   EntregaConRelaciones,
   ValuacionStock,
+  ResumenReposicion,
 } from '@hofra/shared';
 
 export interface ArticuloHistorial {
@@ -40,6 +41,13 @@ export const articulosService = {
   async getStockBajo(limit?: number): Promise<ArticuloConRelaciones[]> {
     const response = await api.get<{ data: ArticuloConRelaciones[] }>('/articulos/stock-bajo', {
       params: { limit },
+    });
+    return response.data.data;
+  },
+
+  async getResumenReposicion(filtros: ArticuloFiltros = {}): Promise<ResumenReposicion> {
+    const response = await api.get<{ data: ResumenReposicion }>('/articulos/resumen-reposicion', {
+      params: filtros,
     });
     return response.data.data;
   },

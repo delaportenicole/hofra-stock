@@ -24,6 +24,10 @@ interface ExportButtonsProps<T> {
   // Si se provee, se usa para traer el set completo que coincide con los filtros
   // actuales (no solo la página cargada en la grilla) al momento de exportar.
   getExportData?: () => Promise<T[]>;
+  // Filas extra (ej. totales) agregadas al final de la hoja, después de los datos.
+  // Las claves deben coincidir con los `header` de `columns`, en el mismo orden,
+  // para que cada valor caiga en la columna correcta.
+  footerRows?: Record<string, string | number | null>[];
 }
 
 const CURRENCY_FORMAT = '"$" #,##0.00';
@@ -77,6 +81,7 @@ export function ExportButtons<T>({
   filename,
   columns,
   getExportData,
+  footerRows,
 }: ExportButtonsProps<T>) {
   const [isExporting, setIsExporting] = useState(false);
 
@@ -94,7 +99,10 @@ export function ExportButtons<T>({
   const buildWorksheet = (items: T[]) => {
     const rows = buildRows(items, columns);
     const worksheet = XLSX.utils.json_to_sheet(rows);
-    applyColumnFormats(worksheet, columns, items.length);
+    if (footerRows?.length) {
+      XLSX.utils.sheet_add_json(worksheet, footerRows, { skipHeader: true, origin: -1 });
+    }
+    applyColumnFormats(worksheet, columns, items.length + (footerRows?.length ?? 0));
     return worksheet;
   };
 

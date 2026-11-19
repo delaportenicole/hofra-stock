@@ -15,6 +15,7 @@ router.use(auditMiddleware('articulos'));
 // List and read
 router.get('/', requirePermission('articulos', 'leer'), articuloController.findAll);
 router.get('/stock-bajo', requirePermission('articulos', 'leer'), articuloController.findStockBajo);
+router.get('/resumen-reposicion', requirePermission('articulos', 'leer'), articuloController.getResumenReposicion);
 router.get('/generate-codigo', requirePermission('articulos', 'crear'), articuloController.generateCodigo);
 router.get('/:id', requirePermission('articulos', 'leer'), articuloController.findById);
 router.get('/:id/historial', requirePermission('articulos', 'leer'), articuloController.getHistorial);

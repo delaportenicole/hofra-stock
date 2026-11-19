@@ -48,6 +48,28 @@ hofra-stock/
 - **Exportar a Excel/CSV mejorado** (14 de noviembre de 2026): el botón de exportar trae el set **completo** que coincide con los filtros activos (hasta 1000 registros) en el momento de exportar, en vez de solo la página cargada en memoria. Los campos numéricos (Stock, Stock Mínimo) se exportan como número real de Excel, no como texto (ver sección "Tipado de Exportaciones")
 - **Ajustes de columnas del listado** (14-15 de noviembre de 2026): SKU y Nombre con ancho acotado y truncado con tooltip (Nombre después se cambió a salto de línea en vez de truncar); se agregó columna "Proveedor"; se renombró "Stock" a "Stock actual"; se eliminó la columna "Estado" (el filtro Activos/Inactivos se mantiene); la columna "Acciones" quedó reducida a Duplicar y Eliminar (Ver y Editar siguen disponibles clickeando la fila o desde el detalle); Rubro con ancho acotado y tooltip; stock en 0 se muestra como píldora roja igual que el resto de los estados
 
+#### Valorización de Reposición en Stock Bajo (19 de noviembre de 2026)
+
+Cuando el filtro **"Solo stock bajo"** del listado de Artículos está activo (incluye la entrada desde Dashboard → "Artículos con Stock Bajo" → "Ver todos", que es `/articulos?stockBajo=true`), el listado se amplía para poder dimensionar cuánto costaría reponer todo lo que está por debajo del mínimo:
+
+- **Columnas nuevas** (solo visibles con el filtro activo, no afectan el listado general de Artículos):
+  - **Último costo**: costo de la última reposición **confirmada** del artículo (por fecha); si el artículo todavía no tiene ninguna reposición, cae al **Costo Inicial Estimado** cargado en el artículo. Si no hay ninguno de los dos, muestra "Sin costo registrado" (nunca `$0`, para no sugerir que reponerlo no cuesta nada)
+  - **Cantidad a reponer**: `MAX(0, Stock Mínimo - Stock actual)`
+  - **Costo estimado de reposición**: `Cantidad a reponer × Último costo` (vacío/"Sin costo registrado" si no hay último costo)
+- **Resumen de totales**: tarjeta sobre la grilla con Total de artículos con stock bajo, Total de unidades a reponer y Costo total estimado de reposición. Se recalcula solo con esos 3 valores, pedidos aparte vía `GET /articulos/resumen-reposicion` (mismos filtros que el listado: búsqueda, rubro, proveedor, estado) para que sume **todos** los artículos que matchean el filtro, no solo los de la página visible en pantalla. Si hay artículos sin costo registrado, se excluyen del costo total y se informa la cantidad excluida debajo del total, para no mostrar un costo total engañoso
+- **Exportación a Excel/CSV**: las 3 columnas nuevas se agregan también al export (tipadas como número/moneda reales, no texto — ver "Tipado de Exportaciones"), más una fila `TOTAL` al final con el total de unidades y el costo total estimado
+
+##### Archivos
+**Backend**:
+- `backend/src/repositories/articulo.repository.ts` (`buildFiltrosConditions`, `ULTIMO_COSTO_JOIN`, `search()` ahora incluye `ultimoCosto`, nuevo método `getResumenReposicion()`)
+- `backend/src/services/articulo.service.ts`, `backend/src/controllers/articulo.controller.ts`, `backend/src/routes/articulo.routes.ts` (`GET /articulos/resumen-reposicion`, requiere permiso `articulos:leer`)
+- `shared/src/types/index.ts` (`ArticuloConRelaciones.ultimoCosto`, nuevo tipo `ResumenReposicion`)
+
+**Frontend**:
+- `frontend/src/pages/articulos/ArticulosList.tsx` (columnas condicionales, tarjeta de resumen, export)
+- `frontend/src/services/articulos.service.ts` (`getResumenReposicion`)
+- `frontend/src/components/ExportButtons.tsx` (nuevo prop opcional `footerRows` para agregar filas de totales al export, sin afectar a los demás usos del componente)
+
 ### 3. Rubros
 - **Ubicación**: Tab dentro del módulo **Configuraciones** (`/configuraciones`)
 - **Campos**: nombre, descripción, prefijo, activo
@@ -183,7 +205,7 @@ Panel principal con estadísticas del sistema.
 - **Artículos por Rubro**: Gráfico de torta mostrando distribución de artículos por rubro
 
 #### Tablas
-- **Artículos con Stock Bajo**: Lista de los 5 artículos más críticos con link al detalle
+- **Artículos con Stock Bajo**: Lista de los 5 artículos más críticos con link al detalle. El link "Ver todos" lleva a `/articulos?stockBajo=true`, cuya vista ampliada con valorización del faltante se documenta en la sección "Artículos" → "Valorización de Reposición en Stock Bajo"
 - **Movimientos Recientes**: Últimas 5 entregas y reposiciones
 
 #### Cálculo de Valuación
@@ -2552,3 +2574,18 @@ Se verificó el bug consultando la base de Railway directamente (`costo_reposici
 
 ##### Archivos Modificados
 - `backend/src/repositories/reposicion.repository.ts`, `articulo.repository.ts`, `solicitudCotizacion.repository.ts`
+
+### 19 de noviembre de 2026 — Valorización de reposición en Artículos con Stock Bajo
+
+Requerimiento: desde Dashboard → "Artículos con Stock Bajo" → "Ver todos" (lista de Artículos filtrada por `stockBajo=true`), además de ver qué artículos están por debajo del mínimo, poder ver cuánto costaría reponerlos.
+
+Se agregaron 3 columnas —visibles solo con el filtro "Solo stock bajo" activo, para no afectar el listado general de Artículos—: **Último costo** (costo de la última reposición confirmada, o el Costo Inicial Estimado si el artículo nunca tuvo una; "Sin costo registrado" si no hay ninguno de los dos, nunca `$0`), **Cantidad a reponer** (`MAX(0, stockMinimo - stock)`) y **Costo estimado de reposición** (cantidad × último costo). Se agregó también una tarjeta de resumen con el total de artículos, total de unidades a reponer y costo total estimado — pedida a un endpoint nuevo (`GET /articulos/resumen-reposicion`, mismos filtros que el listado) en vez de derivarla de la página cargada en memoria, porque tiene que sumar **todos** los artículos que matchean el filtro y no solo los de la página visible. Los artículos sin costo registrado se excluyen del costo total (se informa cuántos se excluyeron) para no mostrar un total engañoso. La exportación a Excel/CSV incluye las 3 columnas nuevas (tipadas como número/moneda real, no texto) y una fila `TOTAL`.
+
+Para el "último costo" se reutilizó el mismo criterio ya usado en el panel de referencia de Reposiciones (`estado = 'confirmada'`, ordenado por `fecha_reposicion DESC`), vía un `LEFT JOIN LATERAL` nuevo en `ArticuloRepository`. La construcción de condiciones de `search()` (búsqueda, rubro, proveedor, stock bajo, activo) se extrajo a un método privado reutilizable (`buildFiltrosConditions`) para que el endpoint de resumen use exactamente las mismas condiciones que el listado y los totales nunca queden desalineados de lo que se ve en pantalla.
+
+Para la fila `TOTAL` del export se agregó un prop opcional `footerRows` a `ExportButtons.tsx` (ignorado si no se pasa, no afecta a los demás listados que usan el componente: Reportes, cotizaciones, etc.).
+
+##### Archivos Modificados
+**Backend**: `backend/src/repositories/articulo.repository.ts`, `backend/src/services/articulo.service.ts`, `backend/src/controllers/articulo.controller.ts`, `backend/src/routes/articulo.routes.ts`, `shared/src/types/index.ts`
+
+**Frontend**: `frontend/src/pages/articulos/ArticulosList.tsx`, `frontend/src/services/articulos.service.ts`, `frontend/src/components/ExportButtons.tsx`

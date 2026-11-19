@@ -15,6 +15,7 @@ import type {
   EntregaConRelaciones,
   ValuacionStock,
   CapaStock,
+  ResumenReposicion,
 } from '@hofra/shared';
 import type { PaginatedResult } from '../types/index.js';
 import type { FindOptions } from '../repositories/base.repository.js';
@@ -48,6 +49,10 @@ export class ArticuloService {
 
   async findStockBajo(limit: number = 10): Promise<ArticuloConRelaciones[]> {
     return articuloRepository.findStockBajo(limit);
+  }
+
+  async getResumenReposicion(filtros: ArticuloFiltros): Promise<ResumenReposicion> {
+    return articuloRepository.getResumenReposicion(filtros);
   }
 
   async getHistorial(id: string, limit: number = 20): Promise<ArticuloHistorial> {
