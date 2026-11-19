@@ -85,6 +85,7 @@ export function ImageUpload({
             />
             {!isUploading && onDelete && (
               <button
+                type="button"
                 onClick={handleDelete}
                 className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
               >

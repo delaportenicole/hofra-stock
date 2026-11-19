@@ -72,6 +72,7 @@ Cuando el filtro **"Solo stock bajo"** del listado de Artículos está activo (i
 - `frontend/src/pages/articulos/ArticulosList.tsx` (columnas condicionales, tarjeta de resumen, export)
 - `frontend/src/services/articulos.service.ts` (`getResumenReposicion`)
 - `frontend/src/components/ExportButtons.tsx` (nuevo prop opcional `footerRows` para agregar filas de totales al export, sin afectar a los demás usos del componente)
+- **Fix: Enter en el formulario borraba la imagen** (19 de noviembre de 2026): el botón "✕" de eliminar imagen (`ImageUpload.tsx`) no tenía `type="button"`, así que por default HTML lo trataba como `type="submit"` — al ser el primer botón de ese tipo dentro del `<form>`, el navegador lo activaba vía "submit implícito" al apretar Enter en cualquier campo, ejecutando `handleDelete()` en vez de guardar el artículo. Se agregó `type="button"` al botón.
 
 ### 3. Rubros
 - **Ubicación**: Tab dentro del módulo **Configuraciones** (`/configuraciones`)
@@ -2657,3 +2658,14 @@ A pedido de Nicole, ajuste puntual de anchos sobre el fix anterior (mismo día):
 
 ##### Archivos Modificados
 - `frontend/src/pages/articulos/ArticulosList.tsx`
+
+### 19 de noviembre de 2026 (continuación 6) — Fix: Enter en el formulario de Artículo borraba la imagen
+
+Nicole reportó que al editar un artículo, si estando parado en cualquier campo del formulario apretaba Enter, se borraba la imagen cargada (sin ninguna confirmación).
+
+**Causa**: el botón "✕" de eliminar imagen en `ImageUpload.tsx:87` no tenía `type="button"` — por default HTML, un `<button>` dentro de un `<form>` sin `type` explícito es `type="submit"`. Al ser el primer botón de tipo submit en el orden del DOM dentro de `<form onSubmit={...}>` de `ArticuloForm.tsx` (aparece antes que los botones "Cancelar"/"Guardar" al final del formulario), el navegador lo elegía como el **botón por default del formulario**: al apretar Enter en cualquier input, la especificación HTML de "submit implícito" ejecuta un click sintético sobre ese botón por default — en este caso, literalmente corriendo `handleDelete()` en vez de guardar.
+
+**Fix**: se agregó `type="button"` al botón de eliminar imagen. `ImageUpload.tsx` solo lo usa `ArticuloForm.tsx` hoy, así que el fix queda acotado a ese único formulario sin efectos secundarios en otras pantallas.
+
+##### Archivos Modificados
+- `frontend/src/components/ImageUpload.tsx`
