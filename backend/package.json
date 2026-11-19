@@ -11,6 +11,8 @@
     "migrate": "ts-node --esm src/scripts/migrate.ts",
     "seed": "ts-node --esm src/scripts/seed.ts",
     "reset-data": "ts-node --esm src/scripts/reset-data.ts",
+    "create-api-key": "ts-node --esm src/scripts/create-api-key.ts",
+    "revoke-api-key": "ts-node --esm src/scripts/revoke-api-key.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts"
   },

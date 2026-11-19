@@ -1,5 +1,6 @@
 import { solicitudCotizacionRepository, type SolicitudCotizacionFiltros } from '../repositories/solicitudCotizacion.repository.js';
 import { articuloRepository } from '../repositories/articulo.repository.js';
+import { historialMatchingRepository } from '../repositories/historialMatching.repository.js';
 import type { FindOptions } from '../repositories/base.repository.js';
 import { AppError, NotFoundError } from '../utils/errors.js';
 import type {
@@ -16,7 +17,7 @@ const STOPWORDS = new Set([
   'unos', 'unas', 'y', 'en', 'al', 'sin', 'sobre', 'the', 'and', 'for',
 ]);
 
-function normalizar(texto: string): string {
+export function normalizar(texto: string): string {
   return texto
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -171,6 +172,25 @@ class SolicitudCotizacionService {
     }
 
     await solicitudCotizacionRepository.updateItem(itemId, payload);
+
+    // Groundwork para el futuro Hofra AI Agent: cada vez que un humano acepta un ítem con un
+    // artículo asociado, queda registrado en historial_matching_cliente. No debe bloquear la
+    // operación principal si falla (es una mejora secundaria, no el flujo crítico).
+    if (payload.estadoItem === 'aceptado') {
+      const articuloIdFinal = payload.articuloId !== undefined ? payload.articuloId : item.articuloId;
+      if (articuloIdFinal) {
+        try {
+          await historialMatchingRepository.registrarConfirmacion({
+            descripcionNormalizada: normalizar(item.descripcionSolicitada),
+            clienteId: solicitud.clienteId,
+            articuloId: articuloIdFinal,
+          });
+        } catch (error) {
+          console.error('Error registrando historial de matching:', error);
+        }
+      }
+    }
+
     return this.findById(solicitudId);
   }
 

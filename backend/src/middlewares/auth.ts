@@ -1,25 +1,55 @@
 import type { Response, NextFunction } from 'express';
-import { verifyAccessToken } from '../utils/jwt.js';
+import { verifyAccessToken, hashToken } from '../utils/jwt.js';
 import { UnauthorizedError, ForbiddenError } from '../utils/errors.js';
+import { apiKeyRepository } from '../repositories/apiKey.repository.js';
 import type { AuthenticatedRequest } from '../types/index.js';
+import type { JwtPayload } from '@hofra/shared';
 
-export function authMiddleware(
+// Permite que un proceso externo (ej. Hofra AI Agent) se autentique con una API key fija
+// en vez de un JWT de usuario humano. Arma el mismo shape de JwtPayload que ya consume
+// requirePermission/auditMiddleware, así que el resto del pipeline no necesita cambios.
+async function resolveApiKeyUser(apiKey: string): Promise<JwtPayload | null> {
+  const record = await apiKeyRepository.findByHash(hashToken(apiKey));
+  if (!record) return null;
+
+  // No bloquea el request si falla (dato informativo, no crítico).
+  apiKeyRepository.touchLastUsed(record.id).catch(() => {});
+
+  return {
+    userId: record.usuarioId,
+    email: record.nombre,
+    roles: ['api-key'],
+    permisos: record.permisos,
+  };
+}
+
+export async function authMiddleware(
   req: AuthenticatedRequest,
   _res: Response,
   next: NextFunction
-): void {
+): Promise<void> {
   try {
     const authHeader = req.headers.authorization;
+    const apiKeyHeader = req.headers['x-api-key'];
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new UnauthorizedError('Token no proporcionado');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      req.user = verifyAccessToken(token);
+      next();
+      return;
     }
 
-    const token = authHeader.substring(7);
-    const payload = verifyAccessToken(token);
+    if (typeof apiKeyHeader === 'string' && apiKeyHeader) {
+      const user = await resolveApiKeyUser(apiKeyHeader);
+      if (!user) {
+        throw new UnauthorizedError('API key inválida');
+      }
+      req.user = user;
+      next();
+      return;
+    }
 
-    req.user = payload;
-    next();
+    throw new UnauthorizedError('Token no proporcionado');
   } catch (error) {
     if (error instanceof UnauthorizedError) {
       next(error);
