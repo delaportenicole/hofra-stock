@@ -185,8 +185,11 @@ export function DataTable<T>({
                   className={`${column.className || ''} ${column.sortable ? 'cursor-pointer select-none hover:bg-gray-100' : ''}`}
                   onClick={() => handleSort(column)}
                 >
-                  <div className="flex items-center gap-1">
-                    <span className="truncate min-w-0" title={column.header}>{column.header}</span>
+                  <div className="flex items-start gap-1">
+                    {/* min-w-0: sin esto, un flex item de texto nunca se encoge por debajo de su
+                        ancho "natural" (una sola línea) aunque el th tenga max-width — necesario
+                        para que line-clamp realmente envuelva en 2 renglones en vez de desbordar. */}
+                    <span className="min-w-0 line-clamp-2 leading-snug" title={column.header}>{column.header}</span>
                     {getSortIcon(column)}
                   </div>
                 </th>

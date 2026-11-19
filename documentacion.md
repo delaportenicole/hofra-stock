@@ -2612,8 +2612,17 @@ Nicole reportó que en "Cantidad a reponer" y "Costo estimado de reposición" (a
 
 **Fix** (en el componente genérico `DataTable.tsx`, no por columna — corrige el problema en cualquier grilla de la app que lo tenga o lo tenga en el futuro):
 - El ícono de orden ahora lleva `flex-shrink-0`: nunca se encoge, siempre el mismo tamaño real (`w-4 h-4`) que en "Código"/"Nombre".
-- El `<span>` del texto del encabezado ahora lleva `truncate min-w-0` (se corta con "…" y muestra el texto completo en un `title` al pasar el mouse) en vez de competir por espacio con el ícono.
-- Adicionalmente, en `ArticulosList.tsx` se ensancharon un poco esas dos columnas (110px→150px y 150px→190px) para que el encabezado entre completo en la mayoría de los casos y el truncado sea la excepción, no la regla.
+- El `<span>` del texto del encabezado se ajustó para no competir por espacio con el ícono (ver ajuste siguiente sobre 2 renglones, reemplaza el truncado de una sola línea de la primera versión de este fix).
+- Adicionalmente, en `ArticulosList.tsx` se ensancharon un poco esas dos columnas (110px→150px y 150px→190px) para que el encabezado entre completo en la mayoría de los casos.
+
+### 19 de noviembre de 2026 (continuación 3) — Encabezados a 2 renglones en vez de truncar
+
+El fix anterior (mismo día) cortaba el texto del encabezado con "…" (`truncate`, 1 renglón) cuando no entraba en el ancho de la columna. A pedido de Nicole, se cambió por **2 renglones** (`line-clamp-2` de Tailwind — soportado nativo desde Tailwind 3.3, sin plugin) en vez de truncar a una línea: el texto completo se ve (envuelve a una segunda línea) y solo si ni siquiera 2 renglones alcanzan, recién ahí se corta con "…" (se mantiene el `title` con el texto completo como respaldo). El ícono de orden se mantiene con su tamaño grande normal (`flex-shrink-0`, sin cambios) — el `<div>` del encabezado pasó de `items-center` a `items-start` para que el ícono quede alineado arriba junto al primer renglón en vez de centrado entre los dos (no afecta a los encabezados de una sola línea, que se ven igual que antes).
+
+**Detalle técnico**: `min-w-0` en el `<span>` sigue siendo necesario — sin eso, un flex item de texto no se encoge por debajo de su ancho "natural" de una sola línea (default `min-width: auto` de flexbox) aunque el `<th>` tenga `max-width`, y nunca llegaría a envolver a un segundo renglón.
+
+##### Archivos Modificados
+- `frontend/src/components/DataTable.tsx`
 
 ##### Archivos Modificados
 - `frontend/src/components/DataTable.tsx`
