@@ -938,9 +938,13 @@ Proyecto nuevo, en construcción por etapas: un agente de IA (Claude) **independ
 
 4° entrada en `workspaces` del `package.json` raíz. Contiene por ahora solo `package.json`/`tsconfig.json` propios y `src/config/env.ts` (valida `ANTHROPIC_API_KEY`/`HOFRA_API_URL`/`HOFRA_API_KEY`). Deliberadamente **no** se crearon `core/`/`ai/`/`parsers/`/`hofra-client/` todavía — esas carpetas son parte de las Fases 1 y 2 (cliente HTTP hacia Hofra Stock, integración con Claude, parseo de Excel/Word), no implementadas aún.
 
+#### Migraciones 030 y 031 aplicadas en producción (19 de noviembre de 2026)
+
+Las tablas `api_keys` y `historial_matching_cliente` ya existen en la base de Railway. Se aplicaron vía un túnel SSH temporal (`railway ssh keys add` para registrar la clave local + `railway connect Postgres --tunnel-only`), verificando con `information_schema.tables` que ambas quedaron creadas. La clave SSH registrada para esto se removió al terminar (`railway ssh keys remove`) — no queda ningún acceso nuevo permanente a la cuenta de Railway por este paso.
+
 #### Pendiente (acción humana, no de código)
-1. Aplicar las migraciones 030 y 031 a la base de producción (Railway) — requiere acceso directo a la DB, no se pudo hacer desde esta sesión.
-2. Correr `npm run create-api-key --workspace=backend` para generar la key real y guardarla en `ai-agent/.env` (nunca en el repo ni en el chat).
+1. ~~Aplicar las migraciones 030 y 031~~ — hecho (ver arriba).
+2. Correr `npm run create-api-key --workspace=backend` (o `railway run npm run create-api-key --workspace=backend -- ...` para que corra contra la base real, no la del `.env` local) para generar la key real y guardarla en `ai-agent/.env`. **Esta sí la tiene que correr Nicole**: la key en texto plano no debe pasar por el chat ni quedar en ningún archivo del repo.
 
 ##### Archivos
 - `database/migrations/030_add_api_keys.sql`, `031_add_historial_matching_cliente.sql`
@@ -2715,10 +2719,30 @@ Arranca el proyecto "Hofra AI Agent" (ver sección "17. Hofra AI Agent" para el 
 - **Fase 0.5 (backend)**: autenticación por API key (`X-API-Key`) agregada a `authMiddleware` sin tocar el JWT humano existente; tabla `api_keys` (migración 030) con permisos acotados y atada a una "identidad de servicio" real en `usuarios` (para no romper la FK de `audit_log`); tabla `historial_matching_cliente` (migración 031), alimentada automáticamente cuando un humano acepta un ítem de Solicitud de Cotización con un artículo asociado — groundwork de aprendizaje, todavía no se usa para sugerir nada.
 - **Fase 0 (workspace)**: `ai-agent/` como 4° workspace del monorepo, con `config/env.ts` únicamente — `core/`/`ai/`/`parsers/`/`hofra-client/` quedan para las Fases 1/2.
 
-**Pendiente, fuera del alcance de esta sesión** (son acciones que debe ejecutar Nicole directamente, no Claude): aplicar las migraciones 030/031 contra la base de Railway, y correr `npm run create-api-key --workspace=backend` para generar la key real — la key en texto plano no debe pasar por el chat.
+**Pendiente, fuera del alcance de esta sesión** (son acciones que debe ejecutar Nicole directamente, no Claude): correr `npm run create-api-key --workspace=backend` para generar la key real — la key en texto plano no debe pasar por el chat. (Las migraciones sí se terminaron aplicando desde la sesión, ver entrada siguiente.)
 
 ##### Archivos Modificados
 - `database/migrations/030_add_api_keys.sql`, `031_add_historial_matching_cliente.sql`
 - `backend/src/middlewares/auth.ts`, `backend/src/repositories/apiKey.repository.ts`, `backend/src/repositories/historialMatching.repository.ts`, `backend/src/services/solicitudCotizacion.service.ts`, `backend/src/scripts/create-api-key.ts`, `backend/src/scripts/revoke-api-key.ts`
 - `ai-agent/package.json`, `ai-agent/tsconfig.json`, `ai-agent/src/config/env.ts`, `ai-agent/.env.example` (nuevos)
 - `package.json` raíz (nuevo workspace)
+
+### 19 de noviembre de 2026 (continuación 8) — Migraciones 030/031 aplicadas en producción
+
+Nicole pidió aplicar las migraciones 030 (`api_keys`) y 031 (`historial_matching_cliente`) directamente contra la base de Railway. La base solo es alcanzable por red interna de Railway (sin proxy público), así que hizo falta un túnel SSH del CLI de Railway para conectarse desde fuera:
+
+1. `railway ssh keys add` — registra la clave SSH local existente de Nicole con su cuenta de Railway (paso necesario para cualquier túnel, no específico de esta tarea).
+2. `railway connect Postgres --tunnel-only` — abre un túnel local hacia la base real de producción, imprimiendo host/puerto/usuario/password/db de conexión.
+3. Un script Node puntual (usando `pg`, borrado apenas terminó — contenía la contraseña de la DB) aplicó los dos archivos de migración contra ese túnel y verificó con `information_schema.tables` que `api_keys` y `historial_matching_cliente` quedaron creadas.
+4. Se cerró el túnel y se **removió la clave SSH registrada** (`railway ssh keys remove`) — no queda ningún acceso nuevo permanente asociado a esta sesión.
+
+Con esto, el único paso pendiente para que la autenticación por API key funcione de punta a punta es que Nicole corra `create-api-key` (ver sección "17. Hofra AI Agent").
+
+### 19 de noviembre de 2026 (continuación 9) — Fix: create-api-key fallaba por columna `username` no contemplada
+
+Al correr `create-api-key.ts` por primera vez, falló: `null value in column "username" of relation "usuarios" violates not-null constraint`. Causa: `database/schema.sql` (usado como referencia al escribir el script) no tiene la columna `username` en `usuarios` — es `VARCHAR(50) NOT NULL UNIQUE` agregada por la migración `013_add_username.sql`, que nunca se reflejó de vuelta en `schema.sql` (mismo patrón de desactualización ya detectado antes con otras columnas — `schema.sql` documenta el estado inicial, no el real tras las ~30 migraciones posteriores).
+
+**Fix**: `obtenerOCrearUsuarioServicio()` ahora genera un `username` a partir de la parte local del email (ej. `ai-agent@hofra.internal` → `ai-agent`), agregando un sufijo numérico si ya existe uno igual (chequeando contra `usuarios` no eliminados), y lo incluye en el INSERT. Nicole corrió el script de nuevo después del fix — usuario de servicio y API key creados correctamente, guardada en `ai-agent/.env` (no pasó por el chat).
+
+##### Archivos Modificados
+- `backend/src/scripts/create-api-key.ts`
