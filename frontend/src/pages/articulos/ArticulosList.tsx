@@ -274,9 +274,9 @@ export function ArticulosListPage() {
             filename="articulos"
             columns={[
               { key: 'codigo', header: 'Código', type: 'text' },
-              { key: 'nombre', header: 'Nombre', type: 'text' },
-              { key: 'rubro', header: 'Rubro', type: 'text', value: (item) => item.rubro?.nombre },
-              { key: 'proveedor', header: 'Proveedor', type: 'text', value: (item) => item.proveedor?.razonSocial },
+              { key: 'nombre', header: 'Nombre', type: 'text', width: 40 },
+              { key: 'rubro', header: 'Rubro', type: 'text', value: (item) => item.rubro?.nombre, width: 22 },
+              { key: 'proveedor', header: 'Proveedor', type: 'text', value: (item) => item.proveedor?.razonSocial, width: 28 },
               { key: 'stock', header: 'Stock', type: 'number' },
               { key: 'stockMinimo', header: 'Stock Mínimo', type: 'number' },
               { key: 'presentacion', header: 'Presentación', type: 'text' },
@@ -287,6 +287,7 @@ export function ArticulosListPage() {
                       header: 'Último costo',
                       type: 'currency' as const,
                       value: (item: ArticuloConRelaciones) => item.ultimoCosto ?? null,
+                      width: 18,
                     },
                     {
                       key: 'cantidadAReponer',
@@ -299,6 +300,7 @@ export function ArticulosListPage() {
                       header: 'Costo estimado de reposición',
                       type: 'currency' as const,
                       value: (item: ArticuloConRelaciones) => getCostoEstimadoReposicion(item),
+                      width: 26,
                     },
                   ]
                 : []),

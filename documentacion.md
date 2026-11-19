@@ -1144,6 +1144,17 @@ Revisión de **todos** los mecanismos de exportación del sistema para que el ti
 - `frontend/src/pages/reportes/ReportesPage.tsx` (CSV → xlsx tipado)
 - `backend/src/services/cotizacionExport.service.ts`
 
+### Ancho de Columnas en Exportaciones a Excel (19 de noviembre de 2026)
+`ExportButtons.tsx` nunca seteaba el ancho de columna del archivo generado — sin esa configuración, Excel usa su ancho default (~8.43 caracteres), por lo que casi ningún campo de texto se veía completo al abrir el archivo sin agrandar las columnas a mano.
+
+**Solución**: `ExportColumn<T>` ahora acepta un campo opcional `width` (en "caracteres", la unidad estándar de ancho de columna de xlsx). Al construir la hoja, `ExportButtons` setea `worksheet['!cols']` con el ancho de cada columna (`col.width` si se definió, o un default de 16 caracteres para las que no lo especifican) — confirmado a nivel de XML interno del `.xlsx` generado (`<cols><col ... customWidth="1"/>...`), por lo que Excel respeta esos anchos al abrir el archivo, no son solo una sugerencia.
+
+En el export de Artículos (`ArticulosList.tsx`) se usó explícitamente en los campos con texto/números más largos: Nombre (40), Rubro (22), Proveedor (28), Último costo (18) y Costo estimado de reposición (26); el resto de las columnas usa el default de 16.
+
+#### Archivos
+- `frontend/src/components/ExportButtons.tsx` (`ExportColumn.width`, `worksheet['!cols']`)
+- `frontend/src/pages/articulos/ArticulosList.tsx` (anchos explícitos en Nombre/Rubro/Proveedor/Último costo/Costo estimado de reposición)
+
 ---
 
 ## Cambios Realizados en Esta Sesión
@@ -2615,6 +2626,10 @@ Nicole reportó que en "Cantidad a reponer" y "Costo estimado de reposición" (a
 - El `<span>` del texto del encabezado se ajustó para no competir por espacio con el ícono (ver ajuste siguiente sobre 2 renglones, reemplaza el truncado de una sola línea de la primera versión de este fix).
 - Adicionalmente, en `ArticulosList.tsx` se ensancharon un poco esas dos columnas (110px→150px y 150px→190px) para que el encabezado entre completo en la mayoría de los casos.
 
+##### Archivos Modificados
+- `frontend/src/components/DataTable.tsx`
+- `frontend/src/pages/articulos/ArticulosList.tsx`
+
 ### 19 de noviembre de 2026 (continuación 3) — Encabezados a 2 renglones en vez de truncar
 
 El fix anterior (mismo día) cortaba el texto del encabezado con "…" (`truncate`, 1 renglón) cuando no entraba en el ancho de la columna. A pedido de Nicole, se cambió por **2 renglones** (`line-clamp-2` de Tailwind — soportado nativo desde Tailwind 3.3, sin plugin) en vez de truncar a una línea: el texto completo se ve (envuelve a una segunda línea) y solo si ni siquiera 2 renglones alcanzan, recién ahí se corta con "…" (se mantiene el `title` con el texto completo como respaldo). El ícono de orden se mantiene con su tamaño grande normal (`flex-shrink-0`, sin cambios) — el `<div>` del encabezado pasó de `items-center` a `items-start` para que el ícono quede alineado arriba junto al primer renglón en vez de centrado entre los dos (no afecta a los encabezados de una sola línea, que se ven igual que antes).
@@ -2624,6 +2639,14 @@ El fix anterior (mismo día) cortaba el texto del encabezado con "…" (`truncat
 ##### Archivos Modificados
 - `frontend/src/components/DataTable.tsx`
 
+### 19 de noviembre de 2026 (continuación 4) — Columnas angostas en el Excel exportado
+
+Nicole reportó que al descargar el Excel de Artículos, las columnas quedaban todas muy angostas (el ancho default de Excel, ~8.43 caracteres) y casi no se llegaba a leer nada sin agrandarlas a mano.
+
+**Causa**: `ExportButtons.tsx` nunca seteaba `worksheet['!cols']` (la propiedad de `xlsx` que define el ancho de columna) — sin eso, el archivo generado usa el ancho default del programa que lo abre.
+
+**Fix**: `ExportColumn<T>` ahora acepta un `width` opcional (en "caracteres", la unidad estándar de `xlsx`). `ExportButtons` setea `worksheet['!cols']` con ese ancho por columna, o un default de 16 caracteres para las que no lo especifican — se verificó a mano que el `.xlsx` generado efectivamente incluye `<cols><col ... customWidth="1"/>...` en su XML interno, por lo que Excel respeta esos anchos al abrir el archivo (no es solo una sugerencia que el programa pueda ignorar). En el export de Artículos se usó explícitamente en los campos pedidos: Nombre (40), Rubro (22), Proveedor (28), Último costo (18) y Costo estimado de reposición (26); el resto usa el default de 16 (más ancho que el default de Excel, para que no vuelva a pasar en el resto de las columnas).
+
 ##### Archivos Modificados
-- `frontend/src/components/DataTable.tsx`
+- `frontend/src/components/ExportButtons.tsx`
 - `frontend/src/pages/articulos/ArticulosList.tsx`

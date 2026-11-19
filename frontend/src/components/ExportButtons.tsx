@@ -15,6 +15,10 @@ export interface ExportColumn<T> {
   // Extrae el valor crudo de la fila. Si no se da, se usa item[key] directamente.
   // Útil para campos anidados (ej. item.rubro.nombre).
   value?: (item: T) => unknown;
+  // Ancho de columna en el Excel generado, en "caracteres" (unidad estándar de xlsx,
+  // aprox. el ancho de un dígito en la fuente default). Sin esto, Excel usa su ancho
+  // default (~8.43), que deja casi todo el contenido ilegible sin agrandar a mano.
+  width?: number;
 }
 
 interface ExportButtonsProps<T> {
@@ -32,6 +36,7 @@ interface ExportButtonsProps<T> {
 
 const CURRENCY_FORMAT = '"$" #,##0.00';
 const DATE_FORMAT = 'dd/mm/yyyy';
+const DEFAULT_COLUMN_WIDTH = 16;
 
 function toCellValue(raw: unknown, type: ExportColumnType): string | number | Date | null {
   if (raw === undefined || raw === null || raw === '') return null;
@@ -103,6 +108,7 @@ export function ExportButtons<T>({
       XLSX.utils.sheet_add_json(worksheet, footerRows, { skipHeader: true, origin: -1 });
     }
     applyColumnFormats(worksheet, columns, items.length + (footerRows?.length ?? 0));
+    worksheet['!cols'] = columns.map((col) => ({ wch: col.width ?? DEFAULT_COLUMN_WIDTH }));
     return worksheet;
   };
 
