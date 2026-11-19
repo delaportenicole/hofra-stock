@@ -59,6 +59,7 @@ Cuando el filtro **"Solo stock bajo"** del listado de Artículos está activo (i
 - **Resumen de totales**: tarjeta sobre la grilla con Total de artículos con stock bajo, Total de unidades a reponer y Costo total estimado de reposición. Se recalcula solo con esos 3 valores, pedidos aparte vía `GET /articulos/resumen-reposicion` (mismos filtros que el listado: búsqueda, rubro, proveedor, estado) para que sume **todos** los artículos que matchean el filtro, no solo los de la página visible en pantalla. Si hay artículos sin costo registrado, se excluyen del costo total y se informa la cantidad excluida debajo del total, para no mostrar un costo total engañoso
 - **Exportación a Excel/CSV**: las 3 columnas nuevas se agregan también al export (tipadas como número/moneda reales, no texto — ver "Tipado de Exportaciones"), más una fila `TOTAL` al final con el total de unidades y el costo total estimado. El export respeta el `sortBy`/`sortOrder` vigente en la grilla al momento de exportar (misma lógica de siempre, el ordenamiento no es exclusivo de este modo) — la fila `TOTAL` queda siempre al final, fuera del ordenamiento
 - **Ordenamiento (19 de noviembre de 2026)**: "Cantidad a reponer" y "Costo estimado de reposición" son columnas ordenables (`sortable`) además de las que ya lo eran. Como no son columnas reales de `articulos`, el backend las resuelve en `buildOrderByClause` con expresiones calculadas (`GREATEST(0, stock_minimo - stock)`, y esa misma expresión multiplicada por `COALESCE(uc.costo_reposicion, costo_inicial_estimado)`), con `NULLS LAST` para que los artículos sin costo registrado queden siempre al final sin importar la dirección
+  - **Fix de flechitas de orden invisibles** (19 de noviembre de 2026): en columnas angostas con encabezado largo (como estas dos), el ícono de orden (`DataTable.tsx`) se encogía hasta volverse invisible porque competía por espacio con el texto del encabezado dentro de un flex sin `flex-shrink-0`. Se corrigió en el componente genérico `DataTable` (afecta a todas las grillas de la app, no solo esta): el ícono ahora usa `flex-shrink-0` (nunca se encoge, mismo tamaño que en "Código"/"Nombre") y el texto del encabezado usa `truncate` (se corta con "…" antes de ceder espacio al ícono, con tooltip del texto completo). También se ensancharon un poco las columnas ("Cantidad a reponer" 110px→150px, "Costo estimado de reposición" 150px→190px) para que el encabezado entre casi siempre completo
 - **Columna Acciones (19 de noviembre de 2026)**: se oculta en este listado filtrado (Duplicar/Eliminar no están disponibles desde esta vista); se mantiene sin cambios en el listado general de Artículos
 
 ##### Archivos
@@ -2602,3 +2603,18 @@ Dos ajustes puntuales sobre la vista de "Artículos con Stock Bajo" agregada má
 ##### Archivos Modificados
 - `backend/src/repositories/articulo.repository.ts` (`buildOrderByClause`)
 - `frontend/src/pages/articulos/ArticulosList.tsx` (columnas `sortable`, columna Acciones condicional)
+
+### 19 de noviembre de 2026 (continuación 2) — Fix: flechitas de orden invisibles en columnas angostas
+
+Nicole reportó que en "Cantidad a reponer" y "Costo estimado de reposición" (agregadas más arriba el mismo día como `sortable`) no se veían las flechitas de orden, a diferencia de "Código"/"Nombre".
+
+**Causa**: en `DataTable.tsx`, el encabezado de cada columna es un flex row (`<div class="flex items-center gap-1">`) con el texto del header y el ícono de orden (`lucide-react`, `w-4 h-4`) como hermanos. Ninguno de los dos tenía `flex-shrink` explícito, así que ambos usaban el valor por default (`flex-shrink: 1`, encogible). En columnas sin restricción de ancho ("Código") o con texto corto relativo a su ancho ("Nombre", 280px) nunca hacía falta encoger nada y el ícono se veía normal. Pero "Cantidad a reponer" (max-width 110px) y "Costo estimado de reposición" (150px) tienen texto de encabezado largo que no entra en ese ancho — el navegador comprimía **ambos** elementos del flex para que quepan, y el ícono (que no tiene contenido de texto que lo proteja, solo un `viewBox` escalable) terminaba comprimido a un tamaño casi invisible.
+
+**Fix** (en el componente genérico `DataTable.tsx`, no por columna — corrige el problema en cualquier grilla de la app que lo tenga o lo tenga en el futuro):
+- El ícono de orden ahora lleva `flex-shrink-0`: nunca se encoge, siempre el mismo tamaño real (`w-4 h-4`) que en "Código"/"Nombre".
+- El `<span>` del texto del encabezado ahora lleva `truncate min-w-0` (se corta con "…" y muestra el texto completo en un `title` al pasar el mouse) en vez de competir por espacio con el ícono.
+- Adicionalmente, en `ArticulosList.tsx` se ensancharon un poco esas dos columnas (110px→150px y 150px→190px) para que el encabezado entre completo en la mayoría de los casos y el truncado sea la excepción, no la regla.
+
+##### Archivos Modificados
+- `frontend/src/components/DataTable.tsx`
+- `frontend/src/pages/articulos/ArticulosList.tsx`

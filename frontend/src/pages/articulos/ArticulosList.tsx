@@ -211,7 +211,7 @@ export function ArticulosListPage() {
             key: 'cantidadAReponer',
             header: 'Cantidad a reponer',
             sortable: true,
-            className: 'max-w-[110px]',
+            className: 'max-w-[150px]',
             render: (item: ArticuloConRelaciones) => (
               <span className="font-medium">{getCantidadAReponer(item).toLocaleString('es-AR')}</span>
             ),
@@ -220,7 +220,7 @@ export function ArticulosListPage() {
             key: 'costoEstimadoReposicion',
             header: 'Costo estimado de reposición',
             sortable: true,
-            className: 'max-w-[150px]',
+            className: 'max-w-[190px]',
             render: (item: ArticuloConRelaciones) => {
               const costo = getCostoEstimadoReposicion(item);
               return costo != null ? (

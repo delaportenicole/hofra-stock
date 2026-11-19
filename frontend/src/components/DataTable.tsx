@@ -147,13 +147,17 @@ export function DataTable<T>({
 
     const sortKey = column.sortKey || column.key;
 
+    // flex-shrink-0: en columnas angostas con encabezado largo (ej. "Costo estimado de
+    // reposición"), el flex por defecto encogía el ícono junto con el texto hasta volverlo
+    // invisible; con esto el ícono siempre mantiene su tamaño real (w-4 h-4), igual que en
+    // columnas sin esa restricción de ancho (ej. "Código", "Nombre").
     if (sortConfig?.key !== sortKey) {
-      return <ArrowUpDown className="w-4 h-4 text-gray-400" />;
+      return <ArrowUpDown className="w-4 h-4 flex-shrink-0 text-gray-400" />;
     }
 
     return sortConfig.direction === 'asc'
-      ? <ArrowUp className="w-4 h-4 text-primary-600" />
-      : <ArrowDown className="w-4 h-4 text-primary-600" />;
+      ? <ArrowUp className="w-4 h-4 flex-shrink-0 text-primary-600" />
+      : <ArrowDown className="w-4 h-4 flex-shrink-0 text-primary-600" />;
   };
 
   const isClickable = !!getRowHref || !!onRowClick;
@@ -182,7 +186,7 @@ export function DataTable<T>({
                   onClick={() => handleSort(column)}
                 >
                   <div className="flex items-center gap-1">
-                    <span>{column.header}</span>
+                    <span className="truncate min-w-0" title={column.header}>{column.header}</span>
                     {getSortIcon(column)}
                   </div>
                 </th>
