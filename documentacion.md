@@ -936,15 +936,21 @@ Proyecto nuevo, en construcción por etapas: un agente de IA (Claude) **independ
 
 #### Fase 0 — Workspace `ai-agent/` (implementado, scaffold)
 
-4° entrada en `workspaces` del `package.json` raíz. Contiene por ahora solo `package.json`/`tsconfig.json` propios y `src/config/env.ts` (valida `ANTHROPIC_API_KEY`/`HOFRA_API_URL`/`HOFRA_API_KEY`). Deliberadamente **no** se crearon `core/`/`ai/`/`parsers/`/`hofra-client/` todavía — esas carpetas son parte de las Fases 1 y 2 (cliente HTTP hacia Hofra Stock, integración con Claude, parseo de Excel/Word), no implementadas aún.
+4° entrada en `workspaces` del `package.json` raíz. Contiene `package.json`/`tsconfig.json` propios y `src/config/env.ts` (valida `ANTHROPIC_API_KEY`/`HOFRA_API_URL`/`HOFRA_API_KEY`). `core/`/`ai/`/`parsers/` todavía no existen — son parte de la Fase 2 (integración con Claude, parseo de Excel/Word).
 
-#### Migraciones 030 y 031 aplicadas en producción (19 de noviembre de 2026)
+#### Fase 1 — Cliente HTTP hacia Hofra Stock (21 de noviembre de 2026, implementado)
 
-Las tablas `api_keys` y `historial_matching_cliente` ya existen en la base de Railway. Se aplicaron vía un túnel SSH temporal (`railway ssh keys add` para registrar la clave local + `railway connect Postgres --tunnel-only`), verificando con `information_schema.tables` que ambas quedaron creadas. La clave SSH registrada para esto se removió al terminar (`railway ssh keys remove`) — no queda ningún acceso nuevo permanente a la cuenta de Railway por este paso.
+- `ai-agent/src/hofra-client/httpClient.ts`: instancia de `axios` con el header `X-API-Key` seteado desde `env.HOFRA_API_KEY`. A diferencia del JWT humano, una API key no expira, así que no hay interceptor de refresh — si la key es inválida, el servidor responde `401` directamente (no se valida antes a propósito, para no acoplar este cliente a requisitos de otras partes del agente como Claude).
+- `ai-agent/src/hofra-client/articulosClient.ts`: `buscarArticulos(termino)`, wrapper tipado (`ArticuloConRelaciones`/`PaginatedResponse` de `@hofra/shared`) contra `GET /api/articulos?busqueda=`.
+- `ai-agent/src/cli/buscar.ts`: comando de prueba manual (`npm run cli:buscar --workspace=ai-agent -- "término"`) — busca artículos reales del catálogo con la API key y los imprime en pantalla. Sirve para confirmar que la autenticación funciona de punta a punta sin tener que escribir ningún código de prueba aparte.
 
-#### Pendiente (acción humana, no de código)
-1. ~~Aplicar las migraciones 030 y 031~~ — hecho (ver arriba).
-2. Correr `npm run create-api-key --workspace=backend` (o `railway run npm run create-api-key --workspace=backend -- ...` para que corra contra la base real, no la del `.env` local) para generar la key real y guardarla en `ai-agent/.env`. **Esta sí la tiene que correr Nicole**: la key en texto plano no debe pasar por el chat ni quedar en ningún archivo del repo.
+##### Archivos
+- `ai-agent/src/hofra-client/httpClient.ts`, `ai-agent/src/hofra-client/articulosClient.ts`, `ai-agent/src/cli/buscar.ts`
+- `ai-agent/package.json` (agrega `axios`, `ts-node`, script `cli:buscar`)
+
+#### Migraciones 030 y 031 aplicadas en producción, y API key real generada (19-21 de noviembre de 2026)
+
+Las tablas `api_keys` y `historial_matching_cliente` ya existen en la base de Railway (aplicadas vía un túnel SSH temporal de Railway — `railway ssh keys add` + `railway connect Postgres --tunnel-only`, verificado con `information_schema.tables`). La API key real ya fue generada por Nicole y está guardada en `ai-agent/.env` — ver incidente y fix de seguridad en el Changelog ("Incidente: API key expuesta en el chat por un comando `sed` mal asumido"), que cambió permanentemente cómo `create-api-key.ts` entrega la key (nunca más se imprime completa en ningún lado, se escribe directo al `.env`).
 
 ##### Archivos
 - `database/migrations/030_add_api_keys.sql`, `031_add_historial_matching_cliente.sql`
@@ -2743,6 +2749,26 @@ Con esto, el único paso pendiente para que la autenticación por API key funcio
 Al correr `create-api-key.ts` por primera vez, falló: `null value in column "username" of relation "usuarios" violates not-null constraint`. Causa: `database/schema.sql` (usado como referencia al escribir el script) no tiene la columna `username` en `usuarios` — es `VARCHAR(50) NOT NULL UNIQUE` agregada por la migración `013_add_username.sql`, que nunca se reflejó de vuelta en `schema.sql` (mismo patrón de desactualización ya detectado antes con otras columnas — `schema.sql` documenta el estado inicial, no el real tras las ~30 migraciones posteriores).
 
 **Fix**: `obtenerOCrearUsuarioServicio()` ahora genera un `username` a partir de la parte local del email (ej. `ai-agent@hofra.internal` → `ai-agent`), agregando un sufijo numérico si ya existe uno igual (chequeando contra `usuarios` no eliminados), y lo incluye en el INSERT. Nicole corrió el script de nuevo después del fix — usuario de servicio y API key creados correctamente, guardada en `ai-agent/.env` (no pasó por el chat).
+
+##### Archivos Modificados
+- `backend/src/scripts/create-api-key.ts`
+
+### 21 de noviembre de 2026 — Hofra AI Agent: Fase 1 (cliente HTTP)
+
+Implementado el cliente HTTP del agente hacia Hofra Stock: `ai-agent/src/hofra-client/` (`httpClient.ts` con el header `X-API-Key`, `articulosClient.ts` con `buscarArticulos()`) y un comando de prueba manual `ai-agent/src/cli/buscar.ts` (`npm run cli:buscar --workspace=ai-agent -- "término"`) para confirmar que trae datos reales del catálogo. Ver sección "17. Hofra AI Agent" para el detalle completo.
+
+##### Archivos Modificados
+- `ai-agent/src/hofra-client/httpClient.ts`, `ai-agent/src/hofra-client/articulosClient.ts`, `ai-agent/src/cli/buscar.ts` (nuevos)
+- `ai-agent/package.json` (agrega `axios`, `ts-node`, script `cli:buscar`)
+
+### 21 de noviembre de 2026 — Incidente: API key expuesta en el chat por un comando `sed` mal asumido
+
+Al revisar si `ai-agent/.env` tenía el formato esperado (`HOFRA_API_KEY=valor`), se corrió `sed 's/=.*/=/'` sobre el archivo asumiendo ese formato — pero el archivo tenía **solo el valor de la key, sin el `HOFRA_API_KEY=` adelante** (quedó mal escrito al crearlo a mano). Como el `sed` no encontró ningún `=` para recortar, imprimió la línea completa sin cambios: **la API key de producción quedó expuesta en texto plano dentro de la conversación con Claude**, algo que se venía evitando deliberadamente desde que se diseñó el mecanismo de API keys.
+
+**Tratamiento del incidente** (se trató como una key comprometida, sin importar que la exposición haya sido accidental):
+1. Se generó una key nueva.
+2. Se revocó la vieja (`revoke-api-key.ts --id b917874e-...`).
+3. Se corrigió `create-api-key.ts` de raíz para que esto no se pueda repetir: ahora la key **nunca se imprime completa en ningún lado** — el script la escribe directamente en `ai-agent/.env` (reemplazando la línea `HOFRA_API_KEY=` si ya existía, o agregándola si no) y en pantalla solo muestra una versión enmascarada (`hofra_ef42...58cf`). Esto de paso resuelve el problema original del archivo mal formado, porque ahora el propio script controla el formato exacto de la línea que escribe.
 
 ##### Archivos Modificados
 - `backend/src/scripts/create-api-key.ts`

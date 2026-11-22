@@ -3,17 +3,20 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "./dist/cli/normalizar.js",
+  "main": "./dist/cli/buscar.js",
   "scripts": {
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "cli:buscar": "ts-node --esm src/cli/buscar.ts"
   },
   "dependencies": {
     "@hofra/shared": "*",
+    "axios": "^1.7.2",
     "dotenv": "^16.4.5"
   },
   "devDependencies": {
     "@types/node": "^18.0.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   }
 }
