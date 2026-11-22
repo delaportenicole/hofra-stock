@@ -948,27 +948,6 @@ Proyecto nuevo, en construcción por etapas: un agente de IA (Claude) **independ
 - `ai-agent/src/hofra-client/httpClient.ts`, `ai-agent/src/hofra-client/articulosClient.ts`, `ai-agent/src/cli/buscar.ts`
 - `ai-agent/package.json` (agrega `axios`, `ts-node`, script `cli:buscar`)
 
-#### Fase 2 — Normalización con IA (22 de noviembre de 2026, implementado, sin probar aún)
-
-El corazón del agente: interpreta el texto libre (o Excel/Word) de un pedido de cliente con Claude y devuelve un JSON estructurado. **No toca la base de datos** en ningún momento, como pedía el alcance original de esta etapa.
-
-- `ai-agent/src/core/tipos.ts`: el contrato de salida, validado con `zod`. Por cada ítem: `descripcionOriginal`, `descripcionNormalizada`, `cantidad`, `unidad`, `marca`, `modelo`, `caracteristicasTecnicas`, `camposFaltantes`, `ambiguedades` y `confianza` (`alta`/`media`/`baja`). Además `observacionesGenerales` para notas que no corresponden a un ítem puntual.
-- `ai-agent/src/ai/AIProvider.ts`: interfaz del proveedor de IA (un único método, `normalizarPedido`) — permite cambiar de Claude a otro modelo sin tocar `core/` ni el resto del agente.
-- `ai-agent/src/ai/ClaudeProvider.ts`: implementación con **Claude Sonnet** (modelo elegido en la ronda de decisiones de diseño — mejor relación razonamiento/costo para esta tarea que Haiku). Usa *tool use* forzado (`tool_choice: {type:'tool', ...}`) para que la respuesta venga siempre en la estructura exacta esperada, y valida la salida con el mismo schema `zod` antes de devolverla — nunca confía ciegamente en lo que devuelve el modelo.
-- `ai-agent/src/ai/prompts/normalizarPedido.prompt.ts`: las instrucciones del sistema, en un archivo aparte para poder iterarlas sin tocar código.
-- `ai-agent/src/core/normalizarPedido.ts`: el orquestador — recibe texto + un `AIProvider` inyectado, no sabe nada de HTTP ni de Claude en particular.
-- `ai-agent/src/parsers/excelParser.ts` / `wordParser.ts`: convierten Excel (`xlsx`) y Word (`mammoth`) a texto plano antes de normalizar. El Excel de un cliente no tiene columnas fijas como el que ya sabe leer Solicitudes de Cotización, así que se vuelca todo el contenido y se deja que el modelo infiera la estructura, en vez de mapear headers de antemano.
-- `ai-agent/src/cli/normalizar.ts`: comando de prueba (`npm run cli:normalizar --workspace=ai-agent -- --texto "..."` o `-- --archivo pedido.xlsx`).
-
-**Pendiente**: probarlo de punta a punta — falta que Nicole cargue `ANTHROPIC_API_KEY` en `ai-agent/.env` (todavía no tiene acceso a la consola de Anthropic para generarla).
-
-##### Archivos
-- `ai-agent/src/core/tipos.ts`, `ai-agent/src/core/normalizarPedido.ts`
-- `ai-agent/src/ai/AIProvider.ts`, `ai-agent/src/ai/ClaudeProvider.ts`, `ai-agent/src/ai/prompts/normalizarPedido.prompt.ts`
-- `ai-agent/src/parsers/excelParser.ts`, `ai-agent/src/parsers/wordParser.ts`
-- `ai-agent/src/cli/normalizar.ts`
-- `ai-agent/package.json` (agrega `@anthropic-ai/sdk`, `mammoth`, `xlsx`, `zod`, script `cli:normalizar`)
-
 #### Migraciones 030 y 031 aplicadas en producción, y API key real generada (19-21 de noviembre de 2026)
 
 Las tablas `api_keys` y `historial_matching_cliente` ya existen en la base de Railway (aplicadas vía un túnel SSH temporal de Railway — `railway ssh keys add` + `railway connect Postgres --tunnel-only`, verificado con `information_schema.tables`). La API key real ya fue generada por Nicole y está guardada en `ai-agent/.env` — ver incidente y fix de seguridad en el Changelog ("Incidente: API key expuesta en el chat por un comando `sed` mal asumido"), que cambió permanentemente cómo `create-api-key.ts` entrega la key (nunca más se imprime completa en ningún lado, se escribe directo al `.env`).
@@ -2793,16 +2772,3 @@ Al revisar si `ai-agent/.env` tenía el formato esperado (`HOFRA_API_KEY=valor`)
 
 ##### Archivos Modificados
 - `backend/src/scripts/create-api-key.ts`
-
-### 22 de noviembre de 2026 — Hofra AI Agent: Fase 2 (normalización con IA)
-
-Implementada la parte central del agente: `core/tipos.ts` (contrato `ItemNormalizado`/`ResultadoNormalizacion` validado con `zod`), `ai/AIProvider.ts` + `ai/ClaudeProvider.ts` (Claude Sonnet con tool use forzado), `ai/prompts/normalizarPedido.prompt.ts`, `core/normalizarPedido.ts` (orquestador, no toca la DB), `parsers/excelParser.ts`/`wordParser.ts` (Excel/Word → texto plano) y `cli/normalizar.ts` para probarlo manualmente. Compila limpio en todo el monorepo. Ver sección "17. Hofra AI Agent" para el detalle completo.
-
-Queda pendiente la prueba de punta a punta: Nicole todavía no tiene acceso a la consola de Anthropic para generar la `ANTHROPIC_API_KEY`.
-
-##### Archivos Modificados
-- `ai-agent/src/core/tipos.ts`, `ai-agent/src/core/normalizarPedido.ts` (nuevos)
-- `ai-agent/src/ai/AIProvider.ts`, `ai-agent/src/ai/ClaudeProvider.ts`, `ai-agent/src/ai/prompts/normalizarPedido.prompt.ts` (nuevos)
-- `ai-agent/src/parsers/excelParser.ts`, `ai-agent/src/parsers/wordParser.ts` (nuevos)
-- `ai-agent/src/cli/normalizar.ts` (nuevo)
-- `ai-agent/package.json` (agrega `@anthropic-ai/sdk`, `mammoth`, `xlsx`, `zod`, script `cli:normalizar`)
