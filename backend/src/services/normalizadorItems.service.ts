@@ -50,7 +50,7 @@ class NormalizadorItemsService {
     const client = this.getClient();
 
     const response = await client.messages.parse({
-      model: 'claude-sonnet-5',
+      model: 'claude-haiku-4-5',
       max_tokens: 8000,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: texto }],
