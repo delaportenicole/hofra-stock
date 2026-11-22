@@ -18,6 +18,16 @@ interface FormData {
 
 type ModoCarga = 'excel' | 'texto';
 
+type ColumnaOpcionalKey = 'etmSolicitado' | 'descripcionInglesSolicitada' | 'unidadSolicitada' | 'marcaSolicitada' | 'modeloSolicitado';
+
+const COLUMNAS_OPCIONALES: { key: ColumnaOpcionalKey; label: string }[] = [
+  { key: 'etmSolicitado', label: 'ETM' },
+  { key: 'descripcionInglesSolicitada', label: 'Descripción (inglés)' },
+  { key: 'unidadSolicitada', label: 'Unidad' },
+  { key: 'marcaSolicitada', label: 'Marca' },
+  { key: 'modeloSolicitado', label: 'Modelo' },
+];
+
 function normalizarHeader(texto: string): string {
   return texto
     .normalize('NFD')
@@ -41,6 +51,18 @@ export function SolicitudCotizacionUploadPage() {
 
   const [textoPegado, setTextoPegado] = useState('');
   const [isNormalizing, setIsNormalizing] = useState(false);
+
+  const [columnasVisibles, setColumnasVisibles] = useState<Record<ColumnaOpcionalKey, boolean>>({
+    etmSolicitado: true,
+    descripcionInglesSolicitada: true,
+    unidadSolicitada: true,
+    marcaSolicitada: true,
+    modeloSolicitado: true,
+  });
+
+  const toggleColumna = (key: ColumnaOpcionalKey) => {
+    setColumnasVisibles((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
 
   const {
     register,
@@ -80,6 +102,7 @@ export function SolicitudCotizacionUploadPage() {
         const cantidadIdx = headers.findIndex((h) => h === 'CANTIDAD');
         const marcaIdx = headers.findIndex((h) => h === 'MARCA');
         const modeloIdx = headers.findIndex((h) => h === 'MODELO');
+        const unidadIdx = headers.findIndex((h) => h === 'UNIDAD');
 
         if (descIdx === -1 || cantidadIdx === -1) {
           setParseError('El archivo debe tener columnas "Descripcion" y "Cantidad" en la primera fila');
@@ -110,6 +133,7 @@ export function SolicitudCotizacionUploadPage() {
             descripcionInglesSolicitada: descIngIdx !== -1 && row[descIngIdx] ? String(row[descIngIdx]).trim() : null,
             marcaSolicitada: marcaIdx !== -1 && row[marcaIdx] ? String(row[marcaIdx]).trim() : null,
             modeloSolicitado: modeloIdx !== -1 && row[modeloIdx] ? String(row[modeloIdx]).trim() : null,
+            unidadSolicitada: unidadIdx !== -1 && row[unidadIdx] ? String(row[unidadIdx]).trim() : null,
             cantidadSolicitada: Math.trunc(cantidad),
           });
         }
@@ -176,6 +200,7 @@ export function SolicitudCotizacionUploadPage() {
         descripcionInglesSolicitada: item.descripcionIngles,
         marcaSolicitada: item.marca,
         modeloSolicitado: item.modelo,
+        unidadSolicitada: item.unidad,
         cantidadSolicitada: item.cantidad,
       }));
 
@@ -206,6 +231,7 @@ export function SolicitudCotizacionUploadPage() {
       | 'descripcionInglesSolicitada'
       | 'marcaSolicitada'
       | 'modeloSolicitado'
+      | 'unidadSolicitada'
       | 'cantidadSolicitada',
     value: string
   ) => {
@@ -342,6 +368,7 @@ export function SolicitudCotizacionUploadPage() {
                       <tr><td className="py-1">CANTIDAD</td><td>Cantidad (requerido)</td></tr>
                       <tr><td className="py-1">MARCA</td><td>Marca</td></tr>
                       <tr><td className="py-1">MODELO</td><td>Modelo</td></tr>
+                      <tr><td className="py-1">UNIDAD</td><td>Unidad de medida</td></tr>
                     </tbody>
                   </table>
                 </div>
@@ -353,7 +380,8 @@ export function SolicitudCotizacionUploadPage() {
                 <label className="label">Pegá el texto del cliente</label>
                 <p className="text-sm text-gray-500 mb-2">
                   Pegá el mail, mensaje de WhatsApp o listado tal cual te lo mandó el cliente. La IA lo va a
-                  normalizar en Descripción, Marca, Modelo y Cantidad para que los revises antes de crear la solicitud.
+                  normalizar en ETM, Descripción, Descripción en inglés, Marca, Modelo, Unidad y Cantidad para
+                  que los revises antes de crear la solicitud.
                 </p>
                 <textarea
                   value={textoPegado}
@@ -415,15 +443,44 @@ export function SolicitudCotizacionUploadPage() {
               </div>
             </div>
 
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm text-gray-500">Columnas:</span>
+              {COLUMNAS_OPCIONALES.map((col) => (
+                <button
+                  key={col.key}
+                  type="button"
+                  onClick={() => toggleColumna(col.key)}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                    columnasVisibles[col.key]
+                      ? 'bg-primary-50 border-primary-300 text-primary-700'
+                      : 'bg-gray-50 border-gray-200 text-gray-400'
+                  }`}
+                >
+                  {col.label}
+                </button>
+              ))}
+            </div>
+
             <div className="border border-gray-200 rounded-lg overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="text-left px-3 py-2 font-medium text-gray-700 w-28">ETM</th>
+                    {columnasVisibles.etmSolicitado && (
+                      <th className="text-left px-3 py-2 font-medium text-gray-700 w-28">ETM</th>
+                    )}
                     <th className="text-left px-3 py-2 font-medium text-gray-700">Descripción</th>
-                    <th className="text-left px-3 py-2 font-medium text-gray-700">Descripción (inglés)</th>
-                    <th className="text-left px-3 py-2 font-medium text-gray-700 w-40">Marca</th>
-                    <th className="text-left px-3 py-2 font-medium text-gray-700 w-40">Modelo</th>
+                    {columnasVisibles.descripcionInglesSolicitada && (
+                      <th className="text-left px-3 py-2 font-medium text-gray-700">Descripción (inglés)</th>
+                    )}
+                    {columnasVisibles.marcaSolicitada && (
+                      <th className="text-left px-3 py-2 font-medium text-gray-700 w-40">Marca</th>
+                    )}
+                    {columnasVisibles.modeloSolicitado && (
+                      <th className="text-left px-3 py-2 font-medium text-gray-700 w-40">Modelo</th>
+                    )}
+                    {columnasVisibles.unidadSolicitada && (
+                      <th className="text-left px-3 py-2 font-medium text-gray-700 w-28">Unidad</th>
+                    )}
                     <th className="text-left px-3 py-2 font-medium text-gray-700 w-24">Cantidad</th>
                     <th className="w-10"></th>
                   </tr>
@@ -431,13 +488,15 @@ export function SolicitudCotizacionUploadPage() {
                 <tbody>
                   {items.map((item, index) => (
                     <tr key={index} className="border-t border-gray-100">
-                      <td className="px-3 py-1.5">
-                        <input
-                          value={item.etmSolicitado ?? ''}
-                          onChange={(e) => updateItem(index, 'etmSolicitado', e.target.value)}
-                          className="w-full border border-transparent hover:border-gray-300 focus:border-primary-500 rounded px-2 py-1 bg-transparent focus:bg-white"
-                        />
-                      </td>
+                      {columnasVisibles.etmSolicitado && (
+                        <td className="px-3 py-1.5">
+                          <input
+                            value={item.etmSolicitado ?? ''}
+                            onChange={(e) => updateItem(index, 'etmSolicitado', e.target.value)}
+                            className="w-full border border-transparent hover:border-gray-300 focus:border-primary-500 rounded px-2 py-1 bg-transparent focus:bg-white"
+                          />
+                        </td>
+                      )}
                       <td className="px-3 py-1.5">
                         <input
                           value={item.descripcionSolicitada}
@@ -445,27 +504,42 @@ export function SolicitudCotizacionUploadPage() {
                           className="w-full border border-transparent hover:border-gray-300 focus:border-primary-500 rounded px-2 py-1 bg-transparent focus:bg-white"
                         />
                       </td>
-                      <td className="px-3 py-1.5">
-                        <input
-                          value={item.descripcionInglesSolicitada ?? ''}
-                          onChange={(e) => updateItem(index, 'descripcionInglesSolicitada', e.target.value)}
-                          className="w-full border border-transparent hover:border-gray-300 focus:border-primary-500 rounded px-2 py-1 bg-transparent focus:bg-white"
-                        />
-                      </td>
-                      <td className="px-3 py-1.5">
-                        <input
-                          value={item.marcaSolicitada ?? ''}
-                          onChange={(e) => updateItem(index, 'marcaSolicitada', e.target.value)}
-                          className="w-full border border-transparent hover:border-gray-300 focus:border-primary-500 rounded px-2 py-1 bg-transparent focus:bg-white"
-                        />
-                      </td>
-                      <td className="px-3 py-1.5">
-                        <input
-                          value={item.modeloSolicitado ?? ''}
-                          onChange={(e) => updateItem(index, 'modeloSolicitado', e.target.value)}
-                          className="w-full border border-transparent hover:border-gray-300 focus:border-primary-500 rounded px-2 py-1 bg-transparent focus:bg-white"
-                        />
-                      </td>
+                      {columnasVisibles.descripcionInglesSolicitada && (
+                        <td className="px-3 py-1.5">
+                          <input
+                            value={item.descripcionInglesSolicitada ?? ''}
+                            onChange={(e) => updateItem(index, 'descripcionInglesSolicitada', e.target.value)}
+                            className="w-full border border-transparent hover:border-gray-300 focus:border-primary-500 rounded px-2 py-1 bg-transparent focus:bg-white"
+                          />
+                        </td>
+                      )}
+                      {columnasVisibles.marcaSolicitada && (
+                        <td className="px-3 py-1.5">
+                          <input
+                            value={item.marcaSolicitada ?? ''}
+                            onChange={(e) => updateItem(index, 'marcaSolicitada', e.target.value)}
+                            className="w-full border border-transparent hover:border-gray-300 focus:border-primary-500 rounded px-2 py-1 bg-transparent focus:bg-white"
+                          />
+                        </td>
+                      )}
+                      {columnasVisibles.modeloSolicitado && (
+                        <td className="px-3 py-1.5">
+                          <input
+                            value={item.modeloSolicitado ?? ''}
+                            onChange={(e) => updateItem(index, 'modeloSolicitado', e.target.value)}
+                            className="w-full border border-transparent hover:border-gray-300 focus:border-primary-500 rounded px-2 py-1 bg-transparent focus:bg-white"
+                          />
+                        </td>
+                      )}
+                      {columnasVisibles.unidadSolicitada && (
+                        <td className="px-3 py-1.5">
+                          <input
+                            value={item.unidadSolicitada ?? ''}
+                            onChange={(e) => updateItem(index, 'unidadSolicitada', e.target.value)}
+                            className="w-full border border-transparent hover:border-gray-300 focus:border-primary-500 rounded px-2 py-1 bg-transparent focus:bg-white"
+                          />
+                        </td>
+                      )}
                       <td className="px-3 py-1.5">
                         <input
                           type="number"

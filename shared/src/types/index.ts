@@ -292,6 +292,7 @@ export interface SolicitudCotizacionItem {
   marcaSolicitada: string | null;
   modeloSolicitado: string | null;
   descripcionInglesSolicitada: string | null;
+  unidadSolicitada: string | null;
   cantidadSolicitada: number;
   articuloId: string | null;
   matchConfianza: MatchConfianza | null;
@@ -595,6 +596,7 @@ export interface CreateSolicitudCotizacionItemDto {
   marcaSolicitada?: string | null;
   modeloSolicitado?: string | null;
   descripcionInglesSolicitada?: string | null;
+  unidadSolicitada?: string | null;
   cantidadSolicitada: number;
 }
 
@@ -630,6 +632,7 @@ export interface ItemNormalizado {
   descripcionIngles: string | null;
   marca: string | null;
   modelo: string | null;
+  unidad: string | null;
   cantidad: number;
 }
 

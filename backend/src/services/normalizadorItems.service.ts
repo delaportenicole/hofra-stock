@@ -11,6 +11,7 @@ const itemNormalizadoSchema = z.object({
   descripcionIngles: z.string().nullable(),
   marca: z.string().nullable(),
   modelo: z.string().nullable(),
+  unidad: z.string().nullable(),
   cantidad: z.number().int().positive(),
 });
 
@@ -23,12 +24,13 @@ const SYSTEM_PROMPT =
   'El texto puede venir de un email, WhatsApp o una lista pegada a mano, con formato irregular ' +
   '(numerada, con viñetas, en renglones sueltos, etc). Para cada ítem pedido devolvé: ' +
   'etm (el código ETM o código interno de referencia del artículo, si el texto lo incluye; si no aparece, null), ' +
-  'descripcion (el nombre/descripción del artículo, sin repetir ahí la marca, el modelo ni la cantidad ' +
+  'descripcion (el nombre/descripción del artículo, sin repetir ahí la marca, el modelo, la unidad ni la cantidad ' +
   'si se pueden separar del texto), ' +
   'descripcionIngles (la descripción en inglés del artículo, solo si el texto la incluye explícitamente; si no aparece, null), ' +
   'marca (null si no se menciona), modelo (null si no se menciona), ' +
+  'unidad (la unidad de medida del ítem si el texto la menciona, por ejemplo "unidades", "cajas", "metros", "litros", "kg", "pares", "rollos"; si no se menciona, null), ' +
   'cantidad (entero positivo; si no se menciona una cantidad para ese ítem, usá 1). ' +
-  'El ETM y la descripción en inglés no siempre están presentes: no los inventes, usá null si el texto no los trae. ' +
+  'El ETM, la descripción en inglés y la unidad no siempre están presentes: no los inventes, usá null si el texto no los trae. ' +
   'Ignorá encabezados, totales, saludos, firmas y cualquier texto que no sea un ítem pedido.';
 
 class NormalizadorItemsService {

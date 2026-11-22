@@ -24,6 +24,7 @@ interface CreateItemData {
   marcaSolicitada: string | null;
   modeloSolicitado: string | null;
   descripcionInglesSolicitada: string | null;
+  unidadSolicitada: string | null;
   cantidadSolicitada: number;
   articuloId: string | null;
   matchConfianza: MatchConfianza;
@@ -82,8 +83,8 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       for (const item of data.items) {
         const itemRows = await client.query<Record<string, unknown>>(
           `INSERT INTO solicitud_cotizacion_items
-             (solicitud_id, orden, etm_solicitado, descripcion_solicitada, marca_solicitada, modelo_solicitado, descripcion_ingles_solicitada, cantidad_solicitada, articulo_id, match_confianza)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+             (solicitud_id, orden, etm_solicitado, descripcion_solicitada, marca_solicitada, modelo_solicitado, descripcion_ingles_solicitada, unidad_solicitada, cantidad_solicitada, articulo_id, match_confianza)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
            RETURNING *`,
           [
             solicitud.id,
@@ -93,6 +94,7 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
             item.marcaSolicitada,
             item.modeloSolicitado,
             item.descripcionInglesSolicitada,
+            item.unidadSolicitada,
             item.cantidadSolicitada,
             item.articuloId,
             item.matchConfianza,
@@ -280,6 +282,7 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       marcaSolicitada: row.marca_solicitada as string | null,
       modeloSolicitado: row.modelo_solicitado as string | null,
       descripcionInglesSolicitada: row.descripcion_ingles_solicitada as string | null,
+      unidadSolicitada: row.unidad_solicitada as string | null,
       cantidadSolicitada: row.cantidad_solicitada as number,
       articuloId: row.articulo_id as string | null,
       matchConfianza: row.match_confianza as MatchConfianza | null,

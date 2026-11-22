@@ -355,6 +355,7 @@ export const createSolicitudCotizacionItemSchema = z.object({
   marcaSolicitada: z.string().max(100).optional().nullable(),
   modeloSolicitado: z.string().max(150).optional().nullable(),
   descripcionInglesSolicitada: z.string().max(500).optional().nullable(),
+  unidadSolicitada: z.string().max(50).optional().nullable(),
   cantidadSolicitada: z.coerce.number().int().positive('La cantidad debe ser mayor a 0'),
 });
 

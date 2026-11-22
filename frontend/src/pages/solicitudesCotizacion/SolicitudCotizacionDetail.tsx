@@ -552,6 +552,7 @@ export function SolicitudCotizacionDetailPage() {
                       <p className="font-medium text-gray-900">{item.descripcionSolicitada}</p>
                       <p className="text-xs text-gray-500">
                         Cant: {item.cantidadSolicitada.toLocaleString('es-AR')}
+                        {item.unidadSolicitada && ` ${item.unidadSolicitada}`}
                         {item.marcaSolicitada && ` · Marca: ${item.marcaSolicitada}`}
                         {item.modeloSolicitado && ` · Modelo: ${item.modeloSolicitado}`}
                         {item.etmSolicitado && ` · ETM: ${item.etmSolicitado}`}
