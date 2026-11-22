@@ -7,6 +7,7 @@ import type {
   UpdateSolicitudCotizacionItemDto,
   EstadoSolicitudCotizacion,
   PaginatedResponse,
+  ItemNormalizado,
 } from '@hofra/shared';
 
 export const solicitudesCotizacionService = {
@@ -30,6 +31,14 @@ export const solicitudesCotizacionService = {
   async create(data: CreateSolicitudCotizacionDto): Promise<SolicitudCotizacionConRelaciones> {
     const response = await api.post<{ data: SolicitudCotizacionConRelaciones }>('/solicitudes-cotizacion', data);
     return response.data.data;
+  },
+
+  async normalizarTexto(texto: string): Promise<ItemNormalizado[]> {
+    const response = await api.post<{ data: { items: ItemNormalizado[] } }>(
+      '/solicitudes-cotizacion/normalizar-texto',
+      { texto }
+    );
+    return response.data.data.items;
   },
 
   async update(id: string, data: UpdateSolicitudCotizacionDto): Promise<SolicitudCotizacion> {

@@ -7,6 +7,7 @@ import {
   createSolicitudCotizacionSchema,
   updateSolicitudCotizacionSchema,
   updateSolicitudCotizacionItemSchema,
+  normalizarTextoSchema,
 } from '@hofra/shared';
 
 const router = Router();
@@ -19,6 +20,12 @@ router.get('/:id', requirePermission('solicitudes_cotizacion', 'leer'), solicitu
 router.get('/:id/exportar-excel', requirePermission('solicitudes_cotizacion', 'leer'), solicitudCotizacionController.exportarExcel);
 router.get('/:id/exportar-excel-externo', requirePermission('solicitudes_cotizacion', 'leer'), solicitudCotizacionController.exportarExcelExterno);
 router.post('/:id/exportar-google-sheets', requirePermission('solicitudes_cotizacion', 'leer'), solicitudCotizacionController.exportarGoogleSheets);
+router.post(
+  '/normalizar-texto',
+  requirePermission('solicitudes_cotizacion', 'crear'),
+  validateBody(normalizarTextoSchema),
+  solicitudCotizacionController.normalizarTexto
+);
 router.post(
   '/',
   requirePermission('solicitudes_cotizacion', 'crear'),

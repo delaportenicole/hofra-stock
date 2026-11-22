@@ -376,6 +376,10 @@ export const updateSolicitudCotizacionSchema = z.object({
   usdOficialVenta: z.coerce.number().nonnegative('El valor no puede ser negativo').optional().nullable(),
 });
 
+export const normalizarTextoSchema = z.object({
+  texto: z.string().min(1, 'El texto es requerido').max(20000, 'El texto es demasiado largo (máximo 20000 caracteres)'),
+});
+
 export const updateSolicitudCotizacionItemSchema = z.object({
   articuloId: uuidSchema.optional().nullable(),
   estadoItem: z.enum(['pendiente', 'aceptado', 'no_disponible']).optional(),

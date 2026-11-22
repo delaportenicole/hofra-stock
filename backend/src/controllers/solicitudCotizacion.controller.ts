@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { solicitudCotizacionService } from '../services/solicitudCotizacion.service.js';
 import { buildCotizacionExcelBuffer } from '../services/cotizacionExport.service.js';
 import { googleService } from '../services/google.service.js';
+import { normalizadorItemsService } from '../services/normalizadorItems.service.js';
 import { logManualAudit } from '../middlewares/audit.js';
 import { sendSuccess, sendCreated, sendPaginated } from '../utils/response.js';
 import type { AuthenticatedRequest } from '../types/index.js';
@@ -41,6 +42,16 @@ export class SolicitudCotizacionController {
       const solicitud = await solicitudCotizacionService.create(req.body, req.user?.userId);
       // Audit is handled by middleware
       sendCreated(res, solicitud, 'Solicitud de cotización creada correctamente');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async normalizarTexto(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { texto } = req.body as { texto: string };
+      const items = await normalizadorItemsService.normalizarTexto(texto);
+      sendSuccess(res, { items });
     } catch (error) {
       next(error);
     }

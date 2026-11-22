@@ -36,6 +36,9 @@ export const env = {
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
   GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI || '',
 
+  // Anthropic (normalización de texto con IA)
+  ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
+
   // Helpers
   isDevelopment: process.env.NODE_ENV === 'development',
   isProduction: process.env.NODE_ENV === 'production',

@@ -624,6 +624,19 @@ export interface UpdateSolicitudCotizacionItemDto {
   urlExterna?: string | null;
 }
 
+export interface ItemNormalizado {
+  etm: string | null;
+  descripcion: string;
+  descripcionIngles: string | null;
+  marca: string | null;
+  modelo: string | null;
+  cantidad: number;
+}
+
+export interface NormalizarTextoDto {
+  texto: string;
+}
+
 export interface CreateRolDto {
   nombre: string;
   descripcion?: string;
