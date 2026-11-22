@@ -24,19 +24,6 @@ function parseArgs(): { nombre: string; email: string; permisos: string[] } {
   return { nombre, email, permisos };
 }
 
-async function generarUsernameDisponible(email: string): Promise<string> {
-  const base = email.split('@')[0].replace(/[^a-z0-9.-]/gi, '').toLowerCase() || 'servicio';
-
-  for (let sufijo = 0; ; sufijo++) {
-    const candidato = sufijo === 0 ? base : `${base}-${sufijo}`;
-    const existente = await queryOne<{ id: string }>(
-      'SELECT id FROM usuarios WHERE username = $1 AND deleted_at IS NULL',
-      [candidato]
-    );
-    if (!existente) return candidato;
-  }
-}
-
 async function obtenerOCrearUsuarioServicio(email: string, nombre: string): Promise<string> {
   const existente = await queryOne<{ id: string }>(
     'SELECT id FROM usuarios WHERE email = $1',
@@ -47,17 +34,16 @@ async function obtenerOCrearUsuarioServicio(email: string, nombre: string): Prom
   // Password inutilizable: nunca se guarda ni se usa para loguear, solo satisface el NOT NULL.
   const passwordAleatoria = crypto.randomBytes(32).toString('hex');
   const passwordHash = await bcrypt.hash(passwordAleatoria, 12);
-  const username = await generarUsernameDisponible(email);
 
   const row = await queryOne<{ id: string }>(
-    `INSERT INTO usuarios (email, username, password_hash, nombre, apellido, activo)
-     VALUES ($1, $2, $3, $4, 'Identidad de servicio', true)
+    `INSERT INTO usuarios (email, password_hash, nombre, apellido, activo)
+     VALUES ($1, $2, $3, 'Identidad de servicio', true)
      RETURNING id`,
-    [email, username, passwordHash, nombre]
+    [email, passwordHash, nombre]
   );
   if (!row) throw new Error('No se pudo crear el usuario de servicio');
 
-  console.log(`Usuario de servicio creado: ${email} / username "${username}" (${row.id})`);
+  console.log(`Usuario de servicio creado: ${email} (${row.id})`);
   return row.id;
 }
 
