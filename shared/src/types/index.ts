@@ -608,6 +608,20 @@ export interface CreateSolicitudCotizacionDto {
   items: CreateSolicitudCotizacionItemDto[];
 }
 
+export interface AddSolicitudCotizacionItemDto {
+  etmSolicitado?: string | null;
+  descripcionSolicitada: string;
+  marcaSolicitada?: string | null;
+  modeloSolicitado?: string | null;
+  descripcionInglesSolicitada?: string | null;
+  unidadSolicitada?: string | null;
+  cantidadSolicitada: number;
+}
+
+export interface AddSolicitudCotizacionItemsDto {
+  items: AddSolicitudCotizacionItemDto[];
+}
+
 export interface UpdateSolicitudCotizacionDto {
   numeroReferenciaCliente?: string | null;
   observaciones?: string | null;

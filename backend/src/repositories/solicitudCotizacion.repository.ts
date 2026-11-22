@@ -109,6 +109,48 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
     });
   }
 
+  async addItems(
+    solicitudId: string,
+    items: Omit<CreateItemData, 'orden'>[]
+  ): Promise<SolicitudCotizacionItem[]> {
+    return transaction(async (client) => {
+      const maxOrdenRow = await client.queryOne<{ max_orden: number | null }>(
+        `SELECT MAX(orden) as max_orden FROM solicitud_cotizacion_items WHERE solicitud_id = $1`,
+        [solicitudId]
+      );
+      let nextOrden = (maxOrdenRow?.max_orden ?? -1) + 1;
+
+      const inserted: SolicitudCotizacionItem[] = [];
+      for (const item of items) {
+        const itemRows = await client.query<Record<string, unknown>>(
+          `INSERT INTO solicitud_cotizacion_items
+             (solicitud_id, orden, etm_solicitado, descripcion_solicitada, marca_solicitada, modelo_solicitado, descripcion_ingles_solicitada, unidad_solicitada, cantidad_solicitada, articulo_id, match_confianza)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+           RETURNING *`,
+          [
+            solicitudId,
+            nextOrden,
+            item.etmSolicitado,
+            item.descripcionSolicitada,
+            item.marcaSolicitada,
+            item.modeloSolicitado,
+            item.descripcionInglesSolicitada,
+            item.unidadSolicitada,
+            item.cantidadSolicitada,
+            item.articuloId,
+            item.matchConfianza,
+          ]
+        );
+        if (itemRows[0]) {
+          inserted.push(this.mapItem(itemRows[0]));
+        }
+        nextOrden++;
+      }
+
+      return inserted;
+    });
+  }
+
   async updateHeader(
     id: string,
     data: {

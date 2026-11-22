@@ -7,6 +7,7 @@ import {
   createSolicitudCotizacionSchema,
   updateSolicitudCotizacionSchema,
   updateSolicitudCotizacionItemSchema,
+  addSolicitudCotizacionItemsSchema,
   normalizarTextoSchema,
 } from '@hofra/shared';
 
@@ -39,6 +40,13 @@ router.put(
   auditMiddleware('solicitudes_cotizacion'),
   validateBody(updateSolicitudCotizacionSchema),
   solicitudCotizacionController.update
+);
+router.post(
+  '/:id/items',
+  requirePermission('solicitudes_cotizacion', 'actualizar'),
+  auditMiddleware('solicitudes_cotizacion'),
+  validateBody(addSolicitudCotizacionItemsSchema),
+  solicitudCotizacionController.addItems
 );
 router.put(
   '/:id/items/:itemId',

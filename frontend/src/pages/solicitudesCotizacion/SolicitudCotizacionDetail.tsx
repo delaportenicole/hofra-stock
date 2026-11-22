@@ -2,19 +2,21 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ArrowLeft, Check, Search, ExternalLink, Printer, XCircle, FileCheck, Package, X, Link2, Ban, Download, HardDrive, Loader2 } from 'lucide-react';
+import { ArrowLeft, Check, Search, ExternalLink, Printer, XCircle, FileCheck, Package, X, Link2, Ban, Download, HardDrive, Loader2, Plus } from 'lucide-react';
 import { solicitudesCotizacionService } from '../../services/solicitudesCotizacion.service';
 import { articulosService } from '../../services/articulos.service';
 import { ArticuloCombobox } from '../../components/ArticuloCombobox';
 import { CurrencyInput } from '../../components/CurrencyInput';
 import { Badge } from '../../components/Badge';
 import { PageLoader } from '../../components/LoadingSpinner';
+import { ItemsCaptureEditor } from '../../components/solicitudesCotizacion/ItemsCaptureEditor';
 import { getErrorMessage } from '../../services/api';
 import toast from 'react-hot-toast';
 import type {
   SolicitudCotizacionConRelaciones,
   SolicitudCotizacionItemConArticulo,
   ArticuloConRelaciones,
+  CreateSolicitudCotizacionItemDto,
   EstadoSolicitudCotizacion,
   MatchConfianza,
 } from '@hofra/shared';
@@ -80,6 +82,11 @@ export function SolicitudCotizacionDetailPage() {
     usdOficialVenta: undefined as number | undefined,
   });
   const [isSavingHeader, setIsSavingHeader] = useState(false);
+
+  const [mostrarAgregarItems, setMostrarAgregarItems] = useState(false);
+  const [nuevosItems, setNuevosItems] = useState<CreateSolicitudCotizacionItemDto[]>([]);
+  const [nuevosItemsFileName, setNuevosItemsFileName] = useState<string | null>(null);
+  const [isAddingItems, setIsAddingItems] = useState(false);
 
   useEffect(() => {
     if (id) loadData(id);
@@ -243,6 +250,38 @@ export function SolicitudCotizacionDetailPage() {
       toast.success('Solicitud cancelada');
     } catch (error) {
       toast.error(getErrorMessage(error));
+    }
+  };
+
+  const handleAgregarItems = async () => {
+    if (!id) return;
+    if (nuevosItems.length === 0) {
+      toast.error('Cargá al menos un ítem válido');
+      return;
+    }
+    setIsAddingItems(true);
+    try {
+      const updated = await solicitudesCotizacionService.addItems(
+        id,
+        nuevosItems.map((item) => ({
+          etmSolicitado: item.etmSolicitado,
+          descripcionSolicitada: item.descripcionSolicitada,
+          marcaSolicitada: item.marcaSolicitada,
+          modeloSolicitado: item.modeloSolicitado,
+          descripcionInglesSolicitada: item.descripcionInglesSolicitada,
+          unidadSolicitada: item.unidadSolicitada,
+          cantidadSolicitada: item.cantidadSolicitada,
+        }))
+      );
+      setSolicitud(updated);
+      toast.success(`${nuevosItems.length} ítems agregados`);
+      setNuevosItems([]);
+      setNuevosItemsFileName(null);
+      setMostrarAgregarItems(false);
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setIsAddingItems(false);
     }
   };
 
@@ -515,6 +554,10 @@ export function SolicitudCotizacionDetailPage() {
         )}
         {solicitud.estado === 'en_revision' && (
           <>
+            <button onClick={() => setMostrarAgregarItems((v) => !v)} className="btn-secondary">
+              <Plus className="w-4 h-4 mr-2" />
+              Agregar Artículos
+            </button>
             <button onClick={handleCancelar} className="btn-danger">
               <XCircle className="w-4 h-4 mr-2" />
               Cancelar Solicitud
@@ -811,6 +854,42 @@ export function SolicitudCotizacionDetailPage() {
           </table>
         </div>
       </div>
+
+      {mostrarAgregarItems && solicitud.estado === 'en_revision' && (
+        <div className="card p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900">Agregar Artículos</h2>
+            <button
+              onClick={() => {
+                setMostrarAgregarItems(false);
+                setNuevosItems([]);
+                setNuevosItemsFileName(null);
+              }}
+              className="p-2 hover:bg-gray-100 rounded-lg"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <ItemsCaptureEditor
+            items={nuevosItems}
+            onItemsChange={setNuevosItems}
+            fileName={nuevosItemsFileName}
+            onFileNameChange={setNuevosItemsFileName}
+          />
+
+          <div className="flex justify-end">
+            <button
+              onClick={handleAgregarItems}
+              disabled={isAddingItems || nuevosItems.length === 0}
+              className="btn-primary disabled:opacity-50"
+            >
+              {isAddingItems ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+              Agregar {nuevosItems.length > 0 ? `${nuevosItems.length} ` : ''}Ítems
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

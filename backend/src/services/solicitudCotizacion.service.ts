@@ -5,6 +5,7 @@ import { AppError, NotFoundError } from '../utils/errors.js';
 import type {
   SolicitudCotizacionConRelaciones,
   CreateSolicitudCotizacionItemDto,
+  AddSolicitudCotizacionItemDto,
   UpdateSolicitudCotizacionDto,
   UpdateSolicitudCotizacionItemDto,
   MatchConfianza,
@@ -129,6 +130,40 @@ class SolicitudCotizacionService {
     });
 
     return this.findById(solicitud.id);
+  }
+
+  async addItems(
+    solicitudId: string,
+    items: AddSolicitudCotizacionItemDto[]
+  ): Promise<SolicitudCotizacionConRelaciones> {
+    const solicitud = await solicitudCotizacionRepository.findByIdWithRelations(solicitudId);
+    if (!solicitud) throw new NotFoundError('Solicitud de cotización');
+    if (solicitud.estado !== 'en_revision') {
+      throw new AppError(400, 'Solo se pueden agregar ítems a solicitudes en revisión');
+    }
+
+    const itemsConMatch = [];
+    for (const item of items) {
+      const match = await this.matchArticulo({
+        etmSolicitado: item.etmSolicitado ?? null,
+        descripcionSolicitada: item.descripcionSolicitada,
+        marcaSolicitada: item.marcaSolicitada ?? null,
+      });
+      itemsConMatch.push({
+        etmSolicitado: item.etmSolicitado ?? null,
+        descripcionSolicitada: item.descripcionSolicitada,
+        marcaSolicitada: item.marcaSolicitada ?? null,
+        modeloSolicitado: item.modeloSolicitado ?? null,
+        descripcionInglesSolicitada: item.descripcionInglesSolicitada ?? null,
+        unidadSolicitada: item.unidadSolicitada ?? null,
+        cantidadSolicitada: item.cantidadSolicitada,
+        articuloId: match.articuloId,
+        matchConfianza: match.matchConfianza,
+      });
+    }
+
+    await solicitudCotizacionRepository.addItems(solicitudId, itemsConMatch);
+    return this.findById(solicitudId);
   }
 
   async findById(id: string): Promise<SolicitudCotizacionConRelaciones> {

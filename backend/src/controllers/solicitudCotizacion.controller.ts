@@ -7,7 +7,7 @@ import { logManualAudit } from '../middlewares/audit.js';
 import { sendSuccess, sendCreated, sendPaginated } from '../utils/response.js';
 import type { AuthenticatedRequest } from '../types/index.js';
 import { paginationSchema } from '@hofra/shared';
-import type { EstadoSolicitudCotizacion } from '@hofra/shared';
+import type { EstadoSolicitudCotizacion, AddSolicitudCotizacionItemDto } from '@hofra/shared';
 
 export class SolicitudCotizacionController {
   async findAll(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -62,6 +62,16 @@ export class SolicitudCotizacionController {
       const solicitud = await solicitudCotizacionService.updateHeader(req.params.id, req.body, req.user?.userId);
       // Audit is handled by middleware
       sendSuccess(res, solicitud, 'Solicitud de cotización actualizada correctamente');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async addItems(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { items } = req.body as { items: AddSolicitudCotizacionItemDto[] };
+      const solicitud = await solicitudCotizacionService.addItems(req.params.id, items);
+      sendSuccess(res, solicitud, 'Ítems agregados correctamente');
     } catch (error) {
       next(error);
     }

@@ -367,6 +367,10 @@ export const createSolicitudCotizacionSchema = z.object({
   items: z.array(createSolicitudCotizacionItemSchema).min(1, 'Debe incluir al menos un ítem'),
 });
 
+export const addSolicitudCotizacionItemsSchema = z.object({
+  items: z.array(createSolicitudCotizacionItemSchema.omit({ orden: true })).min(1, 'Debe incluir al menos un ítem'),
+});
+
 export const updateSolicitudCotizacionSchema = z.object({
   numeroReferenciaCliente: z.string().max(100).optional().nullable(),
   observaciones: z.string().max(1000).optional().nullable(),

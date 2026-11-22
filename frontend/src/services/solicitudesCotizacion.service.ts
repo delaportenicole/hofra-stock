@@ -5,6 +5,7 @@ import type {
   CreateSolicitudCotizacionDto,
   UpdateSolicitudCotizacionDto,
   UpdateSolicitudCotizacionItemDto,
+  AddSolicitudCotizacionItemDto,
   EstadoSolicitudCotizacion,
   PaginatedResponse,
   ItemNormalizado,
@@ -39,6 +40,14 @@ export const solicitudesCotizacionService = {
       { texto }
     );
     return response.data.data.items;
+  },
+
+  async addItems(id: string, items: AddSolicitudCotizacionItemDto[]): Promise<SolicitudCotizacionConRelaciones> {
+    const response = await api.post<{ data: SolicitudCotizacionConRelaciones }>(
+      `/solicitudes-cotizacion/${id}/items`,
+      { items }
+    );
+    return response.data.data;
   },
 
   async update(id: string, data: UpdateSolicitudCotizacionDto): Promise<SolicitudCotizacion> {
