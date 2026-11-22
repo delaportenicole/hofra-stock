@@ -1,42 +1,13 @@
 // Crea (o reutiliza) un usuario "identidad de servicio" y genera una API key nueva para él.
 // Uso: npm run create-api-key --workspace=backend -- --nombre "Hofra AI Agent" --email ai-agent@hofra.internal --permisos articulos:leer,rubros:leer,proveedores:leer,clientes:leer
 //
-// La key en texto plano NUNCA se imprime en consola — se escribe directo en ai-agent/.env
-// (reemplazando la línea HOFRA_API_KEY= si ya existía) y no queda guardada en ningún otro
-// lado (solo su hash SHA-256 en la DB). Si se pierde, hay que generar una nueva con este
-// mismo script; la vieja hay que revocarla con revoke-api-key.ts.
+// La key en texto plano se imprime UNA sola vez acá abajo — no queda guardada en ningún lado
+// (solo su hash SHA-256). Si se pierde, hay que generar una nueva con este mismo script.
 import crypto from 'crypto';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import bcrypt from 'bcryptjs';
 import { pool, queryOne } from '../config/database.js';
 import { hashToken } from '../utils/jwt.js';
 import { apiKeyRepository } from '../repositories/apiKey.repository.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.resolve(__dirname, '../../../');
-const ENV_PATH = path.join(REPO_ROOT, 'ai-agent', '.env');
-const ENV_EXAMPLE_PATH = path.join(REPO_ROOT, 'ai-agent', '.env.example');
-
-function escribirKeyEnEnv(keyPlano: string): void {
-  const base = fs.existsSync(ENV_PATH)
-    ? fs.readFileSync(ENV_PATH, 'utf-8')
-    : fs.existsSync(ENV_EXAMPLE_PATH)
-      ? fs.readFileSync(ENV_EXAMPLE_PATH, 'utf-8')
-      : '';
-
-  const linea = `HOFRA_API_KEY=${keyPlano}`;
-  const contenido = /^HOFRA_API_KEY=.*$/m.test(base)
-    ? base.replace(/^HOFRA_API_KEY=.*$/m, linea)
-    : `${base.trimEnd()}\n${linea}\n`;
-
-  fs.writeFileSync(ENV_PATH, contenido);
-}
-
-function enmascarar(keyPlano: string): string {
-  return `${keyPlano.slice(0, 10)}...${keyPlano.slice(-4)}`;
-}
 
 function parseArgs(): { nombre: string; email: string; permisos: string[] } {
   const args = process.argv.slice(2);
@@ -106,14 +77,12 @@ async function main() {
       permisos,
     });
 
-    escribirKeyEnEnv(keyPlano);
-
     console.log('\n API key creada correctamente.');
     console.log(`   id:        ${apiKey.id}`);
     console.log(`   nombre:    ${apiKey.nombre}`);
     console.log(`   permisos:  ${permisos.join(', ')}`);
-    console.log(`   key:       ${enmascarar(keyPlano)} (enmascarada a propósito)`);
-    console.log(`\n Escrita en ${ENV_PATH} — no se imprime completa en ningún lado.\n`);
+    console.log('\n Guardá esta key ahora — no se puede volver a ver:\n');
+    console.log(`   ${keyPlano}\n`);
 
     process.exit(0);
   } catch (error) {
