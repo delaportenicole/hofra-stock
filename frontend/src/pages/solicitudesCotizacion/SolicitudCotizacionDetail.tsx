@@ -253,6 +253,12 @@ export function SolicitudCotizacionDetailPage() {
     }
   };
 
+  const handleCerrarAgregarItems = () => {
+    setMostrarAgregarItems(false);
+    setNuevosItems([]);
+    setNuevosItemsFileName(null);
+  };
+
   const handleAgregarItems = async () => {
     if (!id) return;
     if (nuevosItems.length === 0) {
@@ -275,9 +281,7 @@ export function SolicitudCotizacionDetailPage() {
       );
       setSolicitud(updated);
       toast.success(`${nuevosItems.length} ítems agregados`);
-      setNuevosItems([]);
-      setNuevosItemsFileName(null);
-      setMostrarAgregarItems(false);
+      handleCerrarAgregarItems();
     } catch (error) {
       toast.error(getErrorMessage(error));
     } finally {
@@ -856,37 +860,38 @@ export function SolicitudCotizacionDetailPage() {
       </div>
 
       {mostrarAgregarItems && solicitud.estado === 'en_revision' && (
-        <div className="card p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Agregar Artículos</h2>
-            <button
-              onClick={() => {
-                setMostrarAgregarItems(false);
-                setNuevosItems([]);
-                setNuevosItemsFileName(null);
-              }}
-              className="p-2 hover:bg-gray-100 rounded-lg"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={handleCerrarAgregarItems} />
+          <div className="relative bg-white rounded-lg shadow-xl w-full max-w-4xl my-8">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold text-gray-900">Agregar Artículos</h2>
+              <button onClick={handleCerrarAgregarItems} className="p-2 hover:bg-gray-100 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-          <ItemsCaptureEditor
-            items={nuevosItems}
-            onItemsChange={setNuevosItems}
-            fileName={nuevosItemsFileName}
-            onFileNameChange={setNuevosItemsFileName}
-          />
+            <div className="p-6 space-y-4">
+              <ItemsCaptureEditor
+                items={nuevosItems}
+                onItemsChange={setNuevosItems}
+                fileName={nuevosItemsFileName}
+                onFileNameChange={setNuevosItemsFileName}
+              />
 
-          <div className="flex justify-end">
-            <button
-              onClick={handleAgregarItems}
-              disabled={isAddingItems || nuevosItems.length === 0}
-              className="btn-primary disabled:opacity-50"
-            >
-              {isAddingItems ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-              Agregar {nuevosItems.length > 0 ? `${nuevosItems.length} ` : ''}Ítems
-            </button>
+              <div className="flex justify-end gap-3">
+                <button type="button" onClick={handleCerrarAgregarItems} className="btn-secondary">
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleAgregarItems}
+                  disabled={isAddingItems || nuevosItems.length === 0}
+                  className="btn-primary disabled:opacity-50"
+                >
+                  {isAddingItems ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+                  Agregar {nuevosItems.length > 0 ? `${nuevosItems.length} ` : ''}Ítems
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
