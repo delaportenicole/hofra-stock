@@ -6,7 +6,7 @@ Sistema completo de gestión de inventario con arquitectura monorepo, desarrolla
 - **Frontend**: React 18 + Vite 4 + TypeScript + Tailwind CSS
 - **Backend**: Express + TypeScript
 - **Base de Datos**: PostgreSQL (Railway)
-- **Autenticación**: JWT con access/refresh tokens (humanos) + API keys dedicadas para procesos externos (ver "17. Hofra AI Agent")
+- **Autenticación**: JWT con access/refresh tokens
 
 ---
 
@@ -17,7 +17,6 @@ hofra-stock/
 ├── frontend/           # React + Vite + TypeScript
 ├── backend/            # Express + TypeScript
 ├── shared/             # Tipos y validadores compartidos
-├── ai-agent/           # Agente de IA independiente (en construcción, ver "17. Hofra AI Agent")
 ├── database/           # Scripts SQL y migraciones
 └── docs/               # Documentación técnica
 ```
@@ -910,43 +909,6 @@ Los endpoints de `/api/google/*` (auth-url, oauth/callback, status) ya están mo
 - `database/migrations/026_add_mark_up_solicitud_items.sql`
 - `database/migrations/027_mark_up_a_entero.sql`
 - `database/migrations/028_add_numero_cotizacion.sql`
-
----
-
-### 17. Hofra AI Agent (19 de noviembre de 2026 — Fases 0 y 0.5)
-
-Proyecto nuevo, en construcción por etapas: un agente de IA (Claude) **independiente** de Hofra Stock, pensado para interpretar pedidos de cotización de clientes en texto libre/Excel/Word, normalizarlos y eventualmente matchearlos contra el catálogo. Vive como un **4° workspace** del monorepo (`ai-agent/`), separado de `frontend`/`backend`/`shared` pero reutilizando `@hofra/shared`.
-
-#### Decisiones de diseño
-- **Modelo**: Claude Sonnet (no Haiku) — la tarea necesita más capacidad de razonamiento que una clasificación simple, y el volumen esperado no justifica optimizar por costo todavía.
-- **Autenticación del agente contra Hofra Stock**: **API key dedicada**, no login humano reutilizado. Evita el problema de tener que re-loguearse cada 7 días si el agente corre desatendido, y es revocable al instante.
-- **Entrada de esta etapa**: texto libre pegado a mano, Excel o Word. PDF/email/WhatsApp quedan explícitamente fuera por ahora.
-- **Aprendizaje futuro**: el sistema debe eventualmente "aprender" qué artículo corresponde a qué descripción de cliente. Se decidió que ese historial viva en la base de **Hofra Stock** (no en el agente), alimentado automáticamente por el flujo humano que ya existe en Solicitudes de Cotización.
-
-#### Fase 0.5 — Backend de Hofra Stock (implementado)
-
-**Autenticación por API key**: `authMiddleware` (`backend/src/middlewares/auth.ts`) ahora acepta, además del JWT humano de siempre, un header `X-API-Key`. Si viene ese header (y no un `Authorization: Bearer`), se hashea (SHA-256, mismo mecanismo que ya usan los refresh tokens) y se busca en la tabla nueva `api_keys`. Si matchea, arma un `req.user` sintético con los permisos de la key — **el resto del pipeline** (`requirePermission`, `auditMiddleware`) no se modificó, consume ese objeto exactamente igual que el de un usuario humano logueado.
-
-- Tabla `api_keys` (migración 030): `nombre`, `key_hash` (nunca se guarda la key en texto plano, solo su hash), `permisos` (array plano `modulo:accion`, no pasa por el sistema de roles), `usuario_id` (FK a una fila real en `usuarios` — una "identidad de servicio" sin password utilizable, creada para que `audit_log.usuario_id` siga siendo una FK válida), `activa`, `last_used_at`, `revoked_at`.
-- `backend/src/repositories/apiKey.repository.ts`: `findByHash`, `create`, `revoke`, `touchLastUsed`.
-- Scripts nuevos (`backend/package.json`): `npm run create-api-key --workspace=backend -- --nombre "..." --email "..." --permisos "articulos:leer,rubros:leer,..."` — crea (o reutiliza) la identidad de servicio y genera una key nueva, **imprimiéndola una sola vez** (no se puede recuperar después, solo regenerar). `npm run revoke-api-key --workspace=backend -- --id <uuid>` para desactivar una key.
-- Por seguridad, ninguna de estas dos operaciones (crear/aplicar la key real) se corrió desde esta conversación — son scripts para que Nicole los corra directamente, la key en texto plano nunca debe pasar por el chat.
-
-**Historial de matching (groundwork de aprendizaje)**: tabla nueva `historial_matching_cliente` (migración 031): `descripcion_normalizada`, `cliente_id`, `articulo_id`, `origen` (`'humano'`/`'ia'`), `veces_confirmado`. Se alimenta automáticamente desde `solicitudCotizacion.service.ts` → `updateItem()`: cuando un ítem pasa a `estadoItem: 'aceptado'` con un `articuloId` asociado, se registra (o se incrementa el contador si ya existía) esa combinación descripción↔cliente↔artículo. No bloquea la operación principal si falla. Por ahora **solo se loguea** — usar este historial para sugerir matches automáticamente queda para una etapa posterior.
-
-#### Fase 0 — Workspace `ai-agent/` (implementado, scaffold)
-
-4° entrada en `workspaces` del `package.json` raíz. Contiene por ahora solo `package.json`/`tsconfig.json` propios y `src/config/env.ts` (valida `ANTHROPIC_API_KEY`/`HOFRA_API_URL`/`HOFRA_API_KEY`). Deliberadamente **no** se crearon `core/`/`ai/`/`parsers/`/`hofra-client/` todavía — esas carpetas son parte de las Fases 1 y 2 (cliente HTTP hacia Hofra Stock, integración con Claude, parseo de Excel/Word), no implementadas aún.
-
-#### Pendiente (acción humana, no de código)
-1. Aplicar las migraciones 030 y 031 a la base de producción (Railway) — requiere acceso directo a la DB, no se pudo hacer desde esta sesión.
-2. Correr `npm run create-api-key --workspace=backend` para generar la key real y guardarla en `ai-agent/.env` (nunca en el repo ni en el chat).
-
-##### Archivos
-- `database/migrations/030_add_api_keys.sql`, `031_add_historial_matching_cliente.sql`
-- `backend/src/middlewares/auth.ts`, `backend/src/repositories/apiKey.repository.ts`, `backend/src/repositories/historialMatching.repository.ts`, `backend/src/services/solicitudCotizacion.service.ts`, `backend/src/scripts/create-api-key.ts`, `backend/src/scripts/revoke-api-key.ts`
-- `ai-agent/package.json`, `ai-agent/tsconfig.json`, `ai-agent/src/config/env.ts`, `ai-agent/.env.example`
-- `package.json` (raíz, workspace nuevo)
 
 ---
 
@@ -2707,18 +2669,3 @@ Nicole reportó que al editar un artículo, si estando parado en cualquier campo
 
 ##### Archivos Modificados
 - `frontend/src/components/ImageUpload.tsx`
-
-### 19 de noviembre de 2026 (continuación 7) — Hofra AI Agent: Fases 0 y 0.5
-
-Arranca el proyecto "Hofra AI Agent" (ver sección "17. Hofra AI Agent" para el detalle completo). Después de una ronda de análisis de arquitectura (sin tocar código) y de resolver con Nicole las decisiones de diseño pendientes (modelo Sonnet, API key dedicada, entrada texto/Excel/Word sin PDF/email/WhatsApp por ahora, historial de aprendizaje persistido en la DB de Hofra Stock), se implementaron las dos primeras fases:
-
-- **Fase 0.5 (backend)**: autenticación por API key (`X-API-Key`) agregada a `authMiddleware` sin tocar el JWT humano existente; tabla `api_keys` (migración 030) con permisos acotados y atada a una "identidad de servicio" real en `usuarios` (para no romper la FK de `audit_log`); tabla `historial_matching_cliente` (migración 031), alimentada automáticamente cuando un humano acepta un ítem de Solicitud de Cotización con un artículo asociado — groundwork de aprendizaje, todavía no se usa para sugerir nada.
-- **Fase 0 (workspace)**: `ai-agent/` como 4° workspace del monorepo, con `config/env.ts` únicamente — `core/`/`ai/`/`parsers/`/`hofra-client/` quedan para las Fases 1/2.
-
-**Pendiente, fuera del alcance de esta sesión** (son acciones que debe ejecutar Nicole directamente, no Claude): aplicar las migraciones 030/031 contra la base de Railway, y correr `npm run create-api-key --workspace=backend` para generar la key real — la key en texto plano no debe pasar por el chat.
-
-##### Archivos Modificados
-- `database/migrations/030_add_api_keys.sql`, `031_add_historial_matching_cliente.sql`
-- `backend/src/middlewares/auth.ts`, `backend/src/repositories/apiKey.repository.ts`, `backend/src/repositories/historialMatching.repository.ts`, `backend/src/services/solicitudCotizacion.service.ts`, `backend/src/scripts/create-api-key.ts`, `backend/src/scripts/revoke-api-key.ts`
-- `ai-agent/package.json`, `ai-agent/tsconfig.json`, `ai-agent/src/config/env.ts`, `ai-agent/.env.example` (nuevos)
-- `package.json` raíz (nuevo workspace)
