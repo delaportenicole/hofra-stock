@@ -3,16 +3,21 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "./dist/cli/buscar.js",
+  "main": "./dist/cli/normalizar.js",
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "cli:buscar": "ts-node --esm src/cli/buscar.ts"
+    "cli:buscar": "ts-node --esm src/cli/buscar.ts",
+    "cli:normalizar": "ts-node --esm src/cli/normalizar.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.27.0",
     "@hofra/shared": "*",
     "axios": "^1.7.2",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "mammoth": "^1.8.0",
+    "xlsx": "^0.18.5",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^18.0.0",
