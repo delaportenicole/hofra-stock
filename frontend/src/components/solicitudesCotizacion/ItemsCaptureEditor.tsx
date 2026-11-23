@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import * as XLSX from 'xlsx';
-import { FileSpreadsheet, FileText, Wand2, AlertCircle, Loader2, X, Trash2 } from 'lucide-react';
+import { FileSpreadsheet, FileText, Wand2, AlertCircle, AlertTriangle, Loader2, X, Trash2 } from 'lucide-react';
 import { solicitudesCotizacionService } from '../../services/solicitudesCotizacion.service';
 import { getErrorMessage } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -40,6 +40,7 @@ export function ItemsCaptureEditor({ items, onItemsChange, fileName, onFileNameC
 
   const [textoPegado, setTextoPegado] = useState('');
   const [isNormalizing, setIsNormalizing] = useState(false);
+  const [confirmarNormalizar, setConfirmarNormalizar] = useState(false);
 
   const [columnasVisibles, setColumnasVisibles] = useState<Record<ColumnaOpcionalKey, boolean>>({
     etmSolicitado: true,
@@ -155,11 +156,16 @@ export function ItemsCaptureEditor({ items, onItemsChange, fileName, onFileNameC
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => e.preventDefault();
 
-  const handleNormalizarTexto = async () => {
+  const handleNormalizarClick = () => {
     if (!textoPegado.trim()) {
       toast.error('Pegá el texto con el listado del cliente');
       return;
     }
+    setConfirmarNormalizar(true);
+  };
+
+  const handleConfirmarNormalizar = async () => {
+    setConfirmarNormalizar(false);
 
     setIsNormalizing(true);
     setParseError(null);
@@ -326,7 +332,7 @@ export function ItemsCaptureEditor({ items, onItemsChange, fileName, onFileNameC
               <div className="flex justify-end mt-3">
                 <button
                   type="button"
-                  onClick={handleNormalizarTexto}
+                  onClick={handleNormalizarClick}
                   disabled={isNormalizing || !textoPegado.trim()}
                   className="btn-primary"
                 >
@@ -490,6 +496,32 @@ export function ItemsCaptureEditor({ items, onItemsChange, fileName, onFileNameC
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {confirmarNormalizar && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setConfirmarNormalizar(false)} />
+          <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div className="p-5 space-y-3">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-500" />
+                <h3 className="text-lg font-semibold text-gray-900">Confirmar normalización con IA</h3>
+              </div>
+              <p className="text-sm text-gray-600">
+                Normalizar con IA envía el texto a la API de Claude y tiene un costo asociado (bajo, pero
+                real — unos centavos de USD por uso). ¿Estás seguro de que deseas continuar?
+              </p>
+            </div>
+            <div className="flex justify-end gap-3 p-4 border-t">
+              <button type="button" onClick={() => setConfirmarNormalizar(false)} className="btn-secondary">
+                Cancelar
+              </button>
+              <button type="button" onClick={handleConfirmarNormalizar} className="btn-primary">
+                Continuar
+              </button>
+            </div>
           </div>
         </div>
       )}
