@@ -350,7 +350,7 @@ GET    /api/permisos               # Lista todos los permisos disponibles
 
 ### 12. Auditoría
 
-Módulo para visualizar el registro de movimientos de Artículos, Entregas y Reposiciones.
+Módulo para visualizar el registro de movimientos de Artículos, Entregas, Reposiciones y Solicitudes de Cotización, más una pestaña específica con el uso de "Normalizar con IA" por usuario.
 
 #### Acceso
 - Menú lateral: **Auditoría** (sección Administración)
@@ -362,15 +362,20 @@ El sistema registra automáticamente las operaciones sobre:
 - **Artículos**: Creación, actualización y eliminación
 - **Entregas**: Creación de entregas (descuento de stock)
 - **Reposiciones**: Creación, actualización, confirmación y cancelación
+- **Solicitudes de Cotización** (agregado 23 de noviembre de 2026): creación, actualización de cabecera, agregar ítems, actualizar un ítem (artículo/estado/precio/mark up/URL — antes no se registraba), marcar como cotizada, cancelar, y cada uso de "Normalizar con IA" (acción `normalizar_ia`, ver pestaña dedicada abajo)
 
 **NO se auditan**: Clientes, Proveedores, Configuraciones (Rubros, Marcas), Usuarios, Roles.
+
+#### Pestañas
+- **Auditoría General**: el listado de siempre, con filtros por usuario/acción/módulo/fecha
+- **Normalizar con IA** (nueva, 23 de noviembre de 2026): fija el filtro a `accion=normalizar_ia` y `entidad=solicitudes_cotizacion`. Muestra arriba un resumen en tarjetas con la **cantidad de usos por usuario** (`GET /api/audit/conteo-por-usuario`), y debajo el detalle de cada uso (fecha, usuario, cantidad de ítems detectados, largo del texto pegado), filtrable por usuario y rango de fechas igual que la pestaña general
 
 #### Funcionalidades
 - **Listado de eventos** con fecha, usuario, acción y módulo afectado
 - **Filtros avanzados**:
   - Por usuario (dropdown)
-  - Por tipo de acción (Creación, Actualización, Eliminación)
-  - Por módulo (Artículos, Entregas, Reposiciones)
+  - Por tipo de acción (Creación, Actualización, Eliminación, Normalización IA)
+  - Por módulo (Artículos, Entregas, Reposiciones, Solicitudes de Cotización)
   - Por rango de fechas (desde/hasta)
 - **Filas expandibles** para ver comparación antes/después
 - **Paginación** de resultados
@@ -405,11 +410,12 @@ GET /api/audit                    # Lista paginada con filtros
     ?page=1
     &limit=10
     &usuarioId=uuid
-    &accion=crear|actualizar|eliminar
+    &accion=crear|actualizar|eliminar|normalizar_ia
     &entidad=articulos                      # Filtro por una entidad
     &entidades=articulos&entidades=entregas # Filtro por múltiples entidades
     &fechaDesde=2024-01-01
     &fechaHasta=2024-12-31
+GET /api/audit/conteo-por-usuario # Agrupa por usuario (mismos filtros), para la pestaña "Normalizar con IA"
 ```
 
 **Nota**: El filtrado por entidades se realiza en el backend para garantizar paginación correcta.
@@ -737,8 +743,27 @@ Las columnas se detectan **por nombre de encabezado** en la primera fila (no por
 | CANTIDAD | cantidadSolicitada | **Requerido**, debe ser mayor a 0 |
 | MARCA | marcaSolicitada | Opcional |
 | MODELO | modeloSolicitado | Opcional |
+| UNIDAD | unidadSolicitada | Opcional (agregado 23 de noviembre de 2026) |
 
 Filas sin Descripción o sin Cantidad válida se omiten (se informa la cantidad de filas omitidas).
+
+#### Normalización con IA (texto libre) — agregado 22-23 de noviembre de 2026
+
+Además de subir un Excel con headers exactos, el cliente puede mandar el pedido como texto libre (mail, WhatsApp, lista pegada a mano, con o sin formato). Tanto en "Nueva Solicitud de Cotización" como en el panel "Agregar Artículos" de una solicitud existente (ver más abajo) hay un selector **Subir Excel / Pegar texto**:
+
+- **Pegar texto**: un textarea donde se pega el texto tal cual, y un botón **"Normalizar con IA"**. Antes de ejecutar la llamada, se muestra un **popup de confirmación** ("tiene un costo asociado, ¿continuar?") porque varias personas del equipo usan el sistema y no todas saben que esto le pega a la API de Claude — "Cancelar" solo cierra el diálogo, no navega ni envía nada.
+- Al confirmar, el backend (`POST /api/solicitudes-cotizacion/normalizar-texto`) manda el texto a la API de Claude (`backend/src/services/normalizadorItems.service.ts`, usando `client.messages.parse()` + `zodOutputFormat` de `@anthropic-ai/sdk` para forzar salida JSON estructurada) y devuelve un array de ítems con: **ETM**, **Descripción**, **Descripción en inglés**, **Marca**, **Modelo**, **Unidad** y **Cantidad** — todos opcionales salvo Descripción y Cantidad (si el texto no menciona cantidad, se asume 1). El modelo **no inventa** ETM/Descripción en inglés/Unidad: si el texto no los trae, quedan en `null`.
+- **Modelo usado**: `claude-haiku-4-5` (antes `claude-sonnet-5` — se cambió a pedido de Nicole para probar costo/calidad; swap de un solo string en `normalizadorItemsService`, fácil de revertir). Costo aproximado: centavos de USD por uso, ya que es un solo llamado por normalización (no un agente, no hay loop ni llamados automáticos).
+- **Requiere** la variable de entorno `ANTHROPIC_API_KEY` en el backend de Railway (cargada manualmente, no versionada).
+- **Requiere Node 20+**: el SDK de Anthropic necesita `fetch` global (nativo desde Node 18, pero Railway buildeaba con Node 16.20.2 porque el `engines.node` del proyecto era `>=16.0.0`). Se subió a `>=20.0.0` tanto en el `package.json` raíz como en `backend/package.json` — el del backend es el que realmente importa, porque el servicio de Railway solo dispara un rebuild cuando cambia algo bajo `backend/**` (`watchPatterns` del servicio), así que un bump solo en el raíz pasa inadvertido.
+- **Tabla de revisión editable**: después de normalizar (texto o Excel), se muestra una tabla con todos los campos editables a mano y un botón para eliminar filas, antes de confirmar. Arriba de la tabla hay **chips para mostrar/ocultar columnas** (ETM, Descripción en inglés, Marca, Modelo, Unidad — Descripción y Cantidad son siempre visibles), útil por ejemplo para ocultar "Descripción en inglés" si no aplica a ese pedido.
+- Esta lógica de captura (toggle Excel/texto, parseo de Excel por header, llamado a la IA, tabla editable, chips de columnas) vive en un componente compartido: `frontend/src/components/solicitudesCotizacion/ItemsCaptureEditor.tsx`, reutilizado tanto en "Nueva Solicitud" como en "Agregar Artículos".
+
+#### Agregar Artículos a una Solicitud Existente — agregado 22 de noviembre de 2026
+
+Antes, el listado de ítems de una solicitud era estático: solo se podía cargar en el momento de crearla. Ahora, mientras la solicitud está **`en_revision`**, el botón **"Agregar Artículos"** (en la pantalla de detalle) abre un **popup modal** (no una sección inline — se probó así primero pero quedaba debajo de la tabla de ítems, fuera de vista sin hacer scroll, y daba la sensación de que el botón no hacía nada) con el mismo `ItemsCaptureEditor` de arriba: se puede subir otro Excel o pegar más texto, revisar la tabla, y confirmar.
+
+Al confirmar, pega a `POST /api/solicitudes-cotizacion/:id/items`, que corre el **mismo algoritmo de matching** que al crear la solicitud (por ETM, por nombre, o sin match) para cada ítem nuevo, calcula el `orden` siguiente al máximo existente, y los inserta. Solo se habilita con la solicitud en `en_revision` (el backend lo valida igual).
 
 #### Algoritmo de Matching (heurístico)
 Por cada ítem del archivo, en `backend/src/services/solicitudCotizacion.service.ts`:
@@ -859,15 +884,17 @@ El diseño intencional es que la app resuelve el matching/catálogo/cantidades/c
 | Tabla | Campo | Notas |
 |-------|-------|-------|
 | solicitudes_cotizacion | `cliente_id`, `numero_cotizacion`, `numero_referencia_cliente`, `nombre_archivo`, `fecha_solicitud`, `estado`, `observaciones`, `fecha_entrega`, `lugar_entrega`, `solicitado_por`, `usd_oficial_compra`, `usd_oficial_venta` | Cabecera. `numero_cotizacion` es un contador interno autoincremental desde 250 (migración 028, `NULL` en solicitudes previas a esa migración), independiente de `numero_referencia_cliente` (la referencia que trae el cliente, sigue siendo texto libre). `fecha_entrega`...`usd_oficial_venta` son para el header del Excel (migraciones 024 y 025) |
-| solicitud_cotizacion_items | `solicitud_id`, `orden`, `etm_solicitado`, `descripcion_solicitada`, `descripcion_ingles_solicitada`, `marca_solicitada`, `modelo_solicitado`, `cantidad_solicitada`, `articulo_id`, `match_confianza`, `estado_item`, `precio_unitario`, `mark_up`, `url_externa` | Detalle. `mark_up` es el margen del ítem, número entero (migraciones 026-027), usado para calcular el precio final en el Excel Externo |
+| solicitud_cotizacion_items | `solicitud_id`, `orden`, `etm_solicitado`, `descripcion_solicitada`, `descripcion_ingles_solicitada`, `marca_solicitada`, `modelo_solicitado`, `unidad_solicitada`, `cantidad_solicitada`, `articulo_id`, `match_confianza`, `estado_item`, `precio_unitario`, `mark_up`, `url_externa` | Detalle. `mark_up` es el margen del ítem, número entero (migraciones 026-027), usado para calcular el precio final en el Excel Externo. `unidad_solicitada` (migración 030, 23 de noviembre de 2026) es texto libre ("unidades", "cajas", "metros", etc.), detectado por la IA o por la columna UNIDAD del Excel — se ve en el detalle de la solicitud, pero **no** se agregó al Excel Externo/Interno de cotización final: ese archivo tiene un formato fijo calcado de una planilla de referencia, con fórmulas atadas a letras de columna hardcodeadas (`G`, `N`, `P`...), e insertar una columna ahí corre riesgo real de romperlas — decisión explícita de dejarlo afuera por ahora |
 | google_integracion | `refresh_token`, `connected_email`, `connected_at` | Una sola fila: la cuenta de Google conectada para exportar |
 
 #### API
 ```
 GET    /api/solicitudes-cotizacion                       # Lista paginada con filtros (estado, clienteId, busqueda)
 GET    /api/solicitudes-cotizacion/:id                    # Ver detalle con items y matching
+POST   /api/solicitudes-cotizacion/normalizar-texto       # Normaliza texto libre con IA (Claude) en items: etm/descripcion/descripcionIngles/marca/modelo/unidad/cantidad
 POST   /api/solicitudes-cotizacion                        # Crear solicitud (corre el matching automático por ítem)
 PUT    /api/solicitudes-cotizacion/:id                    # Actualizar cabecera (referencia, observaciones, fecha de entrega, lugar de entrega, solicitado por, USD oficial compra/venta)
+POST   /api/solicitudes-cotizacion/:id/items              # Agregar ítems a una solicitud existente (solo en_revision; mismo matching que al crear)
 PUT    /api/solicitudes-cotizacion/:id/items/:itemId      # Actualizar un ítem (artículo, estado, precio, mark up, URL externa)
 POST   /api/solicitudes-cotizacion/:id/marcar-cotizada    # Marca como cotizada (valida que no queden ítems pendientes/sin precio)
 POST   /api/solicitudes-cotizacion/:id/cancelar           # Cancela la solicitud
@@ -882,7 +909,8 @@ Los endpoints de `/api/google/*` (auth-url, oauth/callback, status) ya están mo
 
 **Backend**:
 - `backend/src/repositories/solicitudCotizacion.repository.ts`
-- `backend/src/services/solicitudCotizacion.service.ts` (incluye el algoritmo de matching)
+- `backend/src/services/solicitudCotizacion.service.ts` (incluye el algoritmo de matching y `addItems`)
+- `backend/src/services/normalizadorItems.service.ts` (llamado a Claude para normalizar texto libre)
 - `backend/src/services/cotizacionExport.service.ts` (armado de la matriz de datos/fórmulas + generación del `.xlsx` con `exceljs`)
 - `backend/src/services/google.service.ts` (OAuth2 y llamadas HTTP directas a Sheets/Drive vía `google-auth-library` — se evitó el paquete `googleapis` completo por pesar ~200MB y romper el empaquetado serverless de Vercel)
 - `backend/src/repositories/googleIntegracion.repository.ts`
@@ -893,7 +921,8 @@ Los endpoints de `/api/google/*` (auth-url, oauth/callback, status) ya están mo
 **Frontend**:
 - `frontend/src/pages/solicitudesCotizacion/SolicitudesCotizacionList.tsx`
 - `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionUpload.tsx`
-- `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
+- `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx` (incluye el modal "Agregar Artículos")
+- `frontend/src/components/solicitudesCotizacion/ItemsCaptureEditor.tsx` (captura de ítems compartida: Excel/texto, IA, tabla editable, chips de columnas, confirmación de costo)
 - `frontend/src/services/solicitudesCotizacion.service.ts`
 - `frontend/src/services/google.service.ts`
 - `frontend/src/pages/unidades/UnidadesList.tsx` (tab "Google Drive" en Configuraciones)
@@ -909,6 +938,7 @@ Los endpoints de `/api/google/*` (auth-url, oauth/callback, status) ya están mo
 - `database/migrations/026_add_mark_up_solicitud_items.sql`
 - `database/migrations/027_mark_up_a_entero.sql`
 - `database/migrations/028_add_numero_cotizacion.sql`
+- `database/migrations/030_add_unidad_solicitud_items.sql` (29 no existe: era de la rama del "Hofra AI Agent", revertida)
 
 ---
 
@@ -1595,6 +1625,8 @@ npm run reset-data       # (dentro de backend/) Borra datos operativos (articulo
     - `mark_up` cambia de `NUMERIC(6,2)` a `INTEGER`
 27. **028_add_numero_cotizacion.sql**: Número de Cotización interno
     - Secuencia `solicitudes_cotizacion_numero_seq` arrancando en 250 y campo `numero_cotizacion INTEGER UNIQUE` en `solicitudes_cotizacion`, con default `nextval(...)` — las solicitudes existentes al momento de la migración quedan con este campo en `NULL` (decisión explícita: no se renumeran retroactivamente)
+28. **030_add_unidad_solicitud_items.sql**: Unidad de medida por ítem de cotización
+    - Campo `unidad_solicitada VARCHAR(50)` en `solicitud_cotizacion_items`, detectado por la IA o por la columna UNIDAD del Excel (029 no existe: era de la rama del "Hofra AI Agent", revertida antes de llegar a producción)
 
 ---
 
@@ -2669,3 +2701,51 @@ Nicole reportó que al editar un artículo, si estando parado en cualquier campo
 
 ##### Archivos Modificados
 - `frontend/src/components/ImageUpload.tsx`
+
+### 22 de noviembre de 2026 — Normalizador de texto con IA en Solicitud de Cotización
+
+Nicole pidió poder cargar un pedido de cliente que viene como texto libre (mail, WhatsApp, lista pegada a mano), no solo Excel. Antes de escribir código se había evaluado — y descartado por sobrearquitectura — un "Hofra AI Agent" completo (fases 0 a 2, revertidas); esta vez el pedido encajaba en el patrón más simple de la skill de Claude API: **un solo llamado a `client.messages.parse()` con salida estructurada (Zod)**, no un agente — nada de loop, nada de tool use, nada que corra sin que alguien apriete un botón.
+
+Se agregó un selector **Subir Excel / Pegar texto** en "Nueva Solicitud de Cotización": al pegar texto y confirmar, `POST /api/solicitudes-cotizacion/normalizar-texto` manda el texto a Claude (`backend/src/services/normalizadorItems.service.ts`) y devuelve items con ETM, Descripción, Descripción en inglés, Marca, Modelo y Cantidad (campos opcionales en `null` si el texto no los trae — el modelo tiene instrucción explícita de no inventarlos). Se agregó una tabla de revisión editable antes de confirmar, ya que la extracción con IA puede equivocarse.
+
+**Requiere `ANTHROPIC_API_KEY`** (cargada en Railway sin pasar por los logs ni el output de ninguna herramienta — generada por Nicole en console.anthropic.com, eligiendo "cloud" como entorno de ejecución).
+
+**Bug post-deploy — Node sin `fetch` global**: la primera prueba en producción tiró Error 500. Los logs de Railway mostraban `fetch is not defined as a global` — el SDK de Anthropic necesita `fetch` nativo (Node 18+), pero Railway buildeaba con **Node 16.20.2** porque el `engines.node` del proyecto era `>=16.0.0` (histórico, nunca importó hasta ahora). Se subió a `>=20.0.0`, pero el primer intento no sirvió: el servicio de backend en Railway tiene `watchPatterns: ["/backend/**"]`, y el bump inicial solo tocaba el `package.json` **raíz** — Railway lo consideró "sin cambios relevantes" y nunca rebuildeó. Se resolvió declarando el mismo `engines.node` directamente en `backend/package.json` (además de servir como fix, fuerza el rebuild porque sí está bajo `backend/**`).
+
+También se detectó un conflicto de versión de **Zod**: `zodOutputFormat` del SDK de Anthropic espera un schema construido con `import * as z from 'zod/v4'` (el subpath nuevo que trae zod 3.25+), no el `zod` clásico (v3) que usa el resto del backend — se resolvió importando `zod/v4` solo en `normalizadorItems.service.ts`, sin tocar los validators existentes, y subiendo la dependencia `zod` del backend a `^3.25.0` (el resto del código sigue en zod v3 clásico, compatible).
+
+**Modelo**: se usó `claude-sonnet-5` inicialmente; a pedido de Nicole se cambió a `claude-haiku-4-5` (~3x más barato, $1/$5 vs $3/$15 por MTok) para probar si la calidad alcanza — swap de un solo string, fácil de revertir si no convence.
+
+##### Archivos Modificados
+**Backend**: `backend/src/services/normalizadorItems.service.ts` (nuevo), `backend/src/controllers/solicitudCotizacion.controller.ts`, `backend/src/routes/solicitudCotizacion.routes.ts`, `backend/src/config/env.ts`, `backend/package.json`, `package.json` (raíz)
+**Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionUpload.tsx`, `frontend/src/services/solicitudesCotizacion.service.ts`
+**Shared**: `shared/src/types/index.ts`, `shared/src/validators/index.ts`
+
+### 22 de noviembre de 2026 (continuación) — Campo Unidad, mostrar/ocultar columnas, y Agregar Artículos a una solicitud existente
+
+Tres pedidos en la misma sesión:
+
+**1. Columna Unidad**: se le agregó a la normalización con IA y a la detección de Excel (header `UNIDAD`). A diferencia de ETM/Descripción en inglés (que ya eran columnas existentes), "unidad" no existía en ningún lado del modelo de datos — de hecho hubo una columna `unidad` en `articulos` que se **eliminó explícitamente** en su momento (migraciones 016-017). Se confirmó con Nicole si esta vez debía persistirse o ser solo de apoyo visual; eligió persistirla: migración 030 (`unidad_solicitada VARCHAR(50)` en `solicitud_cotizacion_items`), aplicada a producción vía túnel SSH a Postgres (sin exponer la contraseña del túnel en ningún momento: se extrajo a variables de entorno del shell con `grep`/`awk`, nunca se imprimió).
+
+**2. Mostrar/ocultar columnas**: chips arriba de la tabla de revisión para togglear ETM, Descripción en inglés, Marca, Modelo y Unidad (Descripción y Cantidad quedan siempre fijas).
+
+**3. Agregar Artículos a una solicitud existente**: antes el listado de ítems era estático, solo se cargaba al crear la solicitud. Se agregó `POST /api/solicitudes-cotizacion/:id/items` (solo con la solicitud `en_revision`), que corre el mismo matching que al crear. Para no duplicar la lógica de captura (Excel/texto/IA/tabla editable/chips), se extrajo a un componente compartido `ItemsCaptureEditor.tsx`, usado tanto en "Nueva Solicitud" como en el nuevo botón "Agregar Artículos" del detalle. La primera versión de ese panel era una sección inline que aparecía **después** de la tabla de ítems — Nicole reportó que "no pasaba nada" al hacer click, porque quedaba fuera de vista sin hacer scroll; se cambió a un **popup modal** centrado (mismo patrón que `ChangePasswordModal.tsx`), visible de inmediato sin importar el largo de la tabla.
+
+##### Archivos Modificados
+**Backend**: `backend/src/repositories/solicitudCotizacion.repository.ts`, `backend/src/services/solicitudCotizacion.service.ts`, `backend/src/services/normalizadorItems.service.ts`, `backend/src/controllers/solicitudCotizacion.controller.ts`, `backend/src/routes/solicitudCotizacion.routes.ts`
+**Frontend**: `frontend/src/components/solicitudesCotizacion/ItemsCaptureEditor.tsx` (nuevo), `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionUpload.tsx`, `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`, `frontend/src/services/solicitudesCotizacion.service.ts`
+**Shared**: `shared/src/types/index.ts`, `shared/src/validators/index.ts`
+**Migraciones**: `database/migrations/030_add_unidad_solicitud_items.sql`
+
+### 23 de noviembre de 2026 — Confirmación de costo antes de normalizar + auditoría completa de Solicitudes de Cotización
+
+Con 4 personas más usando el sistema, Nicole pidió un popup de confirmación antes de cada "Normalizar con IA" (no todas saben que tiene costo asociado) — "Cancelar" solo cierra el diálogo, no navega ni envía nada. Se agregó al componente compartido `ItemsCaptureEditor.tsx`, así que aplica tanto en "Nueva Solicitud" como en "Agregar Artículos".
+
+También preguntó si el módulo estaba auditado. Se encontraron dos huecos: **actualizar un ítem individual** (aceptar match, cargar precio/mark up/URL) no quedaba registrado, y **"Normalizar con IA" tampoco**. Se corrigieron ambos: `updateItem` ahora registra manualmente antes/después de los campos del ítem (igual que `marcarCotizada`/`cancelar`, en vez de depender de `auditMiddleware` genérico — la entidad real modificada acá es el ítem, no la cabecera de la solicitud, así que capturar con precisión qué cambió requería lógica propia); y cada llamado a `normalizar-texto` se registra con una acción nueva `normalizar_ia` (usuario, cantidad de ítems detectados, largo del texto). Se agregó además "Solicitudes de Cotización" a los módulos de la Auditoría general, que antes no aparecía ahí pese a que ya se registraban creación/actualización de cabecera.
+
+Se sumó una **pestaña nueva** en Auditoría ("Normalizar con IA") con un resumen de usos por usuario (`GET /api/audit/conteo-por-usuario`, `GROUP BY usuario_id`) y el detalle filtrable debajo — para que Nicole pueda ver cuánto usa cada persona la función.
+
+##### Archivos Modificados
+**Backend**: `backend/src/controllers/auditLog.controller.ts`, `backend/src/services/auditLog.service.ts`, `backend/src/repositories/auditLog.repository.ts`, `backend/src/routes/auditLog.routes.ts`, `backend/src/controllers/solicitudCotizacion.controller.ts`, `backend/src/routes/solicitudCotizacion.routes.ts`
+**Frontend**: `frontend/src/components/solicitudesCotizacion/ItemsCaptureEditor.tsx`, `frontend/src/pages/auditoria/AuditoriaList.tsx`, `frontend/src/services/auditLog.service.ts`
+**Shared**: `shared/src/types/index.ts` (`AccionAuditoria` +`normalizar_ia`, nuevo `AuditLogConteoUsuario`), `shared/src/validators/index.ts`

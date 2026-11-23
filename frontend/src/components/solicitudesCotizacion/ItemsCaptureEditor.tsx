@@ -510,8 +510,8 @@ export function ItemsCaptureEditor({ items, onItemsChange, fileName, onFileNameC
                 <h3 className="text-lg font-semibold text-gray-900">Confirmar normalización con IA</h3>
               </div>
               <p className="text-sm text-gray-600">
-                Normalizar con IA envía el texto a la API de Claude y tiene un costo asociado (bajo, pero
-                real — unos centavos de USD por uso). ¿Estás seguro de que deseas continuar?
+                Normalizar con IA envía el texto a la API de Claude y tiene un costo asociado.
+                ¿Estás seguro de que deseas continuar?
               </p>
             </div>
             <div className="flex justify-end gap-3 p-4 border-t">
