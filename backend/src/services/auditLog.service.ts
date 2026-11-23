@@ -1,5 +1,5 @@
 import { auditLogRepository } from '../repositories/auditLog.repository.js';
-import type { AuditLogConUsuario, AuditLogFiltros } from '@hofra/shared';
+import type { AuditLogConUsuario, AuditLogConteoUsuario, AuditLogFiltros } from '@hofra/shared';
 import type { PaginatedResult } from '../types/index.js';
 import type { FindOptions } from '../repositories/base.repository.js';
 
@@ -33,6 +33,10 @@ export class AuditLogService {
 
   async findByEntidadId(entidad: string, entidadId: string): Promise<AuditLogConUsuario[]> {
     return auditLogRepository.findByEntidadId(entidad, entidadId);
+  }
+
+  async countByUsuario(filtros: AuditLogFiltros = {}): Promise<AuditLogConteoUsuario[]> {
+    return auditLogRepository.countByUsuario(filtros);
   }
 }
 

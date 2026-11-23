@@ -399,7 +399,7 @@ export const updateSolicitudCotizacionItemSchema = z.object({
 
 export const auditLogFiltrosSchema = z.object({
   usuarioId: uuidSchema.optional(),
-  accion: z.enum(['crear', 'actualizar', 'eliminar', 'login', 'logout', 'reposicion', 'entrega']).optional(),
+  accion: z.enum(['crear', 'actualizar', 'eliminar', 'login', 'logout', 'reposicion', 'entrega', 'normalizar_ia']).optional(),
   entidad: z.string().optional(),
   entidades: z.union([z.string(), z.array(z.string())]).transform(val =>
     Array.isArray(val) ? val : val ? [val] : undefined

@@ -1,5 +1,5 @@
 import api from './api';
-import type { AuditLogConUsuario, AuditLogFiltros, PaginatedResponse } from '@hofra/shared';
+import type { AuditLogConUsuario, AuditLogConteoUsuario, AuditLogFiltros, PaginatedResponse } from '@hofra/shared';
 
 export const auditLogService = {
   async getAll(
@@ -15,6 +15,13 @@ export const auditLogService = {
     const response = await api.get<{ data: { entidades: string[]; acciones: string[] } }>(
       '/audit/filters'
     );
+    return response.data.data;
+  },
+
+  async getConteoPorUsuario(filtros: AuditLogFiltros = {}): Promise<AuditLogConteoUsuario[]> {
+    const response = await api.get<{ data: AuditLogConteoUsuario[] }>('/audit/conteo-por-usuario', {
+      params: filtros,
+    });
     return response.data.data;
   },
 };

@@ -343,7 +343,8 @@ export type AccionAuditoria =
   | 'login'
   | 'logout'
   | 'reposicion'
-  | 'entrega';
+  | 'entrega'
+  | 'normalizar_ia';
 
 export interface AuditLog extends BaseEntity {
   usuarioId: string | null;
@@ -358,6 +359,14 @@ export interface AuditLog extends BaseEntity {
 
 export interface AuditLogConUsuario extends AuditLog {
   usuario: Pick<Usuario, 'id' | 'nombre' | 'apellido' | 'email'> | null;
+}
+
+export interface AuditLogConteoUsuario {
+  usuarioId: string | null;
+  usuarioNombre: string | null;
+  usuarioApellido: string | null;
+  usuarioEmail: string | null;
+  cantidad: number;
 }
 
 export interface AuditLogFiltros {

@@ -1,7 +1,7 @@
 import { query, queryOne } from '../config/database.js';
 import { BaseRepository, type FindOptions } from './base.repository.js';
 import { toCamelCase, type PaginatedResult } from '../types/index.js';
-import type { AuditLog, AuditLogConUsuario, AuditLogFiltros } from '@hofra/shared';
+import type { AuditLog, AuditLogConUsuario, AuditLogConteoUsuario, AuditLogFiltros } from '@hofra/shared';
 
 export class AuditLogRepository extends BaseRepository<AuditLog> {
   constructor() {
@@ -81,6 +81,54 @@ export class AuditLogRepository extends BaseRepository<AuditLog> {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  async countByUsuario(filtros: AuditLogFiltros = {}): Promise<AuditLogConteoUsuario[]> {
+    const conditions: string[] = [];
+    const values: unknown[] = [];
+    let paramIndex = 1;
+
+    if (filtros.usuarioId) {
+      conditions.push(`al.usuario_id = $${paramIndex++}`);
+      values.push(filtros.usuarioId);
+    }
+    if (filtros.accion) {
+      conditions.push(`al.accion = $${paramIndex++}`);
+      values.push(filtros.accion);
+    }
+    if (filtros.entidad) {
+      conditions.push(`al.entidad = $${paramIndex++}`);
+      values.push(filtros.entidad);
+    }
+    if (filtros.fechaDesde) {
+      conditions.push(`al.created_at >= $${paramIndex++}`);
+      values.push(filtros.fechaDesde);
+    }
+    if (filtros.fechaHasta) {
+      conditions.push(`al.created_at <= $${paramIndex++}`);
+      values.push(filtros.fechaHasta);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const rows = await query<Record<string, unknown>>(
+      `SELECT al.usuario_id, u.nombre as usuario_nombre, u.apellido as usuario_apellido, u.email as usuario_email,
+              COUNT(*) as cantidad
+       FROM audit_log al
+       LEFT JOIN usuarios u ON u.id = al.usuario_id
+       ${whereClause}
+       GROUP BY al.usuario_id, u.nombre, u.apellido, u.email
+       ORDER BY cantidad DESC`,
+      values
+    );
+
+    return rows.map((row) => ({
+      usuarioId: row.usuario_id as string | null,
+      usuarioNombre: row.usuario_nombre as string | null,
+      usuarioApellido: row.usuario_apellido as string | null,
+      usuarioEmail: row.usuario_email as string | null,
+      cantidad: parseInt(row.cantidad as string, 10),
+    }));
   }
 
   async getDistinctEntidades(): Promise<string[]> {

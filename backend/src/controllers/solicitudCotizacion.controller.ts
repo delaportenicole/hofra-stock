@@ -47,10 +47,16 @@ export class SolicitudCotizacionController {
     }
   }
 
-  async normalizarTexto(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async normalizarTexto(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const { texto } = req.body as { texto: string };
       const items = await normalizadorItemsService.normalizarTexto(texto);
+
+      logManualAudit(req, 'normalizar_ia', 'solicitudes_cotizacion', '', undefined, {
+        cantidadItems: items.length,
+        largoTexto: texto.length,
+      }).catch(console.error);
+
       sendSuccess(res, { items });
     } catch (error) {
       next(error);
@@ -79,11 +85,41 @@ export class SolicitudCotizacionController {
 
   async updateItem(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
+      const oldSolicitud = await solicitudCotizacionService.findById(req.params.id);
+      const oldItem = oldSolicitud.items.find((i) => i.id === req.params.itemId);
+
       const solicitud = await solicitudCotizacionService.updateItem(
         req.params.id,
         req.params.itemId,
         req.body
       );
+      const newItem = solicitud.items.find((i) => i.id === req.params.itemId);
+
+      logManualAudit(
+        req,
+        'actualizar',
+        'solicitudes_cotizacion',
+        req.params.id,
+        oldItem
+          ? {
+              articuloId: oldItem.articuloId,
+              estadoItem: oldItem.estadoItem,
+              precioUnitario: oldItem.precioUnitario,
+              markUp: oldItem.markUp,
+              urlExterna: oldItem.urlExterna,
+            }
+          : undefined,
+        newItem
+          ? {
+              articuloId: newItem.articuloId,
+              estadoItem: newItem.estadoItem,
+              precioUnitario: newItem.precioUnitario,
+              markUp: newItem.markUp,
+              urlExterna: newItem.urlExterna,
+            }
+          : undefined
+      ).catch(console.error);
+
       sendSuccess(res, solicitud, 'Ítem actualizado correctamente');
     } catch (error) {
       next(error);

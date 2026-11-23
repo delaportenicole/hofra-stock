@@ -11,5 +11,6 @@ router.use(requirePermission('auditoria', 'leer'));
 // Audit log endpoints
 router.get('/', auditLogController.findAll);
 router.get('/filters', auditLogController.getFilters);
+router.get('/conteo-por-usuario', auditLogController.conteoPorUsuario);
 
 export { router as auditLogRoutes };

@@ -24,6 +24,16 @@ export class AuditLogController {
       next(error);
     }
   }
+
+  async conteoPorUsuario(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const filtros = auditLogFiltrosSchema.parse(req.query);
+      const resumen = await auditLogService.countByUsuario(filtros);
+      sendSuccess(res, resumen);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const auditLogController = new AuditLogController();

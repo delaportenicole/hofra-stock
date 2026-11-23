@@ -48,13 +48,13 @@ router.post(
   validateBody(addSolicitudCotizacionItemsSchema),
   solicitudCotizacionController.addItems
 );
+// updateItem/marcar-cotizada/cancelar use manual audit in controller
 router.put(
   '/:id/items/:itemId',
   requirePermission('solicitudes_cotizacion', 'actualizar'),
   validateBody(updateSolicitudCotizacionItemSchema),
   solicitudCotizacionController.updateItem
 );
-// marcar-cotizada/cancelar use manual audit in controller
 router.post('/:id/marcar-cotizada', requirePermission('solicitudes_cotizacion', 'actualizar'), solicitudCotizacionController.marcarCotizada);
 router.post('/:id/cancelar', requirePermission('solicitudes_cotizacion', 'actualizar'), solicitudCotizacionController.cancelar);
 

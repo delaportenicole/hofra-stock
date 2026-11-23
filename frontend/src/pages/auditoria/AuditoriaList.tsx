@@ -13,6 +13,7 @@ import {
   ArrowRight,
   CheckCircle,
   XCircle,
+  Wand2,
 } from 'lucide-react';
 import { auditLogService } from '../../services/auditLog.service';
 import { usuariosService } from '../../services/usuarios.service';
@@ -20,22 +21,24 @@ import { Badge } from '../../components/Badge';
 import { usePagination } from '../../hooks/usePagination';
 import { getErrorMessage } from '../../services/api';
 import toast from 'react-hot-toast';
-import type { AuditLogConUsuario, UsuarioConRoles, AccionAuditoria } from '@hofra/shared';
+import type { AuditLogConUsuario, AuditLogConteoUsuario, UsuarioConRoles, AccionAuditoria } from '@hofra/shared';
 
 // Acciones que se registran
 const ACCION_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
   crear: { label: 'Creación', icon: <Plus className="w-3.5 h-3.5" />, color: 'bg-success-100 text-success-700' },
   actualizar: { label: 'Actualización', icon: <Edit className="w-3.5 h-3.5" />, color: 'bg-primary-100 text-primary-700' },
   eliminar: { label: 'Eliminación', icon: <Trash2 className="w-3.5 h-3.5" />, color: 'bg-danger-100 text-danger-700' },
+  normalizar_ia: { label: 'Normalización IA', icon: <Wand2 className="w-3.5 h-3.5" />, color: 'bg-purple-100 text-purple-700' },
 };
 
 // Entidades que se auditan
-const ENTIDADES_AUDITADAS = ['articulos', 'entregas', 'reposiciones'];
+const ENTIDADES_AUDITADAS = ['articulos', 'entregas', 'reposiciones', 'solicitudes_cotizacion'];
 
 const ENTIDAD_LABELS: Record<string, string> = {
   articulos: 'Artículos',
   entregas: 'Entregas',
   reposiciones: 'Reposiciones',
+  solicitudes_cotizacion: 'Solicitudes de Cotización',
 };
 
 // Labels legibles para campos
@@ -75,6 +78,15 @@ const FIELD_LABELS: Record<string, string> = {
   lugarCompra: 'Lugar de Compra',
   estado: 'Estado',
   fechaReposicion: 'Fecha de Reposición',
+  numeroReferenciaCliente: 'N° Referencia Cliente',
+  nombreArchivo: 'Archivo',
+  fechaSolicitud: 'Fecha de Solicitud',
+  estadoItem: 'Estado del Ítem',
+  precioUnitario: 'Precio Unitario',
+  markUp: 'Mark Up',
+  urlExterna: 'URL Externa',
+  cantidadItems: 'Cantidad de Ítems',
+  largoTexto: 'Largo del Texto',
 };
 
 interface Filters {
@@ -85,7 +97,13 @@ interface Filters {
   fechaHasta?: string;
 }
 
+type Tab = 'general' | 'normalizar_ia';
+
+const NORMALIZAR_IA_ACCION: AccionAuditoria = 'normalizar_ia';
+const NORMALIZAR_IA_ENTIDAD = 'solicitudes_cotizacion';
+
 export function AuditoriaListPage() {
+  const [tab, setTab] = useState<Tab>('general');
   const [logs, setLogs] = useState<AuditLogConUsuario[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -98,6 +116,10 @@ export function AuditoriaListPage() {
   // Current filters
   const [filters, setFilters] = useState<Filters>({});
 
+  // Resumen de uso de "Normalizar con IA" por usuario
+  const [conteoUsuarios, setConteoUsuarios] = useState<AuditLogConteoUsuario[]>([]);
+  const [isLoadingConteo, setIsLoadingConteo] = useState(false);
+
   const { page, limit, setPage, setLimit } = usePagination();
 
   useEffect(() => {
@@ -106,7 +128,8 @@ export function AuditoriaListPage() {
 
   useEffect(() => {
     loadLogs();
-  }, [page, limit, filters]);
+    if (tab === 'normalizar_ia') loadConteoUsuarios();
+  }, [page, limit, filters, tab]);
 
   const loadFilters = async () => {
     try {
@@ -120,17 +143,31 @@ export function AuditoriaListPage() {
   const loadLogs = async () => {
     setIsLoading(true);
     try {
-      const result = await auditLogService.getAll({
-        page,
-        limit,
-        usuarioId: filters.usuarioId,
-        accion: filters.accion,
-        entidad: filters.entidad,
-        fechaDesde: filters.fechaDesde ? new Date(filters.fechaDesde) : undefined,
-        fechaHasta: filters.fechaHasta ? new Date(filters.fechaHasta) : undefined,
-        // Si no hay filtro de entidad específico, filtrar por las entidades auditadas
-        entidades: filters.entidad ? undefined : ENTIDADES_AUDITADAS,
-      });
+      const fechaDesde = filters.fechaDesde ? new Date(filters.fechaDesde) : undefined;
+      const fechaHasta = filters.fechaHasta ? new Date(filters.fechaHasta) : undefined;
+
+      const result =
+        tab === 'normalizar_ia'
+          ? await auditLogService.getAll({
+              page,
+              limit,
+              usuarioId: filters.usuarioId,
+              accion: NORMALIZAR_IA_ACCION,
+              entidad: NORMALIZAR_IA_ENTIDAD,
+              fechaDesde,
+              fechaHasta,
+            })
+          : await auditLogService.getAll({
+              page,
+              limit,
+              usuarioId: filters.usuarioId,
+              accion: filters.accion,
+              entidad: filters.entidad,
+              fechaDesde,
+              fechaHasta,
+              // Si no hay filtro de entidad específico, filtrar por las entidades auditadas
+              entidades: filters.entidad ? undefined : ENTIDADES_AUDITADAS,
+            });
       setLogs(result.data);
       setTotal(result.pagination.total);
     } catch (error) {
@@ -138,6 +175,30 @@ export function AuditoriaListPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const loadConteoUsuarios = async () => {
+    setIsLoadingConteo(true);
+    try {
+      const resumen = await auditLogService.getConteoPorUsuario({
+        usuarioId: filters.usuarioId,
+        accion: NORMALIZAR_IA_ACCION,
+        entidad: NORMALIZAR_IA_ENTIDAD,
+        fechaDesde: filters.fechaDesde ? new Date(filters.fechaDesde) : undefined,
+        fechaHasta: filters.fechaHasta ? new Date(filters.fechaHasta) : undefined,
+      });
+      setConteoUsuarios(resumen);
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setIsLoadingConteo(false);
+    }
+  };
+
+  const handleTabChange = (nuevoTab: Tab) => {
+    setTab(nuevoTab);
+    setFilters({});
+    setPage(1);
   };
 
   const handleFilterChange = (key: keyof Filters, value: string) => {
@@ -273,7 +334,9 @@ export function AuditoriaListPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Auditoría</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Registro de movimientos de Artículos, Entregas y Reposiciones
+            {tab === 'normalizar_ia'
+              ? 'Uso de "Normalizar con IA" por usuario, en Solicitudes de Cotización'
+              : 'Registro de movimientos de Artículos, Entregas, Reposiciones y Solicitudes de Cotización'}
           </p>
         </div>
         <button
@@ -289,6 +352,53 @@ export function AuditoriaListPage() {
           )}
         </button>
       </div>
+
+      <div className="flex gap-2 border-b border-gray-200">
+        <button
+          onClick={() => handleTabChange('general')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${
+            tab === 'general'
+              ? 'border-primary-500 text-primary-700'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Auditoría General
+        </button>
+        <button
+          onClick={() => handleTabChange('normalizar_ia')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px flex items-center gap-1.5 ${
+            tab === 'normalizar_ia'
+              ? 'border-primary-500 text-primary-700'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <Wand2 className="w-4 h-4" />
+          Normalizar con IA
+        </button>
+      </div>
+
+      {tab === 'normalizar_ia' && (
+        <div className="card p-4">
+          <h2 className="text-sm font-medium text-gray-700 mb-3">Usos por usuario</h2>
+          {isLoadingConteo ? (
+            <p className="text-sm text-gray-500">Cargando...</p>
+          ) : conteoUsuarios.length === 0 ? (
+            <p className="text-sm text-gray-500">Todavía no se usó "Normalizar con IA"</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              {conteoUsuarios.map((c) => (
+                <div key={c.usuarioId || 'sistema'} className="p-3 bg-purple-50 rounded-lg">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {c.usuarioNombre ? `${c.usuarioNombre} ${c.usuarioApellido}` : 'Sistema'}
+                  </p>
+                  <p className="text-2xl font-bold text-purple-700">{c.cantidad}</p>
+                  <p className="text-xs text-gray-500">usos</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Filters panel */}
       {showFilters && (
@@ -310,37 +420,43 @@ export function AuditoriaListPage() {
               </select>
             </div>
 
-            <div>
-              <label className="label">Acción</label>
-              <select
-                value={filters.accion || ''}
-                onChange={(e) => handleFilterChange('accion', e.target.value)}
-                className="input"
-              >
-                <option value="">Todas las acciones</option>
-                {Object.entries(ACCION_CONFIG).map(([key, config]) => (
-                  <option key={key} value={key}>
-                    {config.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {tab === 'general' && (
+              <>
+                <div>
+                  <label className="label">Acción</label>
+                  <select
+                    value={filters.accion || ''}
+                    onChange={(e) => handleFilterChange('accion', e.target.value)}
+                    className="input"
+                  >
+                    <option value="">Todas las acciones</option>
+                    {Object.entries(ACCION_CONFIG)
+                      .filter(([key]) => key !== 'normalizar_ia')
+                      .map(([key, config]) => (
+                        <option key={key} value={key}>
+                          {config.label}
+                        </option>
+                      ))}
+                  </select>
+                </div>
 
-            <div>
-              <label className="label">Módulo</label>
-              <select
-                value={filters.entidad || ''}
-                onChange={(e) => handleFilterChange('entidad', e.target.value)}
-                className="input"
-              >
-                <option value="">Todos los módulos</option>
-                {ENTIDADES_AUDITADAS.map((e) => (
-                  <option key={e} value={e}>
-                    {ENTIDAD_LABELS[e]}
-                  </option>
-                ))}
-              </select>
-            </div>
+                <div>
+                  <label className="label">Módulo</label>
+                  <select
+                    value={filters.entidad || ''}
+                    onChange={(e) => handleFilterChange('entidad', e.target.value)}
+                    className="input"
+                  >
+                    <option value="">Todos los módulos</option>
+                    {ENTIDADES_AUDITADAS.map((e) => (
+                      <option key={e} value={e}>
+                        {ENTIDAD_LABELS[e]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
 
             <div>
               <label className="label">Desde</label>
