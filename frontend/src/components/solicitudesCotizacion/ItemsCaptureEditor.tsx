@@ -72,7 +72,29 @@ export function ItemsCaptureEditor({ items, onItemsChange, fileName, onFileNameC
 
           // Buscamos las columnas por nombre de encabezado (no por posición fija),
           // porque distintos archivos traen columnas extra intercaladas (Precio, Moneda, Modelo, etc.)
-          const headers = (jsonData[0] as unknown[]).map((h) => normalizarHeader(String(h ?? '')));
+          // y la fila de encabezados no siempre es la primera (algunos archivos traen un título o
+          // logo arriba) — buscamos la primera fila, dentro de las primeras 10, que tenga tanto
+          // DESCRIPCION como CANTIDAD.
+          const MAX_FILAS_BUSQUEDA_HEADER = 10;
+          let headerRowIndex = -1;
+          let headers: string[] = [];
+
+          for (let i = 0; i < Math.min(jsonData.length, MAX_FILAS_BUSQUEDA_HEADER); i++) {
+            const candidateHeaders = (jsonData[i] as unknown[]).map((h) => normalizarHeader(String(h ?? '')));
+            if (candidateHeaders.includes('DESCRIPCION') && candidateHeaders.includes('CANTIDAD')) {
+              headerRowIndex = i;
+              headers = candidateHeaders;
+              break;
+            }
+          }
+
+          if (headerRowIndex === -1) {
+            setParseError('El archivo debe tener columnas "Descripcion" y "Cantidad" en alguna de las primeras 10 filas');
+            onItemsChange([]);
+            onFileNameChange(null);
+            return;
+          }
+
           const etmIdx = headers.findIndex((h) => h === 'ETM');
           const descIdx = headers.findIndex((h) => h === 'DESCRIPCION');
           const descIngIdx = headers.findIndex((h) => h === 'DESCRIPCION EN INGLES');
@@ -81,17 +103,10 @@ export function ItemsCaptureEditor({ items, onItemsChange, fileName, onFileNameC
           const modeloIdx = headers.findIndex((h) => h === 'MODELO');
           const unidadIdx = headers.findIndex((h) => h === 'UNIDAD');
 
-          if (descIdx === -1 || cantidadIdx === -1) {
-            setParseError('El archivo debe tener columnas "Descripcion" y "Cantidad" en la primera fila');
-            onItemsChange([]);
-            onFileNameChange(null);
-            return;
-          }
-
           const rows: CreateSolicitudCotizacionItemDto[] = [];
           let skipped = 0;
 
-          for (let i = 1; i < jsonData.length; i++) {
+          for (let i = headerRowIndex + 1; i < jsonData.length; i++) {
             const row = jsonData[i];
             if (!row || row.length === 0) continue;
 
@@ -289,7 +304,8 @@ export function ItemsCaptureEditor({ items, onItemsChange, fileName, onFileNameC
               <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                 <h3 className="font-medium text-gray-900 mb-2 text-sm">Formato esperado del archivo:</h3>
                 <p className="text-sm text-gray-600 mb-2">
-                  La primera fila debe tener los nombres de columna. Se buscan por nombre, así que
+                  Alguna de las primeras filas debe tener los nombres de columna (no hace falta que sea
+                  la primera si el archivo trae un título o logo arriba). Se buscan por nombre, así que
                   no importa el orden ni si hay otras columnas de por medio (Precio, Modelo, etc.):
                 </p>
                 <table className="text-sm text-gray-600 w-full">
