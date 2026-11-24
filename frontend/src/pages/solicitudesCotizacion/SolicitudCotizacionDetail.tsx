@@ -581,22 +581,22 @@ export function SolicitudCotizacionDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="p-4 bg-green-50 rounded-lg">
-          <p className="text-sm text-green-600">Con Coincidencia</p>
-          <p className="text-2xl font-bold text-green-700">{conCoincidencia}</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <div className="px-2 py-1.5 bg-green-50 rounded-lg flex items-center justify-between gap-2">
+          <p className="text-xs text-green-600">Con Coincidencia</p>
+          <p className="text-sm font-bold text-green-700">{conCoincidencia}</p>
         </div>
-        <div className="p-4 bg-red-50 rounded-lg">
-          <p className="text-sm text-red-600">Sin Coincidencia</p>
-          <p className="text-2xl font-bold text-red-700">{sinCoincidencia}</p>
+        <div className="px-2 py-1.5 bg-red-50 rounded-lg flex items-center justify-between gap-2">
+          <p className="text-xs text-red-600">Sin Coincidencia</p>
+          <p className="text-sm font-bold text-red-700">{sinCoincidencia}</p>
         </div>
-        <div className="p-4 bg-blue-50 rounded-lg">
-          <p className="text-sm text-blue-600">Aceptados</p>
-          <p className="text-2xl font-bold text-blue-700">{aceptados}</p>
+        <div className="px-2 py-1.5 bg-blue-50 rounded-lg flex items-center justify-between gap-2">
+          <p className="text-xs text-blue-600">Aceptados</p>
+          <p className="text-sm font-bold text-blue-700">{aceptados}</p>
         </div>
-        <div className="p-4 bg-amber-50 rounded-lg">
-          <p className="text-sm text-amber-600">Pendientes de Revisión</p>
-          <p className="text-2xl font-bold text-amber-700">{pendientesRevision}</p>
+        <div className="px-2 py-1.5 bg-amber-50 rounded-lg flex items-center justify-between gap-2">
+          <p className="text-xs text-amber-600">Pendientes de Revisión</p>
+          <p className="text-sm font-bold text-amber-700">{pendientesRevision}</p>
         </div>
       </div>
 
@@ -648,7 +648,7 @@ export function SolicitudCotizacionDetailPage() {
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[220px]">Sugerido</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[220px]">Aceptado</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[140px]">Acciones</th>
-                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs w-[75px] whitespace-normal break-words">Precio Unit.</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words">Precio Unit.</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs w-[60px] whitespace-normal break-words">Mark Up</th>
               </tr>
             </thead>
@@ -884,7 +884,7 @@ export function SolicitudCotizacionDetailPage() {
                       )}
                     </td>
 
-                    <td className="px-3 py-3 w-[75px]">
+                    <td className="px-3 py-3 w-[100px]">
                       <CurrencyInput
                         value={precios[item.id]}
                         onChange={(val) => setPrecios((prev) => ({ ...prev, [item.id]: val }))}
