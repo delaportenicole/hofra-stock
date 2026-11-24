@@ -481,20 +481,20 @@ export function SolicitudCotizacionDetailPage() {
       </div>
 
       <div className="card p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <p className="text-gray-500">Cliente</p>
-            <p className="font-medium">{solicitud.cliente?.razonSocial ?? 'Sin cliente'}</p>
+        <div className="flex flex-wrap md:flex-nowrap items-center gap-4 text-sm">
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            <span className="text-gray-500 whitespace-nowrap">Cliente:</span>
+            <span className="font-medium truncate">{solicitud.cliente?.razonSocial ?? 'Sin cliente'}</span>
           </div>
-          <div>
-            <p className="text-gray-500">Fecha</p>
-            <p className="font-medium">{format(new Date(solicitud.fechaSolicitud), 'dd/MM/yyyy HH:mm', { locale: es })}</p>
+          <div className="flex items-center gap-1.5 whitespace-nowrap">
+            <span className="text-gray-500 text-xs">Fecha:</span>
+            <span className="font-medium text-xs">{format(new Date(solicitud.fechaSolicitud), 'dd/MM/yyyy HH:mm', { locale: es })}</span>
           </div>
-          <div>
-            <label className="block text-gray-500 mb-1">N° de Cotización</label>
+          <div className="flex items-center gap-1.5 whitespace-nowrap">
+            <label className="text-gray-500 text-xs">N° Cotización:</label>
             <input
               type="number"
-              className="input"
+              className="input w-20 text-xs py-1"
               value={headerDraft.numeroCotizacion ?? ''}
               disabled={solicitud.estado !== 'en_revision' || isSavingHeader}
               onChange={(e) =>
@@ -504,14 +504,14 @@ export function SolicitudCotizacionDetailPage() {
                 }))
               }
               onBlur={() => handleHeaderFieldBlur('numeroCotizacion', headerDraft.numeroCotizacion)}
-              placeholder="Ingreso manual"
+              placeholder="Manual"
             />
           </div>
-          <div>
-            <label className="block text-gray-500 mb-1">Nombre de Cotización</label>
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            <label className="text-gray-500 whitespace-nowrap">Nombre:</label>
             <input
               type="text"
-              className="input"
+              className="input flex-1"
               value={headerDraft.nombreCotizacion}
               disabled={solicitud.estado !== 'en_revision' || isSavingHeader}
               onChange={(e) => setHeaderDraft((prev) => ({ ...prev, nombreCotizacion: e.target.value }))}
