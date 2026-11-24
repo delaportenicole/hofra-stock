@@ -675,25 +675,25 @@ export function SolicitudCotizacionDetailPage() {
 
       <div className="card p-0 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[750px] divide-y divide-gray-200 text-sm">
+          <table className="w-full min-w-[930px] border-separate border-spacing-0 text-sm">
             <thead className="bg-gray-50">
-              <tr>
-                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs w-[150px] whitespace-normal break-words">Solicitado</th>
-                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs w-[150px] whitespace-normal break-words">Sugerido</th>
-                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs w-[150px] whitespace-normal break-words">Ofrecido</th>
-                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[140px]">Acciones</th>
-                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs w-[70px] whitespace-normal break-words">Cantidad</th>
-                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words">Precio Unit.</th>
-                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs w-[60px] whitespace-normal break-words">Mark Up</th>
+              <tr className="divide-x divide-gray-300 border-b border-gray-300">
+                <th className="sticky left-0 z-20 bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[200px] whitespace-normal break-words">Solicitado</th>
+                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs min-w-[160px] whitespace-normal break-words">Sugerido</th>
+                <th className="sticky left-[200px] z-20 bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[200px] whitespace-normal break-words">Ofrecido</th>
+                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[110px] whitespace-normal break-words">Acciones</th>
+                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[72px] whitespace-normal break-words">Cantidad</th>
+                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[120px] whitespace-normal break-words">Precio Unit.</th>
+                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[64px] whitespace-normal break-words">Mark Up</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody>
               {solicitud.items.map((item) => {
                 const disabled = solicitud.estado !== 'en_revision' || savingItemId === item.id;
 
                 return (
-                  <tr key={item.id} className="align-top">
-                    <td className="px-3 py-3 w-[150px]">
+                  <tr key={item.id} className="align-top divide-x divide-gray-300 border-b border-gray-300">
+                    <td className="sticky left-0 z-10 bg-white px-2 py-2 w-[200px]">
                       <p className="font-medium text-gray-900 break-words">{item.descripcionSolicitada}</p>
                       <p className="text-xs text-gray-500">
                         Cant: {item.cantidadSolicitada.toLocaleString('es-AR')}
@@ -704,7 +704,7 @@ export function SolicitudCotizacionDetailPage() {
                       </p>
                     </td>
 
-                    <td className="px-3 py-3 w-[150px]">
+                    <td className="px-2 py-2 min-w-[160px]">
                       {item.matchConfianza && item.articuloSugerido && (
                         <Badge variant={confianzaVariants[item.matchConfianza]} className="mb-1">
                           {confianzaLabels[item.matchConfianza]}
@@ -733,7 +733,7 @@ export function SolicitudCotizacionDetailPage() {
                       )}
                     </td>
 
-                    <td className="px-3 py-3 w-[150px]">
+                    <td className="sticky left-[200px] z-10 bg-white px-2 py-2 w-[200px]">
                       <input
                         type="text"
                         value={nombresOfrecidos[item.id] ?? ''}
@@ -743,7 +743,7 @@ export function SolicitudCotizacionDetailPage() {
                         onBlur={() => handleNombreOfrecidoBlur(item)}
                         disabled={disabled}
                         placeholder="Nombre del artículo..."
-                        className="input text-xs w-full mb-1"
+                        className="input px-2 py-1 text-xs w-full mb-1"
                       />
                       {item.estadoItem === 'aceptado' && item.articulo ? (
                         <div className="flex items-start justify-between gap-2">
@@ -805,7 +805,7 @@ export function SolicitudCotizacionDetailPage() {
                       ) : null}
                     </td>
 
-                    <td className="px-3 py-3 min-w-[140px]">
+                    <td className="px-2 py-2 w-[110px]">
                       {editingItemId === item.id ? (
                         <div className="flex items-start gap-1">
                           <ArticuloCombobox
@@ -832,46 +832,46 @@ export function SolicitudCotizacionDetailPage() {
                             <button
                               onClick={() => handleAceptar(item)}
                               disabled={disabled}
-                              className="flex items-center gap-1 text-sm text-green-700 hover:text-green-800 disabled:opacity-50"
+                              className="flex items-center gap-1 text-xs text-green-700 hover:text-green-800 disabled:opacity-50"
                             >
-                              <Check className="w-4 h-4" /> Aceptar sugerencia
+                              <Check className="w-3.5 h-3.5 flex-shrink-0" /> Aceptar sugerencia
                             </button>
                           )}
                           <button
                             onClick={() => setEditingItemId(item.id)}
                             disabled={disabled}
-                            className="flex items-center gap-1 text-sm text-primary-700 hover:text-primary-800 disabled:opacity-50"
+                            className="flex items-center gap-1 text-xs text-primary-700 hover:text-primary-800 disabled:opacity-50"
                           >
-                            <Search className="w-4 h-4" /> Buscar otro
+                            <Search className="w-3.5 h-3.5 flex-shrink-0" /> Buscar otro
                           </button>
                           <button
                             onClick={() => handleBuscarMercadoLibre(item)}
                             disabled={disabled}
-                            className="flex items-center gap-1 text-sm text-amber-700 hover:text-amber-800 disabled:opacity-50"
+                            className="flex items-center gap-1 text-xs text-amber-700 hover:text-amber-800 disabled:opacity-50"
                           >
-                            <ExternalLink className="w-4 h-4" /> MercadoLibre
+                            <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" /> MercadoLibre
                           </button>
                           <button
                             onClick={() => handleBuscarGoogle(item)}
                             disabled={disabled}
-                            className="flex items-center gap-1 text-sm text-blue-700 hover:text-blue-800 disabled:opacity-50"
+                            className="flex items-center gap-1 text-xs text-blue-700 hover:text-blue-800 disabled:opacity-50"
                           >
-                            <Globe className="w-4 h-4" /> Google
+                            <Globe className="w-3.5 h-3.5 flex-shrink-0" /> Google
                           </button>
                           {item.estadoItem !== 'no_disponible' && (
                             <button
                               onClick={() => handleMarcarNoDisponible(item)}
                               disabled={disabled}
-                              className="flex items-center gap-1 text-sm text-gray-600 hover:text-red-600 disabled:opacity-50"
+                              className="flex items-center gap-1 text-xs text-gray-600 hover:text-red-600 disabled:opacity-50"
                             >
-                              <Ban className="w-4 h-4" /> No Disponible
+                              <Ban className="w-3.5 h-3.5 flex-shrink-0" /> No Disponible
                             </button>
                           )}
 
                           {item.estadoItem !== 'aceptado' && (
                             <>
                               {item.urlExterna && item.estadoItem !== 'no_disponible' ? (
-                                <div className="mt-1 p-2 bg-amber-50 border border-amber-200 rounded">
+                                <div className="mt-1 p-1.5 bg-amber-50 border border-amber-200 rounded">
                                   <a
                                     href={item.urlExterna}
                                     target="_blank"
@@ -880,7 +880,7 @@ export function SolicitudCotizacionDetailPage() {
                                   >
                                     {item.urlExterna}
                                   </a>
-                                  <div className="flex gap-3 mt-1">
+                                  <div className="flex gap-2 mt-1">
                                     <button
                                       onClick={() => handleAceptarUrlExterna(item)}
                                       disabled={disabled}
@@ -906,7 +906,7 @@ export function SolicitudCotizacionDetailPage() {
                                     onChange={(e) => setUrlDrafts((prev) => ({ ...prev, [item.id]: e.target.value }))}
                                     onKeyDown={(e) => e.key === 'Enter' && handleGuardarUrlExterna(item)}
                                     placeholder="Pegar URL del producto..."
-                                    className="input text-xs py-1"
+                                    className="input px-2 py-1 text-xs"
                                   />
                                   <button onClick={() => handleGuardarUrlExterna(item)} className="btn-secondary text-xs px-2 py-1">
                                     Guardar
@@ -917,9 +917,9 @@ export function SolicitudCotizacionDetailPage() {
                                   <button
                                     onClick={() => setPastingUrlItemId(item.id)}
                                     disabled={disabled}
-                                    className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-50"
+                                    className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-800 disabled:opacity-50"
                                   >
-                                    <Link2 className="w-4 h-4" /> URL
+                                    <Link2 className="w-3.5 h-3.5 flex-shrink-0" /> URL
                                   </button>
                                 )
                               )}
@@ -929,12 +929,12 @@ export function SolicitudCotizacionDetailPage() {
                       )}
                     </td>
 
-                    <td className="px-3 py-3 w-[70px]">
+                    <td className="px-2 py-2 w-[72px]">
                       <input
                         type="number"
                         step="1"
                         min="1"
-                        className="input"
+                        className="input px-2"
                         value={cantidades[item.id] ?? ''}
                         onChange={(e) =>
                           setCantidades((prev) => ({
@@ -947,22 +947,23 @@ export function SolicitudCotizacionDetailPage() {
                       />
                     </td>
 
-                    <td className="px-3 py-3 w-[100px]">
+                    <td className="px-2 py-2 w-[120px]">
                       <CurrencyInput
                         value={precios[item.id]}
                         onChange={(val) => setPrecios((prev) => ({ ...prev, [item.id]: val }))}
                         onBlur={() => handlePrecioBlur(item)}
                         disabled={disabled}
                         placeholder="0,00"
+                        className="px-2"
                       />
                     </td>
 
-                    <td className="px-3 py-3 w-[60px]">
+                    <td className="px-2 py-2 w-[64px]">
                       <input
                         type="number"
                         step="1"
                         min="0"
-                        className="input"
+                        className="input px-2"
                         value={markUps[item.id] ?? ''}
                         onChange={(e) =>
                           setMarkUps((prev) => ({
@@ -980,9 +981,9 @@ export function SolicitudCotizacionDetailPage() {
               })}
             </tbody>
             <tfoot className="bg-gray-50">
-              <tr>
-                <td colSpan={6} className="px-3 py-3 text-right font-semibold">Total</td>
-                <td className="px-3 py-3 text-right font-semibold whitespace-nowrap">${total.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</td>
+              <tr className="border-t border-gray-300">
+                <td colSpan={6} className="px-2 py-2 text-right font-semibold">Total</td>
+                <td className="px-2 py-2 text-right font-semibold whitespace-nowrap">${total.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</td>
               </tr>
             </tfoot>
           </table>

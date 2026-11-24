@@ -8,6 +8,7 @@ interface CurrencyInputProps {
   placeholder?: string;
   error?: boolean;
   disabled?: boolean;
+  className?: string;
 }
 
 // Format number to Argentine locale (1.500.000,43)
@@ -49,7 +50,7 @@ function formatWithThousands(input: string): string {
 }
 
 export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
-  ({ value, onChange, onBlur, name, placeholder = '0,00', error, disabled }, ref) => {
+  ({ value, onChange, onBlur, name, placeholder = '0,00', error, disabled, className }, ref) => {
     const [displayValue, setDisplayValue] = useState<string>('');
     const inputRef = useRef<HTMLInputElement | null>(null);
     const cursorPositionRef = useRef<number | null>(null);
@@ -131,7 +132,7 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
         onBlur={handleBlur}
         placeholder={placeholder}
         disabled={disabled}
-        className={`input ${error ? 'input-error' : ''}`}
+        className={`input ${error ? 'input-error' : ''} ${className || ''}`}
       />
     );
   }

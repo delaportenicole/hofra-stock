@@ -2851,3 +2851,20 @@ Migración 035 aplicada a producción con el mismo mecanismo que las anteriores 
 **Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
 **Shared**: `shared/src/types/index.ts`, `shared/src/validators/index.ts`
 **Migraciones**: `database/migrations/035_rename_nombre_externo_a_nombre_ofrecido.sql`
+
+### 24 de noviembre de 2026 (continuación 6) — Rediseño de densidad y layout de la grilla de ítems
+
+Con 7 columnas ya en la grilla (Solicitado, Sugerido, Ofrecido, Acciones, Cantidad, Precio Unit., Mark Up), Nicole pidió una pasada completa de ajuste de layout:
+
+- **Columna Acciones angostada a su contenido** (antes `min-w-[140px]`, ahora `w-[110px]`): los botones de acción (Aceptar sugerencia, Buscar otro, MercadoLibre, Google, No Disponible, URL) bajaron de `text-sm`/ícono `w-4 h-4` a `text-xs`/ícono `w-3.5 h-3.5` — los labels más largos ("Aceptar sugerencia") hacen wrap a dos líneas en vez de forzar una columna ancha.
+- **Padding reducido en toda la grilla**: celdas y encabezados pasaron de `px-3 py-3` a `px-2 py-2`; los inputs de Cantidad/Mark Up y el nuevo input de Nombre Ofrecido bajaron de `px-3` (el padding default de la clase `.input` global) a `px-2` vía una clase extra que Tailwind prioriza por capas (`utilities` pisa a `components`, así que agregar `px-2` después de `input` en el mismo `className` alcanza sin tocar la clase `.input` compartida por el resto del sistema). `CurrencyInput` (usado también en otros formularios del sistema) no tenía forma de recibir una clase extra — se le agregó la prop `className` opcional, sin cambiar su comportamiento default en los demás usos.
+- **Anchos fijos repasados y agrandados donde hacía falta** para que los valores numéricos no se corten: Cantidad 70→72px, Precio Unit. 100→120px (el que más lo necesitaba, por los separadores de miles y centavos), Mark Up 60→64px.
+- **Redistribución del espacio priorizando Solicitado/Sugerido/Ofrecido**: Solicitado y Ofrecido pasaron de 150px a 200px fijos (ancho fijo necesario para que el sticky de abajo tenga un offset predecible); Sugerido se dejó sin ancho fijo (solo `min-w-[160px]`), así se queda con el espacio sobrante de la tabla en vez de competir con las columnas angostas de la derecha.
+- **Solicitado y Ofrecido sticky al scrollear horizontalmente**: se les agregó `sticky left-0`/`sticky left-[200px]` (el offset de Ofrecido es el ancho de Solicitado) + `bg-white`/`bg-gray-50` explícito (necesario para que no se transparente el contenido de Sugerido al scrollear por debajo) + `z-index` para quedar por encima de las columnas que sí scrollean. Sugerido, al estar en el medio y no ser sticky, se desplaza normalmente.
+- **Líneas de grilla más marcadas**: se pasó de `divide-y divide-gray-100`/`divide-gray-200` (muy tenue) a `divide-gray-300` tanto para las líneas entre filas como para las nuevas líneas verticales entre columnas (`divide-x`), aplicadas por fila. Esto obligó a cambiar la tabla de `divide-y` (a nivel `<table>`) a `border-separate border-spacing-0` con bordes explícitos por fila — es el patrón recomendado para combinar bordes con columnas sticky (con `border-collapse`, Chrome/Safari tienen bugs conocidos donde el borde desaparece al scrollear una celda sticky).
+- **Alineación vertical uniforme**: los encabezados ya tenían `align-top` por celda (`<th>`); las filas del cuerpo mantienen el mismo criterio con `align-top` a nivel de fila (patrón que ya traía la grilla y sigue funcionando en los navegadores reales pese a no ser 100% válido por spec de CSS para `<tr>`).
+
+**Nota de verificación**: este cambio es puramente de CSS/Tailwind (sin tocar backend/DB), verificado con `tsc`/`vite build`. No se pudo probar visualmente en el navegador en esta sesión — la extensión de Claude in Chrome no estaba conectada — así que el scroll sticky y el espaciado final conviene revisarlos a simple vista en la próxima sesión por las dudas.
+
+##### Archivos Modificados
+**Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`, `frontend/src/components/CurrencyInput.tsx`
