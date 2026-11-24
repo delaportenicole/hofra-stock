@@ -91,7 +91,9 @@ class SolicitudCotizacionService {
 
   async create(
     data: {
-      clienteId: string;
+      clienteId?: string | null;
+      numeroCotizacion?: number | null;
+      nombreCotizacion?: string | null;
       numeroReferenciaCliente?: string | null;
       nombreArchivo?: string | null;
       observaciones?: string | null;
@@ -121,7 +123,9 @@ class SolicitudCotizacionService {
     }
 
     const solicitud = await solicitudCotizacionRepository.create({
-      clienteId: data.clienteId,
+      clienteId: data.clienteId ?? null,
+      numeroCotizacion: data.numeroCotizacion ?? null,
+      nombreCotizacion: data.nombreCotizacion ?? null,
       numeroReferenciaCliente: data.numeroReferenciaCliente,
       nombreArchivo: data.nombreArchivo,
       observaciones: data.observaciones,

@@ -178,7 +178,7 @@ export function buildCotizacionSheetData(
   solicitud: SolicitudCotizacionConRelaciones,
   modo: ModoExportacion = 'interno'
 ): CotizacionSheetData {
-  const titulo = `${solicitud.cliente.razonSocial} - Cotización${
+  const titulo = `${solicitud.cliente?.razonSocial || 'Sin Cliente'} - Cotización${
     solicitud.numeroReferenciaCliente ? ` - ${solicitud.numeroReferenciaCliente}` : ''
   }`;
 

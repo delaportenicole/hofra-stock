@@ -13,6 +13,8 @@ import type { Cliente, CreateSolicitudCotizacionItemDto } from '@hofra/shared';
 
 interface FormData {
   clienteId: string;
+  numeroCotizacion?: string;
+  nombreCotizacion?: string;
   numeroReferenciaCliente?: string;
 }
 
@@ -49,7 +51,9 @@ export function SolicitudCotizacionUploadPage() {
     setIsSaving(true);
     try {
       const solicitud = await solicitudesCotizacionService.create({
-        clienteId: data.clienteId,
+        clienteId: data.clienteId || null,
+        numeroCotizacion: data.numeroCotizacion ? Number(data.numeroCotizacion) : null,
+        nombreCotizacion: data.nombreCotizacion || null,
         numeroReferenciaCliente: data.numeroReferenciaCliente || null,
         nombreArchivo: fileName,
         items,
@@ -76,15 +80,24 @@ export function SolicitudCotizacionUploadPage() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="card p-6 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField label="Cliente" required error={errors.clienteId}>
+          <FormField label="Cliente" error={errors.clienteId}>
             <Select
               options={clientes.map((c) => ({ value: c.id, label: c.razonSocial }))}
-              {...register('clienteId', { required: 'El cliente es requerido' })}
+              placeholder="Sin cliente (opcional)"
+              {...register('clienteId')}
             />
           </FormField>
 
           <FormField label="N° Referencia del Cliente" error={errors.numeroReferenciaCliente}>
             <Input placeholder="Opcional" {...register('numeroReferenciaCliente')} />
+          </FormField>
+
+          <FormField label="N° de Cotización" error={errors.numeroCotizacion}>
+            <Input type="number" placeholder="Opcional, ingreso manual" {...register('numeroCotizacion')} />
+          </FormField>
+
+          <FormField label="Nombre de Cotización" error={errors.nombreCotizacion}>
+            <Input placeholder="Opcional" {...register('nombreCotizacion')} />
           </FormField>
         </div>
 

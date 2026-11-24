@@ -360,7 +360,9 @@ export const createSolicitudCotizacionItemSchema = z.object({
 });
 
 export const createSolicitudCotizacionSchema = z.object({
-  clienteId: uuidSchema,
+  clienteId: uuidSchema.optional().nullable(),
+  numeroCotizacion: z.coerce.number().int().optional().nullable(),
+  nombreCotizacion: z.string().max(255).optional().nullable(),
   numeroReferenciaCliente: z.string().max(100).optional().nullable(),
   nombreArchivo: z.string().max(255).optional().nullable(),
   observaciones: z.string().max(1000).optional().nullable(),
@@ -372,6 +374,8 @@ export const addSolicitudCotizacionItemsSchema = z.object({
 });
 
 export const updateSolicitudCotizacionSchema = z.object({
+  numeroCotizacion: z.coerce.number().int().optional().nullable(),
+  nombreCotizacion: z.string().max(255).optional().nullable(),
   numeroReferenciaCliente: z.string().max(100).optional().nullable(),
   observaciones: z.string().max(1000).optional().nullable(),
   fechaEntrega: z.coerce.date().optional().nullable(),

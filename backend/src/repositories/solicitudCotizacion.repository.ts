@@ -54,7 +54,9 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
   }
 
   async create(data: {
-    clienteId: string;
+    clienteId?: string | null;
+    numeroCotizacion?: number | null;
+    nombreCotizacion?: string | null;
     numeroReferenciaCliente?: string | null;
     nombreArchivo?: string | null;
     observaciones?: string | null;
@@ -63,11 +65,13 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
   }): Promise<SolicitudCotizacion & { items: SolicitudCotizacionItem[] }> {
     return transaction(async (client) => {
       const solicitudRows = await client.query<Record<string, unknown>>(
-        `INSERT INTO solicitudes_cotizacion (cliente_id, numero_referencia_cliente, nombre_archivo, observaciones, estado, created_by)
-         VALUES ($1, $2, $3, $4, 'en_revision', $5)
+        `INSERT INTO solicitudes_cotizacion (cliente_id, numero_cotizacion, nombre_cotizacion, numero_referencia_cliente, nombre_archivo, observaciones, estado, created_by)
+         VALUES ($1, $2, $3, $4, $5, $6, 'en_revision', $7)
          RETURNING *`,
         [
-          data.clienteId,
+          data.clienteId || null,
+          data.numeroCotizacion ?? null,
+          data.nombreCotizacion || null,
           data.numeroReferenciaCliente || null,
           data.nombreArchivo || null,
           data.observaciones || null,
@@ -83,8 +87,8 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       for (const item of data.items) {
         const itemRows = await client.query<Record<string, unknown>>(
           `INSERT INTO solicitud_cotizacion_items
-             (solicitud_id, orden, etm_solicitado, descripcion_solicitada, marca_solicitada, modelo_solicitado, descripcion_ingles_solicitada, unidad_solicitada, cantidad_solicitada, articulo_id, match_confianza)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+             (solicitud_id, orden, etm_solicitado, descripcion_solicitada, marca_solicitada, modelo_solicitado, descripcion_ingles_solicitada, unidad_solicitada, cantidad_solicitada, articulo_id, articulo_id_sugerido, match_confianza)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10, $11)
            RETURNING *`,
           [
             solicitud.id,
@@ -124,8 +128,8 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       for (const item of items) {
         const itemRows = await client.query<Record<string, unknown>>(
           `INSERT INTO solicitud_cotizacion_items
-             (solicitud_id, orden, etm_solicitado, descripcion_solicitada, marca_solicitada, modelo_solicitado, descripcion_ingles_solicitada, unidad_solicitada, cantidad_solicitada, articulo_id, match_confianza)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+             (solicitud_id, orden, etm_solicitado, descripcion_solicitada, marca_solicitada, modelo_solicitado, descripcion_ingles_solicitada, unidad_solicitada, cantidad_solicitada, articulo_id, articulo_id_sugerido, match_confianza)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10, $11)
            RETURNING *`,
           [
             solicitudId,
@@ -154,6 +158,8 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
   async updateHeader(
     id: string,
     data: {
+      numeroCotizacion?: number | null;
+      nombreCotizacion?: string | null;
       numeroReferenciaCliente?: string | null;
       observaciones?: string | null;
       fechaEntrega?: Date | string | null;
@@ -168,6 +174,14 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
     const values: unknown[] = [];
     let paramIndex = 1;
 
+    if (data.numeroCotizacion !== undefined) {
+      sets.push(`numero_cotizacion = $${paramIndex++}`);
+      values.push(data.numeroCotizacion);
+    }
+    if (data.nombreCotizacion !== undefined) {
+      sets.push(`nombre_cotizacion = $${paramIndex++}`);
+      values.push(data.nombreCotizacion);
+    }
     if (data.numeroReferenciaCliente !== undefined) {
       sets.push(`numero_referencia_cliente = $${paramIndex++}`);
       values.push(data.numeroReferenciaCliente);
@@ -288,7 +302,7 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       `SELECT s.*,
               c.id as cli_id, c.razon_social as cliente_razon_social, c.cuit as cliente_cuit, c.contacto as cliente_contacto
        FROM solicitudes_cotizacion s
-       INNER JOIN clientes c ON c.id = s.cliente_id
+       LEFT JOIN clientes c ON c.id = s.cliente_id
        WHERE s.id = $1 AND s.deleted_at IS NULL`,
       [id]
     );
@@ -306,10 +320,16 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
               a.id as articulo_id_full, a.codigo as articulo_codigo, a.nombre as articulo_nombre,
               a.marca as articulo_marca, a.etm as articulo_etm, a.sku as articulo_sku,
               a.costo_inicial_estimado as articulo_costo_inicial_estimado, a.stock_actual as articulo_stock_actual,
-              a.imagen_url as articulo_imagen_url, p.razon_social as articulo_proveedor_nombre
+              a.imagen_url as articulo_imagen_url, p.razon_social as articulo_proveedor_nombre,
+              a_sug.id as sugerido_id_full, a_sug.codigo as sugerido_codigo, a_sug.nombre as sugerido_nombre,
+              a_sug.marca as sugerido_marca, a_sug.etm as sugerido_etm, a_sug.sku as sugerido_sku,
+              a_sug.costo_inicial_estimado as sugerido_costo_inicial_estimado, a_sug.stock_actual as sugerido_stock_actual,
+              a_sug.imagen_url as sugerido_imagen_url, p_sug.razon_social as sugerido_proveedor_nombre
        FROM solicitud_cotizacion_items sci
        LEFT JOIN articulos a ON a.id = sci.articulo_id
        LEFT JOIN proveedores p ON p.id = a.proveedor_id
+       LEFT JOIN articulos a_sug ON a_sug.id = sci.articulo_id_sugerido
+       LEFT JOIN proveedores p_sug ON p_sug.id = a_sug.proveedor_id
        WHERE sci.solicitud_id = $1
        ORDER BY sci.orden ASC`,
       [solicitudId]
@@ -327,6 +347,7 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       unidadSolicitada: row.unidad_solicitada as string | null,
       cantidadSolicitada: row.cantidad_solicitada as number,
       articuloId: row.articulo_id as string | null,
+      articuloIdSugerido: row.articulo_id_sugerido as string | null,
       matchConfianza: row.match_confianza as MatchConfianza | null,
       estadoItem: row.estado_item as EstadoItemCotizacion,
       precioUnitario: row.precio_unitario !== null ? Number(row.precio_unitario) : null,
@@ -346,6 +367,20 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
             stockActual: row.articulo_stock_actual as number,
             imagenUrl: row.articulo_imagen_url as string | null,
             proveedorNombre: row.articulo_proveedor_nombre as string | null,
+          }
+        : null,
+      articuloSugerido: row.sugerido_id_full
+        ? {
+            id: row.sugerido_id_full as string,
+            codigo: row.sugerido_codigo as string,
+            nombre: row.sugerido_nombre as string,
+            marca: row.sugerido_marca as string | null,
+            etm: row.sugerido_etm as string | null,
+            sku: row.sugerido_sku as string | null,
+            costoInicialEstimado: row.sugerido_costo_inicial_estimado !== null ? Number(row.sugerido_costo_inicial_estimado) : null,
+            stockActual: row.sugerido_stock_actual as number,
+            imagenUrl: row.sugerido_imagen_url as string | null,
+            proveedorNombre: row.sugerido_proveedor_nombre as string | null,
           }
         : null,
     }));
@@ -385,7 +420,7 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
         `SELECT s.*,
                 c.id as cli_id, c.razon_social as cliente_razon_social, c.cuit as cliente_cuit, c.contacto as cliente_contacto
          FROM solicitudes_cotizacion s
-         INNER JOIN clientes c ON c.id = s.cliente_id
+         LEFT JOIN clientes c ON c.id = s.cliente_id
          WHERE ${whereClause}
          ORDER BY s.fecha_solicitud ${sortOrder.toUpperCase()}
          LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
@@ -394,7 +429,7 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       queryOne<{ count: string }>(
         `SELECT COUNT(*) as count
          FROM solicitudes_cotizacion s
-         INNER JOIN clientes c ON c.id = s.cliente_id
+         LEFT JOIN clientes c ON c.id = s.cliente_id
          WHERE ${whereClause}`,
         values
       ),
@@ -428,6 +463,7 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       id: row.id,
       cliente_id: row.cliente_id,
       numero_cotizacion: row.numero_cotizacion,
+      nombre_cotizacion: row.nombre_cotizacion,
       numero_referencia_cliente: row.numero_referencia_cliente,
       nombre_archivo: row.nombre_archivo,
       fecha_solicitud: row.fecha_solicitud,
@@ -454,22 +490,24 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
         ? Number(row.usd_oficial_venta)
         : null,
       items,
-      cliente: {
-        id: row.cli_id as string,
-        razonSocial: row.cliente_razon_social as string,
-        cuit: row.cliente_cuit as string,
-        direccion: null,
-        telefono: null,
-        email: null,
-        contacto: row.cliente_contacto as string | null,
-        notas: null,
-        activo: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        deletedAt: null,
-        createdBy: null,
-        updatedBy: null,
-      },
+      cliente: row.cli_id
+        ? {
+            id: row.cli_id as string,
+            razonSocial: row.cliente_razon_social as string,
+            cuit: row.cliente_cuit as string,
+            direccion: null,
+            telefono: null,
+            email: null,
+            contacto: row.cliente_contacto as string | null,
+            notas: null,
+            activo: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            deletedAt: null,
+            createdBy: null,
+            updatedBy: null,
+          }
+        : null,
     };
   }
 }

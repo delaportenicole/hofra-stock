@@ -94,8 +94,8 @@ export function SolicitudesCotizacionListPage() {
       header: 'Cliente',
       render: (item: SolicitudCotizacionConRelaciones) => (
         <div>
-          <p className="font-medium">{item.cliente.razonSocial}</p>
-          {item.cliente.cuit && <p className="text-sm text-gray-500">{item.cliente.cuit}</p>}
+          <p className="font-medium">{item.cliente?.razonSocial ?? 'Sin cliente'}</p>
+          {item.cliente?.cuit && <p className="text-sm text-gray-500">{item.cliente.cuit}</p>}
         </div>
       ),
     },

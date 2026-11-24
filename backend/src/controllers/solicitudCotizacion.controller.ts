@@ -152,7 +152,7 @@ export class SolicitudCotizacionController {
       const solicitud = await solicitudCotizacionService.findById(req.params.id);
       const buffer = await buildCotizacionExcelBuffer(solicitud, 'interno');
 
-      const nombreArchivo = `Cotizacion Interna - ${solicitud.cliente.razonSocial}${
+      const nombreArchivo = `Cotizacion Interna - ${solicitud.cliente?.razonSocial || 'Sin Cliente'}${
         solicitud.numeroReferenciaCliente ? ` - ${solicitud.numeroReferenciaCliente}` : ''
       }.xlsx`.replace(/[/\\?%*:|"<>]/g, '-');
 
@@ -169,7 +169,7 @@ export class SolicitudCotizacionController {
       const solicitud = await solicitudCotizacionService.findById(req.params.id);
       const buffer = await buildCotizacionExcelBuffer(solicitud, 'externo');
 
-      const nombreArchivo = `Cotizacion - ${solicitud.cliente.razonSocial}${
+      const nombreArchivo = `Cotizacion - ${solicitud.cliente?.razonSocial || 'Sin Cliente'}${
         solicitud.numeroReferenciaCliente ? ` - ${solicitud.numeroReferenciaCliente}` : ''
       }.xlsx`.replace(/[/\\?%*:|"<>]/g, '-');
 

@@ -726,7 +726,7 @@ Módulo para procesar archivos de solicitud de cotización que envían los clien
 - Requiere permiso: `solicitudes_cotizacion:leer` (crear/actualizar/eliminar también existen como permisos separados)
 
 #### Flujo General
-1. **Subir archivo**: El usuario sube un Excel del cliente y selecciona el Cliente destinatario (obligatorio) y un N° de Referencia del Cliente (opcional)
+1. **Subir archivo**: El usuario sube un Excel del cliente (o pega texto, ver más abajo) y opcionalmente selecciona el Cliente destinatario — **desde el 24 de noviembre de 2026 el Cliente ya no es obligatorio** — y carga un N° de Referencia del Cliente, N° de Cotización y Nombre de Cotización (todos opcionales)
 2. **Matching automático**: El backend intenta encontrar, para cada fila, el artículo correspondiente en el catálogo propio
 3. **Revisión ítem por ítem**: Pantalla de detalle donde se ve lo *solicitado* vs. lo *sugerido*, y se decide qué hacer con cada ítem
 4. **Precio y cotización**: Se carga el precio de venta unitario por ítem y se marca la solicitud como Cotizada
@@ -785,25 +785,31 @@ El matching es solo una *sugerencia*: nunca se acepta automáticamente, siempre 
 
 No existe una columna "Estado" en la grilla: el estado de cada ítem se ve reflejado en las columnas Sugerido/Aceptado y en los indicadores de la parte superior de la pantalla (ver más abajo).
 
-#### Indicadores (arriba de la grilla)
-Cuatro tarjetas con conteos en tiempo real sobre los ítems de la solicitud:
+#### Indicadores
+En el header de la pantalla de detalle, dos tarjetas grandes (agregado 24 de noviembre de 2026): **Total de Items** (cantidad de filas/artículos distintos solicitados, `solicitud.items.length`) y **Cantidad de Items** (suma de todas las `cantidadSolicitada`).
+
+Más abajo, cuatro tarjetas con conteos en tiempo real sobre los ítems de la solicitud:
 - **Con Coincidencia** / **Sin Coincidencia**: según `matchConfianza` (etm/nombre vs. sin_match) — calidad del matching automático
 - **Aceptados** / **Pendientes de Revisión**: según si el ítem ya salió de `pendiente` o no — progreso de la revisión
 
 #### Pantalla de Revisión (por cada ítem)
-- **Solicitado**: ETM, descripción, marca y cantidad tal como vinieron en el archivo (solo lectura)
-- **Sugerido**: artículo matcheado por el sistema (código, nombre, marca, stock) con badge de confianza ("Coincide por ETM" / "Coincide por nombre"), o "Sin coincidencia". Si hay artículo, el nombre es un link que abre su detalle (`/articulos/:id`) en una pestaña nueva
+- **Solicitado**: ETM, descripción, marca, unidad y cantidad tal como vinieron en el archivo (solo lectura)
+- **Sugerido**: artículo matcheado por el sistema (código, nombre, marca, stock) con badge de confianza ("Coincide por ETM" / "Coincide por nombre"), o "Sin coincidencia". Si hay artículo, el nombre es un link que abre su detalle (`/articulos/:id`) en una pestaña nueva. **Columna independiente desde el 24 de noviembre de 2026** (ver "Fix: Sugerido vs. Aceptado" más abajo) — ya no se pisa al elegir manualmente otro artículo
 - **Aceptado**: una vez confirmada una decisión, muestra el artículo del catálogo aceptado (en verde, también clickeable a su detalle), la compra externa aceptada (en ámbar, con link "Ver publicación"), o "No Disponible" si se marcó así sin una URL asociada. En los tres casos hay un botón **✕** para deshacer la decisión (vuelve a `pendiente` sin perder la sugerencia, la URL, o el artículo previamente elegido) y poder decidir de nuevo
-- **Acciones disponibles**:
-  - **Aceptar sugerencia**: confirma el artículo matcheado por el sistema (solo visible si el ítem todavía no está aceptado)
-  - **Buscar otro artículo**: abre un combobox ancho para elegir manualmente otro artículo del catálogo (permite artículos sin stock, ya que es para cotizar, no para descontar stock); tiene un botón **✕** para cancelar la búsqueda sin elegir nada y volver a ver las demás opciones
-  - **Buscar en Mercado Libre**: abre en una pestaña nueva una búsqueda en Mercado Libre armada solo con la **descripción** del ítem (no se usa marca ni ETM, para no ensuciar los resultados). Si el ítem no tiene ningún artículo matcheado, además lo marca como `no_disponible`; si ya hay una sugerencia del catálogo, es solo para comparar precio y no le pisa la sugerencia
-  - **Marcar como No Disponible**: acción directa (con confirmación) para marcar el ítem como no disponible en cualquier momento, sin pasar por Mercado Libre
-  - **Pegar URL de producto**: permite pegar el link de un producto externo (ej. una publicación de Mercado Libre) como opción de compra para ese ítem. Una vez guardada la URL, se puede **Aceptar** (marca el ítem como `no_disponible`, guarda la URL) o **Declinar** (la descarta)
-- **Precio Unitario**: campo editable por ítem. Al aceptar un artículo del catálogo que tiene costo cargado (`costoInicialEstimado`) y el ítem todavía no tiene precio, se prellena con ese valor como punto de partida — siempre se puede sobreescribir a mano. La URL externa **no** trae precio automático; se carga siempre a mano
-- **Mark Up**: campo editable por ítem, número **entero** (`mark_up INTEGER`, migraciones 026-027). Es el margen que antes Nicole tipeaba a mano directamente en la columna P del Excel descargado (sin quedar guardado en ningún lado); ahora se carga en la app y con eso el sistema puede calcular el precio final también para el Excel Externo, que no tiene esa columna (ver más abajo). Sigue funcionando como porcentaje dentro de la fórmula (`(MarkUp+100)/100`), pero la UI no lo etiqueta ni lo formatea como tal — es un input numérico simple, no de moneda
-- **Subtotal**: cantidad × precio unitario (calculado)
-- La grilla tiene ancho mínimo con scroll horizontal (columnas con `min-width` propio) para que ninguna columna quede cortada en pantallas chicas (ej. notebooks de 13")
+- **Acciones disponibles** (columna angosta, labels cortos desde el 24 de noviembre de 2026):
+  - **Aceptar sugerencia**: confirma el artículo sugerido por el sistema. Visible salvo que el ítem ya esté aceptado exactamente con ese artículo — si se aceptó otro a mano, el botón sigue disponible para volver a la sugerencia original
+  - **Buscar otro** (antes "Buscar otro artículo"): abre un combobox ancho para elegir manualmente otro artículo del catálogo (permite artículos sin stock, ya que es para cotizar, no para descontar stock); tiene un botón **✕** para cancelar la búsqueda sin elegir nada y volver a ver las demás opciones
+  - **MercadoLibre** (antes "Buscar en Mercado Libre"): abre en una pestaña nueva una búsqueda en Mercado Libre armada con **descripción + marca** del ítem (antes del 24 de noviembre de 2026 solo mandaba la descripción). Si el ítem no tiene ningún artículo matcheado, además lo marca como `no_disponible`; si ya hay una sugerencia del catálogo, es solo para comparar precio y no le pisa la sugerencia
+  - **Google** (nuevo, 24 de noviembre de 2026): mismo mecanismo y mismo criterio de "no disponible" que MercadoLibre, pero contra una búsqueda de Google (`https://www.google.com/search?q=...`), también con descripción + marca
+  - **No Disponible** (antes "Marcar como No Disponible"): acción directa (con confirmación) para marcar el ítem como no disponible en cualquier momento, sin pasar por una búsqueda externa
+  - **URL** (antes "Pegar URL de producto"): permite pegar el link de un producto externo (ej. una publicación de Mercado Libre) como opción de compra para ese ítem. Una vez guardada la URL, se puede **Aceptar** (marca el ítem como `no_disponible`, guarda la URL) o **Declinar** (la descarta)
+- **Precio Unitario**: campo editable por ítem (columna angosta desde el 24 de noviembre de 2026, la mitad del ancho anterior). Al aceptar un artículo del catálogo que tiene costo cargado (`costoInicialEstimado`) y el ítem todavía no tiene precio, se prellena con ese valor como punto de partida — siempre se puede sobreescribir a mano. La URL externa **no** trae precio automático; se carga siempre a mano
+- **Mark Up**: campo editable por ítem (columna angosta desde el 24 de noviembre de 2026, la mitad del ancho anterior), número **entero** (`mark_up INTEGER`, migraciones 026-027). Es el margen que antes Nicole tipeaba a mano directamente en la columna P del Excel descargado (sin quedar guardado en ningún lado); ahora se carga en la app y con eso el sistema puede calcular el precio final también para el Excel Externo, que no tiene esa columna (ver más abajo). Sigue funcionando como porcentaje dentro de la fórmula (`(MarkUp+100)/100`), pero la UI no lo etiqueta ni lo formatea como tal — es un input numérico simple, no de moneda
+- ~~Subtotal~~: columna eliminada de esta grilla el 24 de noviembre de 2026 (sigue existiendo en el comprobante de impresión, que está desactivado — ver `MOSTRAR_IMPRIMIR`)
+- La grilla tiene ancho mínimo con scroll horizontal (columnas con `min-width`/`width` propio) para que ninguna columna quede cortada en pantallas chicas (ej. notebooks de 13"); los encabezados de Precio Unit. y Mark Up usan `whitespace-normal` para partirse en dos líneas en vez de forzar una sola
+
+#### Fix: Sugerido vs. Aceptado pisándose entre sí (24 de noviembre de 2026)
+Nicole reportó que, al buscar y aceptar manualmente otro artículo para un ítem, la columna "Sugerido" cambiaba — mostraba el artículo recién elegido a mano en vez de la sugerencia original del sistema. Causa: ambas columnas leían la misma columna de base `articulo_id`, que se sobreescribía al aceptar manualmente. Se agregó una columna nueva `articulo_id_sugerido` (migración 031) que se fija **una sola vez**, en el momento del matching automático (creación o "Agregar Artículos"), y nunca se vuelve a tocar — `articulo_id` sigue siendo el "aceptado" actual, mutable. El backfill de la migración asume que, para las solicitudes ya existentes al momento de aplicarla, nadie había pisado todavía la sugerencia original a mano (si alguien ya lo había hecho, no hay forma de recuperar cuál fue la sugerencia real, y el backfill deja `articulo_id_sugerido` igual al `articulo_id` actual).
 
 #### Marcar como Cotizada
 Solo se habilita cuando **todos** los ítems dejaron de estar `pendiente` y **todos** tienen precio unitario cargado. El backend valida esto antes de permitir el cambio de estado (`POST /solicitudes-cotizacion/:id/marcar-cotizada`).
@@ -883,8 +889,8 @@ El diseño intencional es que la app resuelve el matching/catálogo/cantidades/c
 
 | Tabla | Campo | Notas |
 |-------|-------|-------|
-| solicitudes_cotizacion | `cliente_id`, `numero_cotizacion`, `numero_referencia_cliente`, `nombre_archivo`, `fecha_solicitud`, `estado`, `observaciones`, `fecha_entrega`, `lugar_entrega`, `solicitado_por`, `usd_oficial_compra`, `usd_oficial_venta` | Cabecera. `numero_cotizacion` es un contador interno autoincremental desde 250 (migración 028, `NULL` en solicitudes previas a esa migración), independiente de `numero_referencia_cliente` (la referencia que trae el cliente, sigue siendo texto libre). `fecha_entrega`...`usd_oficial_venta` son para el header del Excel (migraciones 024 y 025) |
-| solicitud_cotizacion_items | `solicitud_id`, `orden`, `etm_solicitado`, `descripcion_solicitada`, `descripcion_ingles_solicitada`, `marca_solicitada`, `modelo_solicitado`, `unidad_solicitada`, `cantidad_solicitada`, `articulo_id`, `match_confianza`, `estado_item`, `precio_unitario`, `mark_up`, `url_externa` | Detalle. `mark_up` es el margen del ítem, número entero (migraciones 026-027), usado para calcular el precio final en el Excel Externo. `unidad_solicitada` (migración 030, 23 de noviembre de 2026) es texto libre ("unidades", "cajas", "metros", etc.), detectado por la IA o por la columna UNIDAD del Excel — se ve en el detalle de la solicitud, pero **no** se agregó al Excel Externo/Interno de cotización final: ese archivo tiene un formato fijo calcado de una planilla de referencia, con fórmulas atadas a letras de columna hardcodeadas (`G`, `N`, `P`...), e insertar una columna ahí corre riesgo real de romperlas — decisión explícita de dejarlo afuera por ahora |
+| solicitudes_cotizacion | `cliente_id`, `numero_cotizacion`, `nombre_cotizacion`, `numero_referencia_cliente`, `nombre_archivo`, `fecha_solicitud`, `estado`, `observaciones`, `fecha_entrega`, `lugar_entrega`, `solicitado_por`, `usd_oficial_compra`, `usd_oficial_venta` | Cabecera. `cliente_id` es **opcional desde el 24 de noviembre de 2026** (migración 032, antes `NOT NULL`) — los queries que traen el cliente pasaron de `INNER JOIN` a `LEFT JOIN`. `numero_cotizacion` era un contador interno autoincremental desde 250 (migración 028); **desde la migración 032 es de ingreso manual** (se le sacó el `DEFAULT nextval(...)` y se borró la secuencia), independiente de `numero_referencia_cliente` (la referencia que trae el cliente, texto libre). `nombre_cotizacion` (migración 032) es un campo nuevo, también de ingreso manual. `fecha_entrega`...`usd_oficial_venta` son para el header del Excel (migraciones 024 y 025) |
+| solicitud_cotizacion_items | `solicitud_id`, `orden`, `etm_solicitado`, `descripcion_solicitada`, `descripcion_ingles_solicitada`, `marca_solicitada`, `modelo_solicitado`, `unidad_solicitada`, `cantidad_solicitada`, `articulo_id`, `articulo_id_sugerido`, `match_confianza`, `estado_item`, `precio_unitario`, `mark_up`, `url_externa` | Detalle. `mark_up` es el margen del ítem, número entero (migraciones 026-027), usado para calcular el precio final en el Excel Externo. `unidad_solicitada` (migración 030, 23 de noviembre de 2026) es texto libre ("unidades", "cajas", "metros", etc.), detectado por la IA o por la columna UNIDAD del Excel — se ve en el detalle de la solicitud, pero **no** se agregó al Excel Externo/Interno de cotización final: ese archivo tiene un formato fijo calcado de una planilla de referencia, con fórmulas atadas a letras de columna hardcodeadas (`G`, `N`, `P`...), e insertar una columna ahí corre riesgo real de romperlas — decisión explícita de dejarlo afuera por ahora. `articulo_id_sugerido` (migración 031, 24 de noviembre de 2026) guarda la sugerencia original del matching automático, separada de `articulo_id` (el artículo aceptado actual, mutable) — ver "Fix: Sugerido vs. Aceptado" arriba |
 | google_integracion | `refresh_token`, `connected_email`, `connected_at` | Una sola fila: la cuenta de Google conectada para exportar |
 
 #### API
@@ -892,8 +898,8 @@ El diseño intencional es que la app resuelve el matching/catálogo/cantidades/c
 GET    /api/solicitudes-cotizacion                       # Lista paginada con filtros (estado, clienteId, busqueda)
 GET    /api/solicitudes-cotizacion/:id                    # Ver detalle con items y matching
 POST   /api/solicitudes-cotizacion/normalizar-texto       # Normaliza texto libre con IA (Claude) en items: etm/descripcion/descripcionIngles/marca/modelo/unidad/cantidad
-POST   /api/solicitudes-cotizacion                        # Crear solicitud (corre el matching automático por ítem)
-PUT    /api/solicitudes-cotizacion/:id                    # Actualizar cabecera (referencia, observaciones, fecha de entrega, lugar de entrega, solicitado por, USD oficial compra/venta)
+POST   /api/solicitudes-cotizacion                        # Crear solicitud (clienteId opcional desde 24/11/2026; corre el matching automático por ítem)
+PUT    /api/solicitudes-cotizacion/:id                    # Actualizar cabecera (N° y nombre de cotización, referencia, observaciones, fecha de entrega, lugar de entrega, solicitado por, USD oficial compra/venta)
 POST   /api/solicitudes-cotizacion/:id/items              # Agregar ítems a una solicitud existente (solo en_revision; mismo matching que al crear)
 PUT    /api/solicitudes-cotizacion/:id/items/:itemId      # Actualizar un ítem (artículo, estado, precio, mark up, URL externa)
 POST   /api/solicitudes-cotizacion/:id/marcar-cotizada    # Marca como cotizada (valida que no queden ítems pendientes/sin precio)
@@ -939,6 +945,8 @@ Los endpoints de `/api/google/*` (auth-url, oauth/callback, status) ya están mo
 - `database/migrations/027_mark_up_a_entero.sql`
 - `database/migrations/028_add_numero_cotizacion.sql`
 - `database/migrations/030_add_unidad_solicitud_items.sql` (29 no existe: era de la rama del "Hofra AI Agent", revertida)
+- `database/migrations/031_add_articulo_sugerido_solicitud_items.sql`
+- `database/migrations/032_cotizacion_manual_cliente_opcional.sql`
 
 ---
 
@@ -1627,6 +1635,12 @@ npm run reset-data       # (dentro de backend/) Borra datos operativos (articulo
     - Secuencia `solicitudes_cotizacion_numero_seq` arrancando en 250 y campo `numero_cotizacion INTEGER UNIQUE` en `solicitudes_cotizacion`, con default `nextval(...)` — las solicitudes existentes al momento de la migración quedan con este campo en `NULL` (decisión explícita: no se renumeran retroactivamente)
 28. **030_add_unidad_solicitud_items.sql**: Unidad de medida por ítem de cotización
     - Campo `unidad_solicitada VARCHAR(50)` en `solicitud_cotizacion_items`, detectado por la IA o por la columna UNIDAD del Excel (029 no existe: era de la rama del "Hofra AI Agent", revertida antes de llegar a producción)
+29. **031_add_articulo_sugerido_solicitud_items.sql**: Sugerido vs. Aceptado por separado
+    - Campo `articulo_id_sugerido UUID` en `solicitud_cotizacion_items`, fijado una sola vez en el matching automático; `articulo_id` sigue siendo el aceptado actual (mutable). Backfill: `articulo_id_sugerido = articulo_id` para las filas existentes (asume que ninguna ya había sido reasignada a mano)
+30. **032_cotizacion_manual_cliente_opcional.sql**: Cotización manual + Cliente opcional
+    - `numero_cotizacion` deja de ser autoincremental (se le saca el `DEFAULT nextval(...)` y se borra `solicitudes_cotizacion_numero_seq`), pasa a ingreso manual
+    - Campo nuevo `nombre_cotizacion VARCHAR(255)`, también de ingreso manual
+    - `cliente_id` pasa a ser `NULL`-able (antes `NOT NULL`)
 
 ---
 
@@ -2749,3 +2763,21 @@ Se sumó una **pestaña nueva** en Auditoría ("Normalizar con IA") con un resum
 **Backend**: `backend/src/controllers/auditLog.controller.ts`, `backend/src/services/auditLog.service.ts`, `backend/src/repositories/auditLog.repository.ts`, `backend/src/routes/auditLog.routes.ts`, `backend/src/controllers/solicitudCotizacion.controller.ts`, `backend/src/routes/solicitudCotizacion.routes.ts`
 **Frontend**: `frontend/src/components/solicitudesCotizacion/ItemsCaptureEditor.tsx`, `frontend/src/pages/auditoria/AuditoriaList.tsx`, `frontend/src/services/auditLog.service.ts`
 **Shared**: `shared/src/types/index.ts` (`AccionAuditoria` +`normalizar_ia`, nuevo `AuditLogConteoUsuario`), `shared/src/validators/index.ts`
+
+### 24 de noviembre de 2026 — Lote de ajustes en Solicitud de Cotización (fix Sugerido/Aceptado, búsquedas externas, cotización manual, cliente opcional, UI)
+
+Nicole pidió una serie de cambios sobre el mismo módulo, uno por uno, pidiendo explícitamente no pushear nada hasta terminar el lote completo para poder revisar todo junto.
+
+**Fix: Sugerido vs. Aceptado se pisaban.** Al buscar y aceptar manualmente otro artículo para un ítem, la columna "Sugerido" pasaba a mostrar ese artículo en vez de la sugerencia original del sistema — ambas columnas leían la misma columna de base (`articulo_id`), que se sobreescribía al aceptar a mano. Se separó en dos columnas: `articulo_id_sugerido` (migración 031, fijada una sola vez en el matching automático, nunca se vuelve a tocar) y `articulo_id` (el aceptado actual, mutable). De paso quedó arreglado un bug relacionado: antes, una vez aceptado un artículo manual, el botón "Aceptar sugerencia" desaparecía sin dejar forma de volver a la sugerencia original; ahora el botón sigue disponible mientras lo aceptado no sea exactamente la sugerencia.
+
+**Búsquedas externas**: Mercado Libre ahora concatena Descripción + Marca en la búsqueda (antes solo mandaba la descripción). Se agregó un botón nuevo, "Google", con el mismo mecanismo (pestaña nueva, Descripción + Marca) y el mismo criterio para marcar `no_disponible` solo cuando el ítem no tiene ningún artículo matcheado.
+
+**Cotización manual + Cliente opcional** (migración 032): `numero_cotizacion` deja de autoincrementarse (se le saca el `DEFAULT nextval(...)` del contador que arrancaba en 250, migración 028, y se borra la secuencia) — ahora es un campo editable, de ingreso manual, tanto al crear la solicitud como después en el detalle. Se agregó un campo nuevo, `nombre_cotizacion`, también manual. Y el Cliente dejó de ser obligatorio para crear una solicitud — esto implicó pasar de `INNER JOIN` a `LEFT JOIN` contra `clientes` en los queries del repositorio, tipar `cliente` como nullable en `SolicitudCotizacionConRelaciones`, y agregar fallback ("Sin Cliente"/"Sin cliente") en cada lugar que mostraba `solicitud.cliente.razonSocial`: la lista, el detalle, los nombres de archivo al exportar a Excel (`cotizacionExport.service.ts` y el controller), y el comprobante de impresión (desactivado hoy, pero igual corregido).
+
+**Ajustes de UI en la grilla de revisión**: se sacó la columna Subtotal (el Total general del pie sigue sumando igual, no depende de esa columna). Se agregaron dos tarjetas grandes en el header de la pantalla de detalle — "Total de Items" (cantidad de filas distintas) y "Cantidad de Items" (suma de las cantidades solicitadas). Las columnas Precio Unit. y Mark Up se achicaron a la mitad de su ancho anterior, con el header en `whitespace-normal` para que el texto haga wrap en dos líneas en vez de forzar una sola. La columna Acciones se angostó y sus labels se acortaron: "Buscar otro" (antes "Buscar otro artículo"), "MercadoLibre" (antes "Buscar en Mercado Libre"), "Google" (nuevo), "No Disponible" (antes "Marcar como No Disponible"), "URL" (antes "Pegar URL de producto").
+
+##### Archivos Modificados
+**Backend**: `backend/src/repositories/solicitudCotizacion.repository.ts`, `backend/src/services/solicitudCotizacion.service.ts`, `backend/src/controllers/solicitudCotizacion.controller.ts`, `backend/src/services/cotizacionExport.service.ts`
+**Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`, `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionUpload.tsx`, `frontend/src/pages/solicitudesCotizacion/SolicitudesCotizacionList.tsx`
+**Shared**: `shared/src/types/index.ts`, `shared/src/validators/index.ts`
+**Migraciones**: `database/migrations/031_add_articulo_sugerido_solicitud_items.sql`, `database/migrations/032_cotizacion_manual_cliente_opcional.sql`

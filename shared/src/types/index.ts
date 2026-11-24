@@ -295,6 +295,7 @@ export interface SolicitudCotizacionItem {
   unidadSolicitada: string | null;
   cantidadSolicitada: number;
   articuloId: string | null;
+  articuloIdSugerido: string | null;
   matchConfianza: MatchConfianza | null;
   estadoItem: EstadoItemCotizacion;
   precioUnitario: number | null;
@@ -310,11 +311,17 @@ export interface SolicitudCotizacionItemConArticulo extends SolicitudCotizacionI
         proveedorNombre: string | null;
       })
     | null;
+  articuloSugerido:
+    | (Pick<Articulo, 'id' | 'codigo' | 'nombre' | 'marca' | 'etm' | 'sku' | 'costoInicialEstimado' | 'stockActual' | 'imagenUrl'> & {
+        proveedorNombre: string | null;
+      })
+    | null;
 }
 
 export interface SolicitudCotizacion extends BaseEntity {
-  clienteId: string;
+  clienteId: string | null;
   numeroCotizacion: number | null;
+  nombreCotizacion: string | null;
   numeroReferenciaCliente: string | null;
   nombreArchivo: string | null;
   fechaSolicitud: Date;
@@ -328,7 +335,7 @@ export interface SolicitudCotizacion extends BaseEntity {
 }
 
 export interface SolicitudCotizacionConRelaciones extends SolicitudCotizacion {
-  cliente: Cliente;
+  cliente: Cliente | null;
   items: SolicitudCotizacionItemConArticulo[];
 }
 
@@ -610,7 +617,9 @@ export interface CreateSolicitudCotizacionItemDto {
 }
 
 export interface CreateSolicitudCotizacionDto {
-  clienteId: string;
+  clienteId?: string | null;
+  numeroCotizacion?: number | null;
+  nombreCotizacion?: string | null;
   numeroReferenciaCliente?: string | null;
   nombreArchivo?: string | null;
   observaciones?: string | null;
@@ -632,6 +641,8 @@ export interface AddSolicitudCotizacionItemsDto {
 }
 
 export interface UpdateSolicitudCotizacionDto {
+  numeroCotizacion?: number | null;
+  nombreCotizacion?: string | null;
   numeroReferenciaCliente?: string | null;
   observaciones?: string | null;
   fechaEntrega?: Date | string | null;

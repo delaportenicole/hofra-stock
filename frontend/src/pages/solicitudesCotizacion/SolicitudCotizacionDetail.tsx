@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ArrowLeft, Check, Search, ExternalLink, Printer, XCircle, FileCheck, Package, X, Link2, Ban, Download, HardDrive, Loader2, Plus } from 'lucide-react';
+import { ArrowLeft, Check, Search, ExternalLink, Printer, XCircle, FileCheck, Package, X, Link2, Ban, Download, HardDrive, Loader2, Plus, Globe } from 'lucide-react';
 import { solicitudesCotizacionService } from '../../services/solicitudesCotizacion.service';
 import { articulosService } from '../../services/articulos.service';
 import { ArticuloCombobox } from '../../components/ArticuloCombobox';
@@ -51,8 +51,16 @@ const itemEstadoLabels = {
   no_disponible: 'No Disponible',
 } as const;
 
+function buildBusquedaQuery(item: SolicitudCotizacionItemConArticulo): string {
+  return [item.descripcionSolicitada.trim(), item.marcaSolicitada?.trim()].filter(Boolean).join(' ');
+}
+
 function buildMercadoLibreUrl(item: SolicitudCotizacionItemConArticulo): string {
-  return `https://listado.mercadolibre.com.ar/${encodeURIComponent(item.descripcionSolicitada.trim())}`;
+  return `https://listado.mercadolibre.com.ar/${encodeURIComponent(buildBusquedaQuery(item))}`;
+}
+
+function buildGoogleUrl(item: SolicitudCotizacionItemConArticulo): string {
+  return `https://www.google.com/search?q=${encodeURIComponent(buildBusquedaQuery(item))}`;
 }
 
 // Ocultos a pedido de Nicole (2026-09-07): Google Sheets no sirve mientras la cuenta de
@@ -75,6 +83,8 @@ export function SolicitudCotizacionDetailPage() {
   const [pastingUrlItemId, setPastingUrlItemId] = useState<string | null>(null);
   const [urlDrafts, setUrlDrafts] = useState<Record<string, string>>({});
   const [headerDraft, setHeaderDraft] = useState({
+    numeroCotizacion: undefined as number | undefined,
+    nombreCotizacion: '',
     fechaEntrega: '',
     lugarEntrega: '',
     solicitadoPor: '',
@@ -110,6 +120,8 @@ export function SolicitudCotizacionDetailPage() {
       setPrecios(preciosIniciales);
       setMarkUps(markUpsIniciales);
       setHeaderDraft({
+        numeroCotizacion: solicitudData.numeroCotizacion ?? undefined,
+        nombreCotizacion: solicitudData.nombreCotizacion || '',
         fechaEntrega: solicitudData.fechaEntrega ? new Date(solicitudData.fechaEntrega).toISOString().slice(0, 10) : '',
         lugarEntrega: solicitudData.lugarEntrega || '',
         solicitadoPor: solicitudData.solicitadoPor || '',
@@ -142,12 +154,13 @@ export function SolicitudCotizacionDetailPage() {
   };
 
   const handleAceptar = (item: SolicitudCotizacionItemConArticulo) => {
-    if (!item.articuloId) return;
+    if (!item.articuloIdSugerido) return;
     applyUpdate(item.id, {
+      articuloId: item.articuloIdSugerido,
       estadoItem: 'aceptado',
       // Si el artículo tiene un costo cargado y todavía no se fijó un precio, lo usamos como punto de partida
-      ...(item.precioUnitario == null && item.articulo?.costoInicialEstimado != null
-        ? { precioUnitario: item.articulo.costoInicialEstimado }
+      ...(item.precioUnitario == null && item.articuloSugerido?.costoInicialEstimado != null
+        ? { precioUnitario: item.articuloSugerido.costoInicialEstimado }
         : {}),
     });
   };
@@ -175,6 +188,14 @@ export function SolicitudCotizacionDetailPage() {
     // Si ya hay un artículo sugerido/coincidente, abrir Mercado Libre es solo para
     // comparar precio: no debe pisar la sugerencia ni sacarle la posibilidad de Aceptar.
     // Solo se marca "no disponible" cuando realmente no hay ningún artículo matcheado.
+    if (!item.articuloId && item.estadoItem !== 'no_disponible') {
+      applyUpdate(item.id, { estadoItem: 'no_disponible' });
+    }
+  };
+
+  const handleBuscarGoogle = (item: SolicitudCotizacionItemConArticulo) => {
+    window.open(buildGoogleUrl(item), '_blank', 'noopener,noreferrer');
+    // Mismo criterio que Mercado Libre: solo marca "no disponible" si no hay ningún artículo matcheado.
     if (!item.articuloId && item.estadoItem !== 'no_disponible') {
       applyUpdate(item.id, { estadoItem: 'no_disponible' });
     }
@@ -214,7 +235,14 @@ export function SolicitudCotizacionDetailPage() {
   };
 
   const handleHeaderFieldBlur = async (
-    field: 'fechaEntrega' | 'lugarEntrega' | 'solicitadoPor' | 'usdOficialCompra' | 'usdOficialVenta',
+    field:
+      | 'numeroCotizacion'
+      | 'nombreCotizacion'
+      | 'fechaEntrega'
+      | 'lugarEntrega'
+      | 'solicitadoPor'
+      | 'usdOficialCompra'
+      | 'usdOficialVenta',
     valorNuevo: string | number | undefined
   ) => {
     if (!id) return;
@@ -304,7 +332,7 @@ export function SolicitudCotizacionDetailPage() {
     if (!id || !solicitud) return;
     try {
       const blob = await solicitudesCotizacionService.exportarExcel(id);
-      const nombreArchivo = `Cotizacion Interna - ${solicitud.cliente.razonSocial}${
+      const nombreArchivo = `Cotizacion Interna - ${solicitud.cliente?.razonSocial || 'Sin Cliente'}${
         solicitud.numeroReferenciaCliente ? ` - ${solicitud.numeroReferenciaCliente}` : ''
       }.xlsx`;
       descargarBlob(blob, nombreArchivo);
@@ -317,7 +345,7 @@ export function SolicitudCotizacionDetailPage() {
     if (!id || !solicitud) return;
     try {
       const blob = await solicitudesCotizacionService.exportarExcelExterno(id);
-      const nombreArchivo = `Cotizacion - ${solicitud.cliente.razonSocial}${
+      const nombreArchivo = `Cotizacion - ${solicitud.cliente?.razonSocial || 'Sin Cliente'}${
         solicitud.numeroReferenciaCliente ? ` - ${solicitud.numeroReferenciaCliente}` : ''
       }.xlsx`;
       descargarBlob(blob, nombreArchivo);
@@ -351,7 +379,7 @@ export function SolicitudCotizacionDetailPage() {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Cotización - ${solicitud.cliente.razonSocial}</title>
+        <title>Cotización - ${solicitud.cliente?.razonSocial || 'Sin Cliente'}</title>
         <style>
           body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
           h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
@@ -367,7 +395,7 @@ export function SolicitudCotizacionDetailPage() {
       <body>
         <h1>Cotización</h1>
         <div class="header-info">
-          <div><strong>Cliente:</strong> ${solicitud.cliente.razonSocial}${solicitud.cliente.cuit ? ` (${solicitud.cliente.cuit})` : ''}</div>
+          <div><strong>Cliente:</strong> ${solicitud.cliente?.razonSocial || 'Sin Cliente'}${solicitud.cliente?.cuit ? ` (${solicitud.cliente.cuit})` : ''}</div>
           <div><strong>Fecha:</strong> ${fechaFormateada}</div>
           ${solicitud.numeroReferenciaCliente ? `<div><strong>Referencia:</strong> ${solicitud.numeroReferenciaCliente}</div>` : ''}
         </div>
@@ -425,6 +453,7 @@ export function SolicitudCotizacionDetailPage() {
     solicitud.items.every((item) => item.estadoItem !== 'pendiente' && item.precioUnitario !== null && item.precioUnitario !== undefined);
 
   const totalItems = solicitud.items.length;
+  const cantidadTotalItems = solicitud.items.reduce((sum, item) => sum + item.cantidadSolicitada, 0);
   const conCoincidencia = solicitud.items.filter((item) => item.matchConfianza === 'etm' || item.matchConfianza === 'nombre').length;
   const sinCoincidencia = totalItems - conCoincidencia;
   const aceptados = solicitud.items.filter((item) => item.estadoItem !== 'pendiente').length;
@@ -440,19 +469,55 @@ export function SolicitudCotizacionDetailPage() {
         <Badge variant={estadoVariants[solicitud.estado]}>{estadoLabels[solicitud.estado]}</Badge>
       </div>
 
+      <div className="grid grid-cols-2 gap-4">
+        <div className="p-4 bg-primary-50 rounded-lg">
+          <p className="text-sm text-primary-600">Total de Items</p>
+          <p className="text-3xl font-bold text-primary-700">{totalItems}</p>
+        </div>
+        <div className="p-4 bg-primary-50 rounded-lg">
+          <p className="text-sm text-primary-600">Cantidad de Items</p>
+          <p className="text-3xl font-bold text-primary-700">{cantidadTotalItems.toLocaleString('es-AR')}</p>
+        </div>
+      </div>
+
       <div className="card p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
           <div>
             <p className="text-gray-500">Cliente</p>
-            <p className="font-medium">{solicitud.cliente.razonSocial}</p>
+            <p className="font-medium">{solicitud.cliente?.razonSocial ?? 'Sin cliente'}</p>
           </div>
           <div>
             <p className="text-gray-500">Fecha</p>
             <p className="font-medium">{format(new Date(solicitud.fechaSolicitud), 'dd/MM/yyyy HH:mm', { locale: es })}</p>
           </div>
           <div>
-            <p className="text-gray-500">Cotización Número</p>
-            <p className="font-medium">{solicitud.numeroCotizacion ?? '-'}</p>
+            <label className="block text-gray-500 mb-1">N° de Cotización</label>
+            <input
+              type="number"
+              className="input"
+              value={headerDraft.numeroCotizacion ?? ''}
+              disabled={solicitud.estado !== 'en_revision' || isSavingHeader}
+              onChange={(e) =>
+                setHeaderDraft((prev) => ({
+                  ...prev,
+                  numeroCotizacion: e.target.value === '' ? undefined : parseInt(e.target.value, 10),
+                }))
+              }
+              onBlur={() => handleHeaderFieldBlur('numeroCotizacion', headerDraft.numeroCotizacion)}
+              placeholder="Ingreso manual"
+            />
+          </div>
+          <div>
+            <label className="block text-gray-500 mb-1">Nombre de Cotización</label>
+            <input
+              type="text"
+              className="input"
+              value={headerDraft.nombreCotizacion}
+              disabled={solicitud.estado !== 'en_revision' || isSavingHeader}
+              onChange={(e) => setHeaderDraft((prev) => ({ ...prev, nombreCotizacion: e.target.value }))}
+              onBlur={() => handleHeaderFieldBlur('nombreCotizacion', headerDraft.nombreCotizacion)}
+              placeholder="Opcional"
+            />
           </div>
         </div>
 
@@ -576,21 +641,19 @@ export function SolicitudCotizacionDetailPage() {
 
       <div className="card p-0 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1230px] divide-y divide-gray-200 text-sm">
+          <table className="w-full min-w-[1095px] divide-y divide-gray-200 text-sm">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[240px]">Solicitado</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[220px]">Sugerido</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[220px]">Aceptado</th>
-                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[260px]">Acciones</th>
-                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[150px]">Precio Unit.</th>
-                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[120px]">Mark Up</th>
-                <th className="px-3 py-3 text-right font-medium text-gray-500 uppercase text-xs min-w-[120px]">Subtotal</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[140px]">Acciones</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs w-[75px] whitespace-normal break-words">Precio Unit.</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs w-[60px] whitespace-normal break-words">Mark Up</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {solicitud.items.map((item) => {
-                const subtotal = (item.precioUnitario || 0) * item.cantidadSolicitada;
                 const disabled = solicitud.estado !== 'en_revision' || savingItemId === item.id;
 
                 return (
@@ -607,23 +670,23 @@ export function SolicitudCotizacionDetailPage() {
                     </td>
 
                     <td className="px-3 py-3 max-w-xs">
-                      {item.matchConfianza && item.articulo && (
+                      {item.matchConfianza && item.articuloSugerido && (
                         <Badge variant={confianzaVariants[item.matchConfianza]} className="mb-1">
                           {confianzaLabels[item.matchConfianza]}
                         </Badge>
                       )}
-                      {item.articulo ? (
+                      {item.articuloSugerido ? (
                         <a
-                          href={`/articulos/${item.articulo.id}`}
+                          href={`/articulos/${item.articuloSugerido.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="block hover:underline"
                           title="Ver detalle del artículo"
                         >
-                          <p className="font-medium text-primary-700">{item.articulo.nombre}</p>
+                          <p className="font-medium text-primary-700">{item.articuloSugerido.nombre}</p>
                           <p className="text-xs text-gray-500 font-mono">
-                            {item.articulo.codigo} · Stock: {item.articulo.stockActual.toLocaleString('es-AR')}
-                            {item.articulo.marca && ` · ${item.articulo.marca}`}
+                            {item.articuloSugerido.codigo} · Stock: {item.articuloSugerido.stockActual.toLocaleString('es-AR')}
+                            {item.articuloSugerido.marca && ` · ${item.articuloSugerido.marca}`}
                           </p>
                         </a>
                       ) : (
@@ -697,7 +760,7 @@ export function SolicitudCotizacionDetailPage() {
                       )}
                     </td>
 
-                    <td className="px-3 py-3 min-w-[260px]">
+                    <td className="px-3 py-3 min-w-[140px]">
                       {editingItemId === item.id ? (
                         <div className="flex items-start gap-1">
                           <ArticuloCombobox
@@ -719,7 +782,8 @@ export function SolicitudCotizacionDetailPage() {
                         </div>
                       ) : (
                         <div className="flex flex-col gap-1">
-                          {item.articuloId && item.estadoItem !== 'aceptado' && (
+                          {item.articuloIdSugerido &&
+                            !(item.estadoItem === 'aceptado' && item.articuloId === item.articuloIdSugerido) && (
                             <button
                               onClick={() => handleAceptar(item)}
                               disabled={disabled}
@@ -733,14 +797,21 @@ export function SolicitudCotizacionDetailPage() {
                             disabled={disabled}
                             className="flex items-center gap-1 text-sm text-primary-700 hover:text-primary-800 disabled:opacity-50"
                           >
-                            <Search className="w-4 h-4" /> Buscar otro artículo
+                            <Search className="w-4 h-4" /> Buscar otro
                           </button>
                           <button
                             onClick={() => handleBuscarMercadoLibre(item)}
                             disabled={disabled}
                             className="flex items-center gap-1 text-sm text-amber-700 hover:text-amber-800 disabled:opacity-50"
                           >
-                            <ExternalLink className="w-4 h-4" /> Buscar en Mercado Libre
+                            <ExternalLink className="w-4 h-4" /> MercadoLibre
+                          </button>
+                          <button
+                            onClick={() => handleBuscarGoogle(item)}
+                            disabled={disabled}
+                            className="flex items-center gap-1 text-sm text-blue-700 hover:text-blue-800 disabled:opacity-50"
+                          >
+                            <Globe className="w-4 h-4" /> Google
                           </button>
                           {item.estadoItem !== 'no_disponible' && (
                             <button
@@ -748,7 +819,7 @@ export function SolicitudCotizacionDetailPage() {
                               disabled={disabled}
                               className="flex items-center gap-1 text-sm text-gray-600 hover:text-red-600 disabled:opacity-50"
                             >
-                              <Ban className="w-4 h-4" /> Marcar como No Disponible
+                              <Ban className="w-4 h-4" /> No Disponible
                             </button>
                           )}
 
@@ -803,7 +874,7 @@ export function SolicitudCotizacionDetailPage() {
                                     disabled={disabled}
                                     className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-50"
                                   >
-                                    <Link2 className="w-4 h-4" /> Pegar URL de producto
+                                    <Link2 className="w-4 h-4" /> URL
                                   </button>
                                 )
                               )}
@@ -813,7 +884,7 @@ export function SolicitudCotizacionDetailPage() {
                       )}
                     </td>
 
-                    <td className="px-3 py-3 min-w-[150px]">
+                    <td className="px-3 py-3 w-[75px]">
                       <CurrencyInput
                         value={precios[item.id]}
                         onChange={(val) => setPrecios((prev) => ({ ...prev, [item.id]: val }))}
@@ -823,7 +894,7 @@ export function SolicitudCotizacionDetailPage() {
                       />
                     </td>
 
-                    <td className="px-3 py-3 min-w-[120px]">
+                    <td className="px-3 py-3 w-[60px]">
                       <input
                         type="number"
                         step="1"
@@ -841,17 +912,13 @@ export function SolicitudCotizacionDetailPage() {
                         placeholder="0"
                       />
                     </td>
-
-                    <td className="px-3 py-3 text-right font-medium whitespace-nowrap">
-                      ${subtotal.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
-                    </td>
                   </tr>
                 );
               })}
             </tbody>
             <tfoot className="bg-gray-50">
               <tr>
-                <td colSpan={6} className="px-3 py-3 text-right font-semibold">Total</td>
+                <td colSpan={5} className="px-3 py-3 text-right font-semibold">Total</td>
                 <td className="px-3 py-3 text-right font-semibold whitespace-nowrap">${total.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</td>
               </tr>
             </tfoot>
