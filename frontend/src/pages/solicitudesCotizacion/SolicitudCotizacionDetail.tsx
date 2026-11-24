@@ -643,7 +643,7 @@ export function SolicitudCotizacionDetailPage() {
               <tr>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs w-[150px] whitespace-normal break-words">Solicitado</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs w-[150px] whitespace-normal break-words">Sugerido</th>
-                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs w-[150px] whitespace-normal break-words">Aceptado</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs w-[150px] whitespace-normal break-words">Ofrecido</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[140px]">Acciones</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words">Precio Unit.</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs w-[60px] whitespace-normal break-words">Mark Up</th>
