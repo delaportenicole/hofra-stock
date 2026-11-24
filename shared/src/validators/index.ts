@@ -395,6 +395,7 @@ export const updateSolicitudCotizacionItemSchema = z.object({
   precioUnitario: z.coerce.number().nonnegative('El precio no puede ser negativo').optional().nullable(),
   markUp: z.coerce.number().int('El mark up debe ser un número entero').nonnegative('El mark up no puede ser negativo').optional().nullable(),
   urlExterna: z.string().trim().url('La URL no es válida').max(2000).optional().nullable(),
+  nombreExterno: z.string().trim().max(500).optional().nullable(),
 });
 
 // ============================================

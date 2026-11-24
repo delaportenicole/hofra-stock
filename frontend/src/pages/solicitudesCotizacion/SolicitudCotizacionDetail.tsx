@@ -80,6 +80,7 @@ export function SolicitudCotizacionDetailPage() {
   const [savingItemId, setSavingItemId] = useState<string | null>(null);
   const [precios, setPrecios] = useState<Record<string, number | undefined>>({});
   const [markUps, setMarkUps] = useState<Record<string, number | undefined>>({});
+  const [nombresExternos, setNombresExternos] = useState<Record<string, string>>({});
   const [pastingUrlItemId, setPastingUrlItemId] = useState<string | null>(null);
   const [urlDrafts, setUrlDrafts] = useState<Record<string, string>>({});
   const [headerDraft, setHeaderDraft] = useState({
@@ -113,12 +114,15 @@ export function SolicitudCotizacionDetailPage() {
       setArticulos(articulosRes.data);
       const preciosIniciales: Record<string, number | undefined> = {};
       const markUpsIniciales: Record<string, number | undefined> = {};
+      const nombresExternosIniciales: Record<string, string> = {};
       solicitudData.items.forEach((item) => {
         preciosIniciales[item.id] = item.precioUnitario ?? undefined;
         markUpsIniciales[item.id] = item.markUp ?? undefined;
+        nombresExternosIniciales[item.id] = item.nombreExterno || '';
       });
       setPrecios(preciosIniciales);
       setMarkUps(markUpsIniciales);
+      setNombresExternos(nombresExternosIniciales);
       setHeaderDraft({
         numeroCotizacion: solicitudData.numeroCotizacion ?? undefined,
         nombreCotizacion: solicitudData.nombreCotizacion || '',
@@ -145,6 +149,7 @@ export function SolicitudCotizacionDetailPage() {
       if (updatedItem) {
         setPrecios((prev) => ({ ...prev, [itemId]: updatedItem.precioUnitario ?? undefined }));
         setMarkUps((prev) => ({ ...prev, [itemId]: updatedItem.markUp ?? undefined }));
+        setNombresExternos((prev) => ({ ...prev, [itemId]: updatedItem.nombreExterno || '' }));
       }
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -232,6 +237,12 @@ export function SolicitudCotizacionDetailPage() {
     const nuevoMarkUp = markUps[item.id];
     if (nuevoMarkUp === item.markUp) return;
     applyUpdate(item.id, { markUp: nuevoMarkUp ?? null });
+  };
+
+  const handleNombreExternoBlur = (item: SolicitudCotizacionItemConArticulo) => {
+    const nuevoNombre = (nombresExternos[item.id] || '').trim();
+    if (nuevoNombre === (item.nombreExterno || '')) return;
+    applyUpdate(item.id, { nombreExterno: nuevoNombre || null });
   };
 
   const handleHeaderFieldBlur = async (
@@ -720,8 +731,19 @@ export function SolicitudCotizacionDetailPage() {
                         </div>
                       ) : item.estadoItem === 'no_disponible' && item.urlExterna ? (
                         <div className="flex items-start justify-between gap-2">
-                          <div>
+                          <div className="min-w-0 flex-1">
                             <p className="font-medium text-amber-700">Compra externa</p>
+                            <input
+                              type="text"
+                              value={nombresExternos[item.id] ?? ''}
+                              onChange={(e) =>
+                                setNombresExternos((prev) => ({ ...prev, [item.id]: e.target.value }))
+                              }
+                              onBlur={() => handleNombreExternoBlur(item)}
+                              disabled={disabled}
+                              placeholder="Nombre del artículo..."
+                              className="input text-xs w-full my-1"
+                            />
                             <a
                               href={item.urlExterna}
                               target="_blank"

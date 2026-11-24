@@ -107,6 +107,7 @@ export class SolicitudCotizacionController {
               precioUnitario: oldItem.precioUnitario,
               markUp: oldItem.markUp,
               urlExterna: oldItem.urlExterna,
+              nombreExterno: oldItem.nombreExterno,
             }
           : undefined,
         newItem
@@ -116,6 +117,7 @@ export class SolicitudCotizacionController {
               precioUnitario: newItem.precioUnitario,
               markUp: newItem.markUp,
               urlExterna: newItem.urlExterna,
+              nombreExterno: newItem.nombreExterno,
             }
           : undefined
       ).catch(console.error);

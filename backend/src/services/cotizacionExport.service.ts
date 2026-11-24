@@ -122,7 +122,7 @@ function valorColumnaItem(
     case 'cantidad':
       return item.cantidadSolicitada;
     case 'itemOfrecido':
-      return articulo?.nombre || '';
+      return articulo?.nombre || (item.estadoItem === 'no_disponible' ? item.nombreExterno : null) || '';
     case 'unidadMedida':
       return articulo ? 'Unidad' : '';
     case 'marcaOfrecida':

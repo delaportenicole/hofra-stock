@@ -2799,3 +2799,17 @@ Después del lote principal, Nicole pidió varios ajustes de tamaño/layout en l
 
 ##### Archivos Modificados
 **Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx` (único archivo tocado en esta ronda — todo fue ajuste de clases Tailwind, sin cambios de backend/base de datos)
+
+### 24 de noviembre de 2026 (continuación 2) — Renombrar columna "Aceptado" a "Ofrecido" + nombre editable para compra externa
+
+Primero, un rename simple: la columna "Aceptado" de la grilla de ítems pasó a llamarse "Ofrecido" (solo la etiqueta visible, el campo de datos interno sigue siendo el mismo).
+
+Después, Nicole pidió que cuando un ítem es de **compra externa** (estado `no_disponible` con `urlExterna` cargada — se llegó ahí con "MercadoLibre"/"Google"/"URL" y "Aceptar" el link), se pudiera escribir a mano el nombre del artículo en esa misma columna, ya que en ese caso no hay un artículo propio matcheado del que tomar el nombre (a diferencia del caso normal, donde la columna muestra `item.articulo.nombre`). Se agregó el campo nuevo `nombreExterno` (texto libre, opcional) en `solicitud_cotizacion_items` (migración 033, mismo patrón que `urlExterna` de la migración 020) y un input de texto en esa celda de la grilla, que solo aparece en el estado de compra externa — mismo patrón de edición que Precio Unit./Mark Up (estado local por ítem, se guarda `onBlur`). El valor cargado también se usa en la columna "Item Ofrecido" de la exportación a Excel/Google Sheets (`cotizacionExport.service.ts`), que antes quedaba vacía para estos ítems.
+
+Migración 033 aplicada a producción (Postgres en Railway) corriendo el SQL directamente contra el servicio vía `railway run` + un script Node de una sola vez con el driver `pg` (no hay `psql` instalado localmente) — sin pasar la cadena de conexión por el output de ninguna herramienta. Se usó `railway link`/`unlink` temporalmente en el directorio del proyecto, sin dejar ninguna configuración de Railway commiteada en el repo.
+
+##### Archivos Modificados
+**Backend**: `backend/src/repositories/solicitudCotizacion.repository.ts`, `backend/src/controllers/solicitudCotizacion.controller.ts`, `backend/src/services/cotizacionExport.service.ts`
+**Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
+**Shared**: `shared/src/types/index.ts`, `shared/src/validators/index.ts`
+**Migraciones**: `database/migrations/033_add_nombre_externo_solicitud_items.sql`
