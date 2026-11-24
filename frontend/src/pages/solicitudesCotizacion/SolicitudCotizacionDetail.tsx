@@ -693,7 +693,9 @@ export function SolicitudCotizacionDetailPage() {
                         >
                           <p className="font-medium text-primary-700 break-words">{item.articuloSugerido.nombre}</p>
                           <p className="text-xs text-gray-500 font-mono">
-                            {item.articuloSugerido.codigo} · Stock: {item.articuloSugerido.stockActual.toLocaleString('es-AR')}
+                            {item.articuloSugerido.codigo}
+                            {item.articuloSugerido.presentacion && ` · ${item.articuloSugerido.presentacion}`}
+                            {` · Stock: ${item.articuloSugerido.stockActual.toLocaleString('es-AR')}`}
                             {item.articuloSugerido.marca && ` · ${item.articuloSugerido.marca}`}
                           </p>
                         </a>

@@ -325,11 +325,11 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
               a.id as articulo_id_full, a.codigo as articulo_codigo, a.nombre as articulo_nombre,
               a.marca as articulo_marca, a.etm as articulo_etm, a.sku as articulo_sku,
               a.costo_inicial_estimado as articulo_costo_inicial_estimado, a.stock_actual as articulo_stock_actual,
-              a.imagen_url as articulo_imagen_url, p.razon_social as articulo_proveedor_nombre,
+              a.imagen_url as articulo_imagen_url, a.presentacion as articulo_presentacion, p.razon_social as articulo_proveedor_nombre,
               a_sug.id as sugerido_id_full, a_sug.codigo as sugerido_codigo, a_sug.nombre as sugerido_nombre,
               a_sug.marca as sugerido_marca, a_sug.etm as sugerido_etm, a_sug.sku as sugerido_sku,
               a_sug.costo_inicial_estimado as sugerido_costo_inicial_estimado, a_sug.stock_actual as sugerido_stock_actual,
-              a_sug.imagen_url as sugerido_imagen_url, p_sug.razon_social as sugerido_proveedor_nombre
+              a_sug.imagen_url as sugerido_imagen_url, a_sug.presentacion as sugerido_presentacion, p_sug.razon_social as sugerido_proveedor_nombre
        FROM solicitud_cotizacion_items sci
        LEFT JOIN articulos a ON a.id = sci.articulo_id
        LEFT JOIN proveedores p ON p.id = a.proveedor_id
@@ -372,6 +372,7 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
             costoInicialEstimado: row.articulo_costo_inicial_estimado !== null ? Number(row.articulo_costo_inicial_estimado) : null,
             stockActual: row.articulo_stock_actual as number,
             imagenUrl: row.articulo_imagen_url as string | null,
+            presentacion: row.articulo_presentacion as string | null,
             proveedorNombre: row.articulo_proveedor_nombre as string | null,
           }
         : null,
@@ -386,6 +387,7 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
             costoInicialEstimado: row.sugerido_costo_inicial_estimado !== null ? Number(row.sugerido_costo_inicial_estimado) : null,
             stockActual: row.sugerido_stock_actual as number,
             imagenUrl: row.sugerido_imagen_url as string | null,
+            presentacion: row.sugerido_presentacion as string | null,
             proveedorNombre: row.sugerido_proveedor_nombre as string | null,
           }
         : null,

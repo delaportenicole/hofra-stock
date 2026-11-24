@@ -2813,3 +2813,12 @@ Migración 033 aplicada a producción (Postgres en Railway) corriendo el SQL dir
 **Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
 **Shared**: `shared/src/types/index.ts`, `shared/src/validators/index.ts`
 **Migraciones**: `database/migrations/033_add_nombre_externo_solicitud_items.sql`
+
+### 24 de noviembre de 2026 (continuación 3) — Presentación en la columna "Sugerido"
+
+Nicole pidió agregar el campo Presentación (texto libre del artículo, ej. "Caja x12") justo después del código en la información del artículo sugerido de la grilla de ítems. El tipo `SolicitudCotizacionItemConArticulo` (`shared/src/types/index.ts`) ya traía un `Pick` acotado de campos de `Articulo` para `articulo`/`articuloSugerido` (sin `presentacion`) — se amplió ese `Pick` y se sumó `a.presentacion`/`a_sug.presentacion` al query de `getItems()` en el repositorio. Sin migración: la columna `presentacion` ya existía en `articulos`, solo faltaba traerla en este query puntual.
+
+##### Archivos Modificados
+**Backend**: `backend/src/repositories/solicitudCotizacion.repository.ts`
+**Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
+**Shared**: `shared/src/types/index.ts`

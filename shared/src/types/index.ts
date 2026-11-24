@@ -308,12 +308,18 @@ export interface SolicitudCotizacionItem {
 
 export interface SolicitudCotizacionItemConArticulo extends SolicitudCotizacionItem {
   articulo:
-    | (Pick<Articulo, 'id' | 'codigo' | 'nombre' | 'marca' | 'etm' | 'sku' | 'costoInicialEstimado' | 'stockActual' | 'imagenUrl'> & {
+    | (Pick<
+        Articulo,
+        'id' | 'codigo' | 'nombre' | 'marca' | 'etm' | 'sku' | 'costoInicialEstimado' | 'stockActual' | 'imagenUrl' | 'presentacion'
+      > & {
         proveedorNombre: string | null;
       })
     | null;
   articuloSugerido:
-    | (Pick<Articulo, 'id' | 'codigo' | 'nombre' | 'marca' | 'etm' | 'sku' | 'costoInicialEstimado' | 'stockActual' | 'imagenUrl'> & {
+    | (Pick<
+        Articulo,
+        'id' | 'codigo' | 'nombre' | 'marca' | 'etm' | 'sku' | 'costoInicialEstimado' | 'stockActual' | 'imagenUrl' | 'presentacion'
+      > & {
         proveedorNombre: string | null;
       })
     | null;
