@@ -482,19 +482,19 @@ export function SolicitudCotizacionDetailPage() {
 
       <div className="card p-6">
         <div className="flex flex-wrap md:flex-nowrap items-center gap-4 text-sm">
-          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 min-w-0 max-w-[160px]">
             <span className="text-gray-500 whitespace-nowrap">Cliente:</span>
             <span className="font-medium truncate">{solicitud.cliente?.razonSocial ?? 'Sin cliente'}</span>
           </div>
           <div className="flex items-center gap-1.5 whitespace-nowrap">
-            <span className="text-gray-500 text-xs">Fecha:</span>
-            <span className="font-medium text-xs">{format(new Date(solicitud.fechaSolicitud), 'dd/MM/yyyy HH:mm', { locale: es })}</span>
+            <span className="text-gray-500">Fecha:</span>
+            <span className="font-medium">{format(new Date(solicitud.fechaSolicitud), 'dd/MM/yyyy HH:mm', { locale: es })}</span>
           </div>
           <div className="flex items-center gap-1.5 whitespace-nowrap">
-            <label className="text-gray-500 text-xs">N° Cotización:</label>
+            <label className="text-gray-500">N° Cotización:</label>
             <input
               type="number"
-              className="input w-20 text-xs py-1"
+              className="input w-16"
               value={headerDraft.numeroCotizacion ?? ''}
               disabled={solicitud.estado !== 'en_revision' || isSavingHeader}
               onChange={(e) =>
