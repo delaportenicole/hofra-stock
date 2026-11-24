@@ -67,6 +67,18 @@ function nombreOfrecidoEfectivo(item: SolicitudCotizacionItemConArticulo): strin
   return item.nombreOfrecido || item.articulo?.nombre || '';
 }
 
+function unidadEfectiva(item: SolicitudCotizacionItemConArticulo): string {
+  return item.unidad ?? item.unidadSolicitada ?? '';
+}
+
+function marcaEfectiva(item: SolicitudCotizacionItemConArticulo): string {
+  return item.marca ?? item.marcaSolicitada ?? '';
+}
+
+function modeloEfectivo(item: SolicitudCotizacionItemConArticulo): string {
+  return item.modelo ?? item.modeloSolicitado ?? '';
+}
+
 // Ocultos a pedido de Nicole (2026-09-07): Google Sheets no sirve mientras la cuenta de
 // Google siga suspendida, e Imprimir Cotización queda pausado por ahora. No se borraron
 // el botón ni la lógica para poder reactivarlos fácilmente más adelante.
@@ -83,7 +95,11 @@ export function SolicitudCotizacionDetailPage() {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [savingItemId, setSavingItemId] = useState<string | null>(null);
   const [cantidades, setCantidades] = useState<Record<string, number | undefined>>({});
+  const [unidades, setUnidades] = useState<Record<string, string>>({});
+  const [marcas, setMarcas] = useState<Record<string, string>>({});
+  const [modelos, setModelos] = useState<Record<string, string>>({});
   const [precios, setPrecios] = useState<Record<string, number | undefined>>({});
+  const [preciosUsd, setPreciosUsd] = useState<Record<string, number | undefined>>({});
   const [markUps, setMarkUps] = useState<Record<string, number | undefined>>({});
   const [nombresOfrecidos, setNombresOfrecidos] = useState<Record<string, string>>({});
   const [pastingUrlItemId, setPastingUrlItemId] = useState<string | null>(null);
@@ -118,17 +134,29 @@ export function SolicitudCotizacionDetailPage() {
       setSolicitud(solicitudData);
       setArticulos(articulosRes.data);
       const cantidadesIniciales: Record<string, number | undefined> = {};
+      const unidadesIniciales: Record<string, string> = {};
+      const marcasIniciales: Record<string, string> = {};
+      const modelosIniciales: Record<string, string> = {};
       const preciosIniciales: Record<string, number | undefined> = {};
+      const preciosUsdIniciales: Record<string, number | undefined> = {};
       const markUpsIniciales: Record<string, number | undefined> = {};
       const nombresOfrecidosIniciales: Record<string, string> = {};
       solicitudData.items.forEach((item) => {
         cantidadesIniciales[item.id] = item.cantidad ?? item.cantidadSolicitada;
+        unidadesIniciales[item.id] = unidadEfectiva(item);
+        marcasIniciales[item.id] = marcaEfectiva(item);
+        modelosIniciales[item.id] = modeloEfectivo(item);
         preciosIniciales[item.id] = item.precioUnitario ?? undefined;
+        preciosUsdIniciales[item.id] = item.precioUnitarioUsd ?? undefined;
         markUpsIniciales[item.id] = item.markUp ?? undefined;
         nombresOfrecidosIniciales[item.id] = nombreOfrecidoEfectivo(item);
       });
       setCantidades(cantidadesIniciales);
+      setUnidades(unidadesIniciales);
+      setMarcas(marcasIniciales);
+      setModelos(modelosIniciales);
       setPrecios(preciosIniciales);
+      setPreciosUsd(preciosUsdIniciales);
       setMarkUps(markUpsIniciales);
       setNombresOfrecidos(nombresOfrecidosIniciales);
       setHeaderDraft({
@@ -156,7 +184,11 @@ export function SolicitudCotizacionDetailPage() {
       const updatedItem = updated.items.find((i) => i.id === itemId);
       if (updatedItem) {
         setCantidades((prev) => ({ ...prev, [itemId]: updatedItem.cantidad ?? updatedItem.cantidadSolicitada }));
+        setUnidades((prev) => ({ ...prev, [itemId]: unidadEfectiva(updatedItem) }));
+        setMarcas((prev) => ({ ...prev, [itemId]: marcaEfectiva(updatedItem) }));
+        setModelos((prev) => ({ ...prev, [itemId]: modeloEfectivo(updatedItem) }));
         setPrecios((prev) => ({ ...prev, [itemId]: updatedItem.precioUnitario ?? undefined }));
+        setPreciosUsd((prev) => ({ ...prev, [itemId]: updatedItem.precioUnitarioUsd ?? undefined }));
         setMarkUps((prev) => ({ ...prev, [itemId]: updatedItem.markUp ?? undefined }));
         setNombresOfrecidos((prev) => ({ ...prev, [itemId]: nombreOfrecidoEfectivo(updatedItem) }));
       }
@@ -246,10 +278,34 @@ export function SolicitudCotizacionDetailPage() {
     applyUpdate(item.id, { cantidad: nuevaCantidad });
   };
 
+  const handleUnidadBlur = (item: SolicitudCotizacionItemConArticulo) => {
+    const nuevaUnidad = (unidades[item.id] || '').trim();
+    if (nuevaUnidad === unidadEfectiva(item)) return;
+    applyUpdate(item.id, { unidad: nuevaUnidad || null });
+  };
+
+  const handleMarcaBlur = (item: SolicitudCotizacionItemConArticulo) => {
+    const nuevaMarca = (marcas[item.id] || '').trim();
+    if (nuevaMarca === marcaEfectiva(item)) return;
+    applyUpdate(item.id, { marca: nuevaMarca || null });
+  };
+
+  const handleModeloBlur = (item: SolicitudCotizacionItemConArticulo) => {
+    const nuevoModelo = (modelos[item.id] || '').trim();
+    if (nuevoModelo === modeloEfectivo(item)) return;
+    applyUpdate(item.id, { modelo: nuevoModelo || null });
+  };
+
   const handlePrecioBlur = (item: SolicitudCotizacionItemConArticulo) => {
     const nuevoPrecio = precios[item.id];
     if (nuevoPrecio === item.precioUnitario) return;
     applyUpdate(item.id, { precioUnitario: nuevoPrecio ?? null });
+  };
+
+  const handlePrecioUsdBlur = (item: SolicitudCotizacionItemConArticulo) => {
+    const nuevoPrecioUsd = preciosUsd[item.id];
+    if (nuevoPrecioUsd === item.precioUnitarioUsd) return;
+    applyUpdate(item.id, { precioUnitarioUsd: nuevoPrecioUsd ?? null });
   };
 
   const handleMarkUpBlur = (item: SolicitudCotizacionItemConArticulo) => {
@@ -675,33 +731,36 @@ export function SolicitudCotizacionDetailPage() {
 
       <div className="card p-0 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[930px] border-separate border-spacing-0 text-sm">
+          <table className="w-full min-w-[1360px] border-separate border-spacing-0 text-sm">
             <thead className="bg-gray-50">
               <tr className="divide-x divide-gray-300 border-b border-gray-300">
-                <th className="sticky left-0 z-20 bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[200px] whitespace-normal break-words">Solicitado</th>
-                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs min-w-[160px] whitespace-normal break-words">Sugerido</th>
-                <th className="sticky left-[200px] z-20 bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[200px] whitespace-normal break-words">Ofrecido</th>
+                <th className="sticky left-0 z-20 bg-gray-50 px-2 py-2 text-center align-top font-medium text-gray-500 uppercase text-xs w-[40px]">Item</th>
+                <th className="sticky left-[40px] z-20 bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[200px] whitespace-normal break-words">Item Solicitado</th>
+                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs min-w-[160px] whitespace-normal break-words">Item Sugerido</th>
+                <th className="sticky left-[240px] z-20 bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[200px] whitespace-normal break-words">Item Ofrecido</th>
                 <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[110px] whitespace-normal break-words">Acciones</th>
-                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[72px] whitespace-normal break-words">Cantidad</th>
-                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[120px] whitespace-normal break-words">Precio Unit.</th>
+                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[56px] whitespace-normal break-words">Cant.</th>
+                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[90px] whitespace-normal break-words">Unidad de medida</th>
+                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words">Marca</th>
+                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words">Modelo</th>
+                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[120px] whitespace-normal break-words">$ Unitario Sin Iva (ARS)</th>
+                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[120px] whitespace-normal break-words">$ Unitario Sin Iva (USD)</th>
                 <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[64px] whitespace-normal break-words">Mark Up</th>
               </tr>
             </thead>
             <tbody>
-              {solicitud.items.map((item) => {
+              {solicitud.items.map((item, itemIndex) => {
                 const disabled = solicitud.estado !== 'en_revision' || savingItemId === item.id;
 
                 return (
                   <tr key={item.id} className="align-top divide-x divide-gray-300 border-b border-gray-300">
-                    <td className="sticky left-0 z-10 bg-white px-2 py-2 w-[200px]">
+                    <td className="sticky left-0 z-10 bg-white px-2 py-2 w-[40px] text-center text-gray-500">
+                      {itemIndex + 1}
+                    </td>
+
+                    <td className="sticky left-[40px] z-10 bg-white px-2 py-2 w-[200px]">
                       <p className="font-medium text-gray-900 break-words">{item.descripcionSolicitada}</p>
-                      <p className="text-xs text-gray-500">
-                        Cant: {item.cantidadSolicitada.toLocaleString('es-AR')}
-                        {item.unidadSolicitada && ` ${item.unidadSolicitada}`}
-                        {item.marcaSolicitada && ` · Marca: ${item.marcaSolicitada}`}
-                        {item.modeloSolicitado && ` · Modelo: ${item.modeloSolicitado}`}
-                        {item.etmSolicitado && ` · ETM: ${item.etmSolicitado}`}
-                      </p>
+                      {item.etmSolicitado && <p className="text-xs text-gray-500">ETM: {item.etmSolicitado}</p>}
                     </td>
 
                     <td className="px-2 py-2 min-w-[160px]">
@@ -733,7 +792,7 @@ export function SolicitudCotizacionDetailPage() {
                       )}
                     </td>
 
-                    <td className="sticky left-[200px] z-10 bg-white px-2 py-2 w-[200px]">
+                    <td className="sticky left-[240px] z-10 bg-white px-2 py-2 w-[200px]">
                       <input
                         type="text"
                         value={nombresOfrecidos[item.id] ?? ''}
@@ -929,12 +988,12 @@ export function SolicitudCotizacionDetailPage() {
                       )}
                     </td>
 
-                    <td className="px-2 py-2 w-[72px]">
+                    <td className="px-2 py-2 w-[56px]">
                       <input
                         type="number"
                         step="1"
                         min="1"
-                        className="input px-2"
+                        className="input px-1 text-center"
                         value={cantidades[item.id] ?? ''}
                         onChange={(e) =>
                           setCantidades((prev) => ({
@@ -947,11 +1006,55 @@ export function SolicitudCotizacionDetailPage() {
                       />
                     </td>
 
+                    <td className="px-2 py-2 w-[90px]">
+                      <input
+                        type="text"
+                        className="input px-2"
+                        value={unidades[item.id] ?? ''}
+                        onChange={(e) => setUnidades((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                        onBlur={() => handleUnidadBlur(item)}
+                        disabled={disabled}
+                      />
+                    </td>
+
+                    <td className="px-2 py-2 w-[100px]">
+                      <input
+                        type="text"
+                        className="input px-2"
+                        value={marcas[item.id] ?? ''}
+                        onChange={(e) => setMarcas((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                        onBlur={() => handleMarcaBlur(item)}
+                        disabled={disabled}
+                      />
+                    </td>
+
+                    <td className="px-2 py-2 w-[100px]">
+                      <input
+                        type="text"
+                        className="input px-2"
+                        value={modelos[item.id] ?? ''}
+                        onChange={(e) => setModelos((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                        onBlur={() => handleModeloBlur(item)}
+                        disabled={disabled}
+                      />
+                    </td>
+
                     <td className="px-2 py-2 w-[120px]">
                       <CurrencyInput
                         value={precios[item.id]}
                         onChange={(val) => setPrecios((prev) => ({ ...prev, [item.id]: val }))}
                         onBlur={() => handlePrecioBlur(item)}
+                        disabled={disabled}
+                        placeholder="0,00"
+                        className="px-2"
+                      />
+                    </td>
+
+                    <td className="px-2 py-2 w-[120px]">
+                      <CurrencyInput
+                        value={preciosUsd[item.id]}
+                        onChange={(val) => setPreciosUsd((prev) => ({ ...prev, [item.id]: val }))}
+                        onBlur={() => handlePrecioUsdBlur(item)}
                         disabled={disabled}
                         placeholder="0,00"
                         className="px-2"
@@ -982,8 +1085,9 @@ export function SolicitudCotizacionDetailPage() {
             </tbody>
             <tfoot className="bg-gray-50">
               <tr className="border-t border-gray-300">
-                <td colSpan={6} className="px-2 py-2 text-right font-semibold">Total</td>
+                <td colSpan={9} className="px-2 py-2 text-right font-semibold">Total</td>
                 <td className="px-2 py-2 text-right font-semibold whitespace-nowrap">${total.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</td>
+                <td colSpan={2} />
               </tr>
             </tfoot>
           </table>

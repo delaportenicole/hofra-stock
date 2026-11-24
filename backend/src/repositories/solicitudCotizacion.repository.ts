@@ -248,7 +248,11 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       articuloId?: string | null;
       estadoItem?: EstadoItemCotizacion;
       cantidad?: number | null;
+      unidad?: string | null;
+      marca?: string | null;
+      modelo?: string | null;
       precioUnitario?: number | null;
+      precioUnitarioUsd?: number | null;
       markUp?: number | null;
       urlExterna?: string | null;
       nombreOfrecido?: string | null;
@@ -270,9 +274,25 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       sets.push(`cantidad = $${paramIndex++}`);
       values.push(data.cantidad);
     }
+    if (data.unidad !== undefined) {
+      sets.push(`unidad = $${paramIndex++}`);
+      values.push(data.unidad);
+    }
+    if (data.marca !== undefined) {
+      sets.push(`marca = $${paramIndex++}`);
+      values.push(data.marca);
+    }
+    if (data.modelo !== undefined) {
+      sets.push(`modelo = $${paramIndex++}`);
+      values.push(data.modelo);
+    }
     if (data.precioUnitario !== undefined) {
       sets.push(`precio_unitario = $${paramIndex++}`);
       values.push(data.precioUnitario);
+    }
+    if (data.precioUnitarioUsd !== undefined) {
+      sets.push(`precio_unitario_usd = $${paramIndex++}`);
+      values.push(data.precioUnitarioUsd);
     }
     if (data.markUp !== undefined) {
       sets.push(`mark_up = $${paramIndex++}`);
@@ -357,11 +377,15 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       unidadSolicitada: row.unidad_solicitada as string | null,
       cantidadSolicitada: row.cantidad_solicitada as number,
       cantidad: row.cantidad as number | null,
+      unidad: row.unidad as string | null,
+      marca: row.marca as string | null,
+      modelo: row.modelo as string | null,
       articuloId: row.articulo_id as string | null,
       articuloIdSugerido: row.articulo_id_sugerido as string | null,
       matchConfianza: row.match_confianza as MatchConfianza | null,
       estadoItem: row.estado_item as EstadoItemCotizacion,
       precioUnitario: row.precio_unitario !== null ? Number(row.precio_unitario) : null,
+      precioUnitarioUsd: row.precio_unitario_usd !== null ? Number(row.precio_unitario_usd) : null,
       markUp: row.mark_up !== null ? Number(row.mark_up) : null,
       urlExterna: row.url_externa as string | null,
       nombreOfrecido: row.nombre_ofrecido as string | null,

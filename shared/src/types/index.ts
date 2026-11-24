@@ -295,11 +295,15 @@ export interface SolicitudCotizacionItem {
   unidadSolicitada: string | null;
   cantidadSolicitada: number;
   cantidad: number | null;
+  unidad: string | null;
+  marca: string | null;
+  modelo: string | null;
   articuloId: string | null;
   articuloIdSugerido: string | null;
   matchConfianza: MatchConfianza | null;
   estadoItem: EstadoItemCotizacion;
   precioUnitario: number | null;
+  precioUnitarioUsd: number | null;
   markUp: number | null;
   urlExterna: string | null;
   nombreOfrecido: string | null;
@@ -664,7 +668,11 @@ export interface UpdateSolicitudCotizacionItemDto {
   articuloId?: string | null;
   estadoItem?: EstadoItemCotizacion;
   cantidad?: number | null;
+  unidad?: string | null;
+  marca?: string | null;
+  modelo?: string | null;
   precioUnitario?: number | null;
+  precioUnitarioUsd?: number | null;
   markUp?: number | null;
   urlExterna?: string | null;
   nombreOfrecido?: string | null;

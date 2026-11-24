@@ -2868,3 +2868,23 @@ Con 7 columnas ya en la grilla (Solicitado, Sugerido, Ofrecido, Acciones, Cantid
 
 ##### Archivos Modificados
 **Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`, `frontend/src/components/CurrencyInput.tsx`
+
+### 24 de noviembre de 2026 (continuación 7) — Reestructuración completa de columnas + precio sin IVA cargado directo a mano
+
+Nicole pidió reordenar y rehacer la grilla de ítems con una lista precisa de 11 columnas. Antes de tocar código se confirmaron tres ambigüedades que no estaban en su pedido original (afectaban cálculos de plata, así que no se asumieron):
+
+1. **Mark Up** no aparecía en su lista de columnas → confirmó mantenerlo, como última columna (12ª).
+2. **"$ Unitario Sin Iva (ARS/USD)"** → confirmó que **reemplazan** a "Precio Unit.": el precio sin IVA pasa a cargarse directo a mano, en vez de calcularse desde costo + Mark Up.
+3. **Unidad de medida/Marca/Modelo** (deben mostrar el dato solicitado pero ser editables) → confirmó el mismo patrón que `cantidad` vs. `cantidadSolicitada`: el dato que pidió el cliente queda inmutable, un campo override nuevo (`unidad`/`marca`/`modelo`, migración 036) pisa la vista si está cargado.
+
+**Grilla web** (`SolicitudCotizacionDetail.tsx`), orden final: **Item** (nº de fila, 1-2-3..., columna angosta ajustada al contenido, sticky) · **Item Solicitado** (mismo ancho/sticky de antes, pero la descripción ya no repite Cant/Unidad/Marca/Modelo en el texto — eso ahora vive en sus propias columnas; solo le queda el ETM como dato secundario) · **Item Sugerido** (sin cambios) · **Item Ofrecido** (sin cambios, sticky) · **Acciones** (sin cambios) · **Cant.** (renombrada, angostada a 56px) · **Unidad de medida** / **Marca** / **Modelo** (columnas nuevas, texto libre editable, mismo patrón `onBlur` que el resto) · **$ Unitario Sin Iva (ARS)** (mismo campo/ancho que la vieja "Precio Unit.", solo relabeled) · **$ Unitario Sin Iva (USD)** (columna nueva, campo `precioUnitarioUsd`, mismo ancho que ARS) · **Mark Up** (sin cambios, al final). Al insertar la columna "Item" antes de "Item Solicitado", los offsets sticky de "Item Solicitado"/"Item Ofrecido" se corrieron (`left-0`→`left-[40px]` y `left-[200px]`→`left-[240px]`) y la columna "Item" también quedó sticky en `left-0`, para no perder de vista el número de fila al scrollear.
+
+**Exportación a Excel/Google Sheets** (`cotizacionExport.service.ts`), ya que el precio sin IVA dejó de derivarse de costo+markup: se sacaron las columnas **Costo** y **Costo Total** del archivo (perdieron sentido: no hay más un "costo" separado del precio final). Las columnas de Marca/Modelo del lado "Solicitado" ahora muestran el valor efectivo (`item.marca ?? item.marcaSolicitada`, igual que ya hacía `cantidad`). Las fórmulas se recalcularon: **Precio Unit. Sin IVA (ARS/USD)** pasan a ser el valor cargado directo (ya no hay fórmula que los derive); **Venta con IVA** ahora es simplemente `precioSinIva * 1.21` (ya no aplica Mark Up); **Total Sin IVA (ARS/USD)** siguen siendo `cantidad × precio unitario`, como fórmula en vivo en el modo interno. Al sacar 2 columnas, todas las letras de columna posteriores a "Proveedor" se corrieron (de M-X a M-V) — se revisaron una por una las fórmulas que referencian celdas por letra para que sigan apuntando a donde corresponde.
+
+**Nota de verificación**: igual que la ronda anterior, no se pudo probar visualmente en el navegador (sin extensión de Chrome conectada) — se verificó compilación (`tsc`/`vite build`) y se revisó a mano el conteo de columnas/letras del Excel, pero conviene que Nicole abra una solicitud real y revise la grilla y el archivo exportado antes de darlo por cerrado, dado lo grande del cambio.
+
+##### Archivos Modificados
+**Backend**: `backend/src/repositories/solicitudCotizacion.repository.ts`, `backend/src/controllers/solicitudCotizacion.controller.ts`, `backend/src/services/cotizacionExport.service.ts`
+**Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
+**Shared**: `shared/src/types/index.ts`, `shared/src/validators/index.ts`
+**Migraciones**: `database/migrations/036_add_overrides_y_precio_usd_solicitud_items.sql`

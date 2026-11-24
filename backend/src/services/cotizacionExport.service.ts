@@ -29,12 +29,14 @@ interface ColumnaConfig {
   formato?: FormatoPrecio;
 }
 
-// Definición completa de las 24 columnas del archivo interno (igual que la planilla de
-// referencia de Nicole: Downloads/2 - Cristián - TC Argentina - Cotización 8.20 - #274.xlsx).
+// Definición completa de las columnas del archivo interno (igual que la planilla de
+// referencia de Nicole: Downloads/2 - Cristián - TC Argentina - Cotización 8.20 - #274.xlsx,
+// salvo Costo/Costo Total, que se sacaron cuando el precio unitario sin IVA pasó a cargarse
+// directo a mano en vez de calcularse desde costo + mark up — ver calcularPreciosItem).
 // El archivo externo (para mandar al cliente) se arma filtrando las marcadas `soloInterno`
-// (Proveedor, Costo, Costo Total, Mark Up, Venta con IVA) — todo lo demás (anchos, colores,
-// merges, y las columnas de precio final que sí quedan) sale de esta misma lista, para que
-// ambos modos no puedan desincronizarse entre sí.
+// (Proveedor, Mark Up, Venta con IVA) — todo lo demás (anchos, colores, merges, y las
+// columnas de precio final que sí quedan) sale de esta misma lista, para que ambos modos
+// no puedan desincronizarse entre sí.
 const TODAS_LAS_COLUMNAS: ColumnaConfig[] = [
   { key: 'item', header1: 'ITEM', header2: 'ITEM', width: 9, color: 'celeste', mergeHeader: true, soloInterno: false },
   { key: 'descripcion', header1: 'DESCRIPCION', header2: 'DESCRIPCION', width: 62, color: 'celeste', mergeHeader: true, soloInterno: false },
@@ -49,8 +51,6 @@ const TODAS_LAS_COLUMNAS: ColumnaConfig[] = [
   { key: 'modeloOfrecido', header1: 'Modelo', header2: 'Modelo', width: 25, color: 'verde', mergeHeader: true, soloInterno: false },
   { key: 'imagen', header1: 'Imagen de', header2: 'lo Ofrecido', width: 28.75, color: 'verde', mergeHeader: false, soloInterno: false },
   { key: 'proveedor', header1: 'Proveedor', header2: 'Proveedor', width: 36, color: 'rojoAmarillo', mergeHeader: true, soloInterno: true },
-  { key: 'costo', header1: 'Costo', header2: 'por Unidad', width: 20.25, color: 'rojoAmarillo', mergeHeader: false, soloInterno: true, formato: 'pesos' },
-  { key: 'costoTotal', header1: 'Costo Total', header2: 'Costo Total', width: 20.25, color: 'rojoAmarillo', mergeHeader: true, soloInterno: true },
   { key: 'markUp', header1: 'Mark Up', header2: 'Mark Up', width: 18.75, color: 'rojoAmarillo', mergeHeader: true, soloInterno: true },
   { key: 'ventaConIva', header1: 'Venta ', header2: 'con iva', width: 21, color: 'rojoAmarillo', mergeHeader: false, soloInterno: true, formato: 'pesos' },
   { key: 'precioUnitSinIva', header1: 'Precio Unit.', header2: 'Sin Iva', width: 21, color: 'celeste', mergeHeader: false, soloInterno: false, formato: 'pesos' },
@@ -67,30 +67,20 @@ function columnasParaModo(modo: ModoExportacion): ColumnaConfig[] {
 }
 
 interface PreciosCalculados {
-  ventaConIva: number;
   precioUnitSinIva: number;
   totalSinIva: number;
   precioUnitSinIvaUsd: number;
   totalSinIvaUsd: number;
 }
 
-// Replica en JS la cadena de fórmulas del archivo interno (ver buildCotizacionExcelBuffer),
-// para el archivo externo, donde las columnas de costo/mark up no existen y por lo tanto
-// no hay celdas de las que colgar una fórmula: acá el resultado final sale calculado como
-// valor fijo. INT() de Excel trunca hacia -infinito, igual que Math.floor (costos/cantidades
-// siempre son >= 0 en este dominio, así que no hay diferencia práctica con truncar hacia 0).
-function calcularPreciosItem(
-  costoPorUnidad: number,
-  markUpPct: number,
-  cantidad: number,
-  usdOficialCompra: number
-): PreciosCalculados {
-  const ventaConIva = costoPorUnidad * ((markUpPct + 100) / 100);
-  const precioUnitSinIva = Math.floor(ventaConIva / 1.21);
+// El precio unitario sin IVA (ARS y USD) se carga directo a mano en la grilla de revisión
+// (ya no se deriva de costo + mark up ni de la cotización del dólar) — acá solo se
+// multiplica por la cantidad para el archivo externo, donde no hay celdas de las que
+// colgar una fórmula y el resultado final sale calculado como valor fijo.
+function calcularPreciosItem(precioUnitSinIva: number, precioUnitSinIvaUsd: number, cantidad: number): PreciosCalculados {
   const totalSinIva = cantidad * precioUnitSinIva;
-  const precioUnitSinIvaUsd = usdOficialCompra > 0 ? Math.floor((precioUnitSinIva / usdOficialCompra) * 100) / 100 : 0;
-  const totalSinIvaUsd = Math.floor(cantidad * precioUnitSinIvaUsd * 100) / 100;
-  return { ventaConIva, precioUnitSinIva, totalSinIva, precioUnitSinIvaUsd, totalSinIvaUsd };
+  const totalSinIvaUsd = Math.round(cantidad * precioUnitSinIvaUsd * 100) / 100;
+  return { precioUnitSinIva, totalSinIva, precioUnitSinIvaUsd, totalSinIvaUsd };
 }
 
 function valorColumnaItem(
@@ -116,9 +106,9 @@ function valorColumnaItem(
     case 'etm':
       return item.etmSolicitado || '';
     case 'marca':
-      return item.marcaSolicitada || '';
+      return item.marca ?? item.marcaSolicitada ?? '';
     case 'modelo':
-      return item.modeloSolicitado || '';
+      return item.modelo ?? item.modeloSolicitado ?? '';
     case 'cantidad':
       return item.cantidad ?? item.cantidadSolicitada;
     case 'itemOfrecido':
@@ -133,24 +123,21 @@ function valorColumnaItem(
       return articulo?.imagenUrl ? { formula: `IMAGE("${articulo.imagenUrl}")` } : '';
     case 'proveedor':
       return proveedor;
-    case 'costo':
-      return item.precioUnitario ?? null;
-    case 'costoTotal':
-      return { formula: `G${filaNum}*N${filaNum}` };
     case 'markUp':
       return item.markUp ?? null;
     case 'ventaConIva':
-      return { formula: `N${filaNum}*((P${filaNum}+100)/100)` };
+      // Ya no compone costo + mark up: el precio sin IVA se carga directo, acá solo se le suma el IVA.
+      return { formula: `P${filaNum}*1.21` };
     case 'precioUnitSinIva':
-      return modo === 'interno' ? { formula: `INT(Q${filaNum}/1.21)` } : precios.precioUnitSinIva;
+      return precios.precioUnitSinIva;
     case 'totalSinIva':
-      return modo === 'interno' ? { formula: `G${filaNum}*R${filaNum}` } : precios.totalSinIva;
+      return modo === 'interno' ? { formula: `G${filaNum}*P${filaNum}` } : precios.totalSinIva;
     case 'separadora':
       return null;
     case 'precioUnitSinIvaUsd':
-      return modo === 'interno' ? { formula: `INT(R${filaNum}/$O$4*100)/100` } : precios.precioUnitSinIvaUsd;
+      return precios.precioUnitSinIvaUsd;
     case 'totalSinIvaUsd':
-      return modo === 'interno' ? { formula: `INT(G${filaNum}*U${filaNum}*100)/100` } : precios.totalSinIvaUsd;
+      return modo === 'interno' ? { formula: `G${filaNum}*S${filaNum}` } : precios.totalSinIvaUsd;
     case 'plazoEntrega':
       return '';
     case 'comentarios':
@@ -162,7 +149,7 @@ function valorColumnaItem(
 
 /**
  * Arma la matriz de filas/columnas de la cotización final, replicando el formato
- * de planilla que ya usa Nicole (columnas Solicitado / Ofrecido / Costo-MarkUp-Venta).
+ * de planilla que ya usa Nicole (columnas Solicitado / Ofrecido / Mark Up-Venta).
  * Es independiente de dónde se escriba después (Excel vía exceljs o Google Sheets vía API).
  *
  * Filas 1-6: cabecera (título, fecha/lugar de entrega, solicitado por, USD oficial
@@ -172,7 +159,7 @@ function valorColumnaItem(
  * tenga igual el dato, aunque sin el formato rico.
  *
  * `modo`: 'interno' (default, todas las columnas, fórmulas en vivo) o 'externo' (sin
- * Proveedor/Costo/Costo Total/Mark Up/Venta con IVA, precios finales como valor fijo).
+ * Proveedor/Mark Up/Venta con IVA, precios finales como valor fijo).
  */
 export function buildCotizacionSheetData(
   solicitud: SolicitudCotizacionConRelaciones,
@@ -220,9 +207,8 @@ export function buildCotizacionSheetData(
 
     const precios = calcularPreciosItem(
       item.precioUnitario ?? 0,
-      item.markUp ?? 0,
-      item.cantidad ?? item.cantidadSolicitada,
-      solicitud.usdOficialCompra ?? 0
+      item.precioUnitarioUsd ?? 0,
+      item.cantidad ?? item.cantidadSolicitada
     );
 
     rows.push(columnas.map((col) => valorColumnaItem(col, modo, { index, filaNum, item, articulo, proveedor, precios })));
@@ -280,7 +266,7 @@ export async function buildCotizacionExcelBuffer(
 
   // Columnas de título corto: en el archivo de referencia son una sola celda fusionada
   // verticalmente (dos filas), no texto repetido en dos filas. El resto (Unidad de Medida,
-  // Imagen de lo Ofrecido, Costo por Unidad, Venta con IVA, Precio Unit./Total Sin IVA x2,
+  // Imagen de lo Ofrecido, Venta con IVA, Precio Unit./Total Sin IVA x2,
   // Plazo de Entrega) va partido en dos líneas sin fusionar, tal cual el original.
   columnas.forEach((col, i) => {
     if (col.mergeHeader) {
@@ -290,7 +276,7 @@ export async function buildCotizacionExcelBuffer(
 
   // Colores del header de ítems, calcados de la planilla de referencia: celeste para
   // los datos "Solicitado" + el primer par Precio Unit./Total Sin IVA, verde para los
-  // datos "Ofrecido" + el segundo par + Plazo/Comentarios, rojo para Proveedor/Costo/
+  // datos "Ofrecido" + el segundo par + Plazo/Comentarios, rojo para Proveedor/
   // Mark Up/Venta con IVA (estas últimas no existen en el modo externo).
   columnas.forEach((col, i) => {
     if (!col.color) return;
@@ -325,7 +311,7 @@ export async function buildCotizacionExcelBuffer(
   // USD Oficial Compra/Venta. Se pisan acá (en vez de en buildCotizacionSheetData) porque
   // el texto enriquecido y el numFmt son específicos de xlsx, no de la matriz que también
   // usa la exportación a Google Sheets. Estas celdas (columnas B, N, O) existen igual en
-  // ambos modos porque solo se excluyen columnas M-Q, todas posteriores a la B y previas
+  // ambos modos porque solo se excluyen columnas M-O, todas posteriores a la B y previas
   // (en valor de índice) a donde vuelven a usarse N/O — es la misma reutilización de
   // columna entre bloques de filas que ya hace el propio archivo interno.
   sheet.getCell('B1').font = { bold: true, size: 14 };
@@ -373,7 +359,7 @@ export async function buildCotizacionExcelBuffer(
   // Logos institucionales (siempre los mismos, ver backend/src/assets/logos.ts). Ocupan
   // las filas 1-6 (una más que en el original) para seguir cubriendo todo el bloque de
   // cabecera ahora que "Lugar de Entrega" agrega un renglón. Columnas H/K (7-8 y 10-11)
-  // son iguales en ambos modos porque están antes del bloque M-Q que se excluye.
+  // son iguales en ambos modos porque están antes del bloque M-O que se excluye.
   // Los tipos de exceljs para addImage piden un Anchor completo (col/row nativos, offsets);
   // en la práctica la librería solo lee col/row para un two-cell anchor, así que se castea.
   const geLogoId = workbook.addImage({ base64: `data:image/png;base64,${LOGO_GE_VERNOVA_BASE64}`, extension: 'png' });
