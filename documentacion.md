@@ -785,14 +785,17 @@ El matching es solo una *sugerencia*: nunca se acepta automáticamente, siempre 
 
 No existe una columna "Estado" en la grilla: el estado de cada ítem se ve reflejado en las columnas Sugerido/Aceptado y en los indicadores de la parte superior de la pantalla (ver más abajo).
 
-#### Indicadores
-En el header de la pantalla de detalle, dos tarjetas grandes (agregado 24 de noviembre de 2026): **Total de Items** (cantidad de filas/artículos distintos solicitados, `solicitud.items.length`) y **Cantidad de Items** (suma de todas las `cantidadSolicitada`).
+#### Header de la Solicitud (cabecera + indicadores)
+**Cabecera en una sola línea** (ajustado 24 de noviembre de 2026): Cliente, Fecha, N° de Cotización y Nombre de Cotización quedan en una fila (`flex`, no grid), todos con el mismo tamaño de letra. Cliente tiene un ancho máximo (160px, con truncado si no entra) para no competir por espacio con Nombre de Cotización, que sí se expande (`flex-1`). El input de N° de Cotización es angosto (64px, hasta 4 dígitos) y queda a la misma altura que el de Nombre.
 
-Más abajo, cuatro tarjetas con conteos en tiempo real sobre los ítems de la solicitud:
+**Indicadores**: una sola fila de 6 tarjetas compactas (unificadas el 24 de noviembre de 2026; antes Total/Cantidad de Items estaban separadas arriba, en tarjetas grandes) con label y valor lado a lado en una línea (`flex justify-between`, texto chico):
+- **Total de Items**: cantidad de filas/artículos distintos solicitados (`solicitud.items.length`)
+- **Cantidad de Items**: suma de todas las `cantidadSolicitada`
 - **Con Coincidencia** / **Sin Coincidencia**: según `matchConfianza` (etm/nombre vs. sin_match) — calidad del matching automático
 - **Aceptados** / **Pendientes de Revisión**: según si el ítem ya salió de `pendiente` o no — progreso de la revisión
 
 #### Pantalla de Revisión (por cada ítem)
+- **Solicitado**, **Sugerido** y **Aceptado** miden 150px cada una (ajustado 24 de noviembre de 2026, antes 240/220/220px — grilla más compacta para dejar lugar a columnas futuras); el texto largo hace wrap (`break-words`) en vez de desbordar o truncarse
 - **Solicitado**: ETM, descripción, marca, unidad y cantidad tal como vinieron en el archivo (solo lectura)
 - **Sugerido**: artículo matcheado por el sistema (código, nombre, marca, stock) con badge de confianza ("Coincide por ETM" / "Coincide por nombre"), o "Sin coincidencia". Si hay artículo, el nombre es un link que abre su detalle (`/articulos/:id`) en una pestaña nueva. **Columna independiente desde el 24 de noviembre de 2026** (ver "Fix: Sugerido vs. Aceptado" más abajo) — ya no se pisa al elegir manualmente otro artículo
 - **Aceptado**: una vez confirmada una decisión, muestra el artículo del catálogo aceptado (en verde, también clickeable a su detalle), la compra externa aceptada (en ámbar, con link "Ver publicación"), o "No Disponible" si se marcó así sin una URL asociada. En los tres casos hay un botón **✕** para deshacer la decisión (vuelve a `pendiente` sin perder la sugerencia, la URL, o el artículo previamente elegido) y poder decidir de nuevo
@@ -803,7 +806,7 @@ Más abajo, cuatro tarjetas con conteos en tiempo real sobre los ítems de la so
   - **Google** (nuevo, 24 de noviembre de 2026): mismo mecanismo y mismo criterio de "no disponible" que MercadoLibre, pero contra una búsqueda de Google (`https://www.google.com/search?q=...`), también con descripción + marca
   - **No Disponible** (antes "Marcar como No Disponible"): acción directa (con confirmación) para marcar el ítem como no disponible en cualquier momento, sin pasar por una búsqueda externa
   - **URL** (antes "Pegar URL de producto"): permite pegar el link de un producto externo (ej. una publicación de Mercado Libre) como opción de compra para ese ítem. Una vez guardada la URL, se puede **Aceptar** (marca el ítem como `no_disponible`, guarda la URL) o **Declinar** (la descarta)
-- **Precio Unitario**: campo editable por ítem (columna angosta desde el 24 de noviembre de 2026, la mitad del ancho anterior). Al aceptar un artículo del catálogo que tiene costo cargado (`costoInicialEstimado`) y el ítem todavía no tiene precio, se prellena con ese valor como punto de partida — siempre se puede sobreescribir a mano. La URL externa **no** trae precio automático; se carga siempre a mano
+- **Precio Unitario**: campo editable por ítem (100px, ajustado 24 de noviembre de 2026 — primero se achicó a 75px junto con Mark Up, después se volvió a agrandar a 100px para que entren hasta 6 caracteres). Al aceptar un artículo del catálogo que tiene costo cargado (`costoInicialEstimado`) y el ítem todavía no tiene precio, se prellena con ese valor como punto de partida — siempre se puede sobreescribir a mano. La URL externa **no** trae precio automático; se carga siempre a mano
 - **Mark Up**: campo editable por ítem (columna angosta desde el 24 de noviembre de 2026, la mitad del ancho anterior), número **entero** (`mark_up INTEGER`, migraciones 026-027). Es el margen que antes Nicole tipeaba a mano directamente en la columna P del Excel descargado (sin quedar guardado en ningún lado); ahora se carga en la app y con eso el sistema puede calcular el precio final también para el Excel Externo, que no tiene esa columna (ver más abajo). Sigue funcionando como porcentaje dentro de la fórmula (`(MarkUp+100)/100`), pero la UI no lo etiqueta ni lo formatea como tal — es un input numérico simple, no de moneda
 - ~~Subtotal~~: columna eliminada de esta grilla el 24 de noviembre de 2026 (sigue existiendo en el comprobante de impresión, que está desactivado — ver `MOSTRAR_IMPRIMIR`)
 - La grilla tiene ancho mínimo con scroll horizontal (columnas con `min-width`/`width` propio) para que ninguna columna quede cortada en pantallas chicas (ej. notebooks de 13"); los encabezados de Precio Unit. y Mark Up usan `whitespace-normal` para partirse en dos líneas en vez de forzar una sola
@@ -2781,3 +2784,18 @@ Nicole pidió una serie de cambios sobre el mismo módulo, uno por uno, pidiendo
 **Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`, `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionUpload.tsx`, `frontend/src/pages/solicitudesCotizacion/SolicitudesCotizacionList.tsx`
 **Shared**: `shared/src/types/index.ts`, `shared/src/validators/index.ts`
 **Migraciones**: `database/migrations/031_add_articulo_sugerido_solicitud_items.sql`, `database/migrations/032_cotizacion_manual_cliente_opcional.sql`
+
+### 24 de noviembre de 2026 (continuación) — Ronda de ajustes finos de layout en Solicitud de Cotización
+
+Después del lote principal, Nicole pidió varios ajustes de tamaño/layout en la misma pantalla de detalle, uno por uno, verificando cada deploy antes de seguir:
+
+1. **Indicadores más chicos**: las 4 tarjetas (Con/Sin Coincidencia, Aceptados, Pendientes) pasaron de tarjetas grandes apiladas (número 2xl debajo del label) a una versión compacta en una sola línea (`flex justify-between`, texto xs/sm).
+2. **Precio Unitario visible**: al achicar esa columna a la mitad (75px) en el lote anterior, quedó "muy chico" — se volvió a agrandar a 100px para que entren hasta 6 caracteres.
+3. **Cabecera en una línea**: Cliente/Fecha/N° de Cotización/Nombre de Cotización pasaron de un grid de 4 columnas (cada una con label arriba y valor abajo) a una fila `flex` con label+valor inline. Fecha y N° de Cotización se achicaron para darle más lugar a Cliente y Nombre. Ida y vuelta siguiente: Nicole pidió además que los 4 campos tuvieran **el mismo tamaño de letra** (se habían achicado de más Fecha/N° Cotización), que el campo Cliente tuviera un ancho acotado (antes competía por espacio con Nombre), y que el input de N° de Cotización mostrara hasta 4 dígitos y quedara a la **misma altura** que el de Nombre (tenía un `py-1` que lo hacía más bajo).
+4. **Un solo renglón de indicadores**: Total de Items y Cantidad de Items (que habían quedado en tarjetas grandes separadas, arriba de todo) se unificaron en la misma fila que los otros 4 indicadores — ahora son 6 tarjetas chicas en una sola fila.
+5. **Solicitado/Sugerido/Aceptado a 150px**: para dejar lugar a columnas que se van a agregar más adelante, se le preguntó a Nicole el ancho de referencia (Sugerido tenía 220px) y se acordó bajar las 3 columnas (antes 240/220/220px) a 150px parejas, con el texto largo haciendo wrap en vez de desbordar.
+
+**Cambio de flujo de trabajo, a partir de esta conversación**: Nicole pidió dejar de preguntar antes de cada commit/push — a partir de ahora el asistente commitea y pushea automáticamente apenas termina cada cambio pedido, sin pedir confirmación ni presentar opciones (ver memoria `feedback-pushea-significa-todo`, actualizada). Importante: el popup de aprobación que a veces sigue apareciendo en la terminal ("This command requires approval") es del sistema de permisos de Claude Code, no algo que el asistente esté preguntando — se resuelve eligiendo "Yes, and don't ask again" en ese popup, o iniciando la sesión con `claude --continue --dangerously-skip-permissions`.
+
+##### Archivos Modificados
+**Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx` (único archivo tocado en esta ronda — todo fue ajuste de clases Tailwind, sin cambios de backend/base de datos)
