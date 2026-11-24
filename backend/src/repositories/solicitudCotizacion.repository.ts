@@ -251,7 +251,7 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       precioUnitario?: number | null;
       markUp?: number | null;
       urlExterna?: string | null;
-      nombreExterno?: string | null;
+      nombreOfrecido?: string | null;
     }
   ): Promise<SolicitudCotizacionItem | null> {
     const sets: string[] = ['updated_at = NOW()'];
@@ -282,9 +282,9 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       sets.push(`url_externa = $${paramIndex++}`);
       values.push(data.urlExterna);
     }
-    if (data.nombreExterno !== undefined) {
-      sets.push(`nombre_externo = $${paramIndex++}`);
-      values.push(data.nombreExterno);
+    if (data.nombreOfrecido !== undefined) {
+      sets.push(`nombre_ofrecido = $${paramIndex++}`);
+      values.push(data.nombreOfrecido);
     }
 
     values.push(itemId);
@@ -364,7 +364,7 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       precioUnitario: row.precio_unitario !== null ? Number(row.precio_unitario) : null,
       markUp: row.mark_up !== null ? Number(row.mark_up) : null,
       urlExterna: row.url_externa as string | null,
-      nombreExterno: row.nombre_externo as string | null,
+      nombreOfrecido: row.nombre_ofrecido as string | null,
       createdAt: row.created_at as Date,
       updatedAt: row.updated_at as Date,
       articulo: row.articulo_id_full

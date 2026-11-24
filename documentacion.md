@@ -2834,3 +2834,20 @@ Migración 034 aplicada a producción con el mismo mecanismo que la 033 (`railwa
 **Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
 **Shared**: `shared/src/types/index.ts`, `shared/src/validators/index.ts`
 **Migraciones**: `database/migrations/034_add_cantidad_editable_solicitud_items.sql`
+
+### 24 de noviembre de 2026 (continuación 5) — Nombre del artículo siempre editable en la columna "Ofrecido"
+
+Nicole quería generalizar lo hecho antes para compra externa: el nombre ofrecido ahora se puede editar siempre en la grilla, no solo cuando el ítem tiene un link cargado. Casos cubiertos:
+1. **Ítem aceptado con artículo propio matcheado**: antes la columna mostraba directamente `item.articulo.nombre` (fijo); ahora hay un input editable que arranca precargado con ese nombre pero se puede sobrescribir sin tocar el artículo real (el link a "ver detalle" + código/marca del artículo matcheado se mantienen debajo, como referencia).
+2. **Compra externa** (ya existía desde la ronda anterior): sigue igual, el input ahora es compartido con los otros casos.
+3. **Sin ningún match, artículo ni link**: antes la celda mostraba simplemente "-"; ahora se puede escribir cualquier nombre a mano, sin depender de que haya un artículo sugerido/aceptado ni una URL cargada.
+
+Esto implicó ampliar el alcance del campo `nombreExterno` (migración 033) más allá de "solo compra externa" — se renombró a `nombreOfrecido` (migración 035, `RENAME COLUMN`, preserva los datos ya cargados) para que el nombre refleje el uso real. La exportación a Excel/Google Sheets (columna "Item Ofrecido - Descripción") ahora prioriza este override por sobre `articulo.nombre` cuando está cargado (`item.nombreOfrecido || articulo?.nombre || ''`), sin importar el estado del ítem.
+
+Migración 035 aplicada a producción con el mismo mecanismo que las anteriores (`railway run` + script Node de una sola vez con `pg`).
+
+##### Archivos Modificados
+**Backend**: `backend/src/repositories/solicitudCotizacion.repository.ts`, `backend/src/controllers/solicitudCotizacion.controller.ts`, `backend/src/services/cotizacionExport.service.ts`
+**Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
+**Shared**: `shared/src/types/index.ts`, `shared/src/validators/index.ts`
+**Migraciones**: `database/migrations/035_rename_nombre_externo_a_nombre_ofrecido.sql`

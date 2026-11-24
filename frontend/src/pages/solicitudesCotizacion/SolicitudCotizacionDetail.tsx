@@ -63,6 +63,10 @@ function buildGoogleUrl(item: SolicitudCotizacionItemConArticulo): string {
   return `https://www.google.com/search?q=${encodeURIComponent(buildBusquedaQuery(item))}`;
 }
 
+function nombreOfrecidoEfectivo(item: SolicitudCotizacionItemConArticulo): string {
+  return item.nombreOfrecido || item.articulo?.nombre || '';
+}
+
 // Ocultos a pedido de Nicole (2026-09-07): Google Sheets no sirve mientras la cuenta de
 // Google siga suspendida, e Imprimir Cotización queda pausado por ahora. No se borraron
 // el botón ni la lógica para poder reactivarlos fácilmente más adelante.
@@ -81,7 +85,7 @@ export function SolicitudCotizacionDetailPage() {
   const [cantidades, setCantidades] = useState<Record<string, number | undefined>>({});
   const [precios, setPrecios] = useState<Record<string, number | undefined>>({});
   const [markUps, setMarkUps] = useState<Record<string, number | undefined>>({});
-  const [nombresExternos, setNombresExternos] = useState<Record<string, string>>({});
+  const [nombresOfrecidos, setNombresOfrecidos] = useState<Record<string, string>>({});
   const [pastingUrlItemId, setPastingUrlItemId] = useState<string | null>(null);
   const [urlDrafts, setUrlDrafts] = useState<Record<string, string>>({});
   const [headerDraft, setHeaderDraft] = useState({
@@ -116,17 +120,17 @@ export function SolicitudCotizacionDetailPage() {
       const cantidadesIniciales: Record<string, number | undefined> = {};
       const preciosIniciales: Record<string, number | undefined> = {};
       const markUpsIniciales: Record<string, number | undefined> = {};
-      const nombresExternosIniciales: Record<string, string> = {};
+      const nombresOfrecidosIniciales: Record<string, string> = {};
       solicitudData.items.forEach((item) => {
         cantidadesIniciales[item.id] = item.cantidad ?? item.cantidadSolicitada;
         preciosIniciales[item.id] = item.precioUnitario ?? undefined;
         markUpsIniciales[item.id] = item.markUp ?? undefined;
-        nombresExternosIniciales[item.id] = item.nombreExterno || '';
+        nombresOfrecidosIniciales[item.id] = nombreOfrecidoEfectivo(item);
       });
       setCantidades(cantidadesIniciales);
       setPrecios(preciosIniciales);
       setMarkUps(markUpsIniciales);
-      setNombresExternos(nombresExternosIniciales);
+      setNombresOfrecidos(nombresOfrecidosIniciales);
       setHeaderDraft({
         numeroCotizacion: solicitudData.numeroCotizacion ?? undefined,
         nombreCotizacion: solicitudData.nombreCotizacion || '',
@@ -154,7 +158,7 @@ export function SolicitudCotizacionDetailPage() {
         setCantidades((prev) => ({ ...prev, [itemId]: updatedItem.cantidad ?? updatedItem.cantidadSolicitada }));
         setPrecios((prev) => ({ ...prev, [itemId]: updatedItem.precioUnitario ?? undefined }));
         setMarkUps((prev) => ({ ...prev, [itemId]: updatedItem.markUp ?? undefined }));
-        setNombresExternos((prev) => ({ ...prev, [itemId]: updatedItem.nombreExterno || '' }));
+        setNombresOfrecidos((prev) => ({ ...prev, [itemId]: nombreOfrecidoEfectivo(updatedItem) }));
       }
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -254,10 +258,10 @@ export function SolicitudCotizacionDetailPage() {
     applyUpdate(item.id, { markUp: nuevoMarkUp ?? null });
   };
 
-  const handleNombreExternoBlur = (item: SolicitudCotizacionItemConArticulo) => {
-    const nuevoNombre = (nombresExternos[item.id] || '').trim();
-    if (nuevoNombre === (item.nombreExterno || '')) return;
-    applyUpdate(item.id, { nombreExterno: nuevoNombre || null });
+  const handleNombreOfrecidoBlur = (item: SolicitudCotizacionItemConArticulo) => {
+    const nuevoNombre = (nombresOfrecidos[item.id] || '').trim();
+    if (nuevoNombre === nombreOfrecidoEfectivo(item)) return;
+    applyUpdate(item.id, { nombreOfrecido: nuevoNombre || null });
   };
 
   const handleHeaderFieldBlur = async (
@@ -730,6 +734,17 @@ export function SolicitudCotizacionDetailPage() {
                     </td>
 
                     <td className="px-3 py-3 w-[150px]">
+                      <input
+                        type="text"
+                        value={nombresOfrecidos[item.id] ?? ''}
+                        onChange={(e) =>
+                          setNombresOfrecidos((prev) => ({ ...prev, [item.id]: e.target.value }))
+                        }
+                        onBlur={() => handleNombreOfrecidoBlur(item)}
+                        disabled={disabled}
+                        placeholder="Nombre del artículo..."
+                        className="input text-xs w-full mb-1"
+                      />
                       {item.estadoItem === 'aceptado' && item.articulo ? (
                         <div className="flex items-start justify-between gap-2">
                           <a
@@ -739,8 +754,7 @@ export function SolicitudCotizacionDetailPage() {
                             className="hover:underline min-w-0"
                             title="Ver detalle del artículo"
                           >
-                            <p className="font-medium text-green-700 break-words">{item.articulo.nombre}</p>
-                            <p className="text-xs text-gray-500 font-mono">
+                            <p className="text-xs text-gray-500 font-mono break-words">
                               {item.articulo.codigo}
                               {item.articulo.marca && ` · ${item.articulo.marca}`}
                             </p>
@@ -757,18 +771,7 @@ export function SolicitudCotizacionDetailPage() {
                       ) : item.estadoItem === 'no_disponible' && item.urlExterna ? (
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
-                            <p className="font-medium text-amber-700">Compra externa</p>
-                            <input
-                              type="text"
-                              value={nombresExternos[item.id] ?? ''}
-                              onChange={(e) =>
-                                setNombresExternos((prev) => ({ ...prev, [item.id]: e.target.value }))
-                              }
-                              onBlur={() => handleNombreExternoBlur(item)}
-                              disabled={disabled}
-                              placeholder="Nombre del artículo..."
-                              className="input text-xs w-full my-1"
-                            />
+                            <p className="text-xs font-medium text-amber-700">Compra externa</p>
                             <a
                               href={item.urlExterna}
                               target="_blank"
@@ -789,7 +792,7 @@ export function SolicitudCotizacionDetailPage() {
                         </div>
                       ) : item.estadoItem === 'no_disponible' ? (
                         <div className="flex items-start justify-between gap-2">
-                          <p className="font-medium text-gray-500">No Disponible</p>
+                          <p className="text-xs font-medium text-gray-500">No Disponible</p>
                           <button
                             onClick={() => handleQuitarAceptacion(item)}
                             disabled={disabled}
@@ -799,9 +802,7 @@ export function SolicitudCotizacionDetailPage() {
                             <X className="w-4 h-4" />
                           </button>
                         </div>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
+                      ) : null}
                     </td>
 
                     <td className="px-3 py-3 min-w-[140px]">

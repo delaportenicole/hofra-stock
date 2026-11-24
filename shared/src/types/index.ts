@@ -302,7 +302,7 @@ export interface SolicitudCotizacionItem {
   precioUnitario: number | null;
   markUp: number | null;
   urlExterna: string | null;
-  nombreExterno: string | null;
+  nombreOfrecido: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -667,7 +667,7 @@ export interface UpdateSolicitudCotizacionItemDto {
   precioUnitario?: number | null;
   markUp?: number | null;
   urlExterna?: string | null;
-  nombreExterno?: string | null;
+  nombreOfrecido?: string | null;
 }
 
 export interface ItemNormalizado {
