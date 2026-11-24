@@ -638,12 +638,12 @@ export function SolicitudCotizacionDetailPage() {
 
       <div className="card p-0 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1095px] divide-y divide-gray-200 text-sm">
+          <table className="w-full min-w-[750px] divide-y divide-gray-200 text-sm">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[240px]">Solicitado</th>
-                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[220px]">Sugerido</th>
-                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[220px]">Aceptado</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs w-[150px] whitespace-normal break-words">Solicitado</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs w-[150px] whitespace-normal break-words">Sugerido</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs w-[150px] whitespace-normal break-words">Aceptado</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[140px]">Acciones</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words">Precio Unit.</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs w-[60px] whitespace-normal break-words">Mark Up</th>
@@ -655,8 +655,8 @@ export function SolicitudCotizacionDetailPage() {
 
                 return (
                   <tr key={item.id} className="align-top">
-                    <td className="px-3 py-3 max-w-xs">
-                      <p className="font-medium text-gray-900">{item.descripcionSolicitada}</p>
+                    <td className="px-3 py-3 w-[150px]">
+                      <p className="font-medium text-gray-900 break-words">{item.descripcionSolicitada}</p>
                       <p className="text-xs text-gray-500">
                         Cant: {item.cantidadSolicitada.toLocaleString('es-AR')}
                         {item.unidadSolicitada && ` ${item.unidadSolicitada}`}
@@ -666,7 +666,7 @@ export function SolicitudCotizacionDetailPage() {
                       </p>
                     </td>
 
-                    <td className="px-3 py-3 max-w-xs">
+                    <td className="px-3 py-3 w-[150px]">
                       {item.matchConfianza && item.articuloSugerido && (
                         <Badge variant={confianzaVariants[item.matchConfianza]} className="mb-1">
                           {confianzaLabels[item.matchConfianza]}
@@ -680,7 +680,7 @@ export function SolicitudCotizacionDetailPage() {
                           className="block hover:underline"
                           title="Ver detalle del artículo"
                         >
-                          <p className="font-medium text-primary-700">{item.articuloSugerido.nombre}</p>
+                          <p className="font-medium text-primary-700 break-words">{item.articuloSugerido.nombre}</p>
                           <p className="text-xs text-gray-500 font-mono">
                             {item.articuloSugerido.codigo} · Stock: {item.articuloSugerido.stockActual.toLocaleString('es-AR')}
                             {item.articuloSugerido.marca && ` · ${item.articuloSugerido.marca}`}
@@ -693,17 +693,17 @@ export function SolicitudCotizacionDetailPage() {
                       )}
                     </td>
 
-                    <td className="px-3 py-3 max-w-xs">
+                    <td className="px-3 py-3 w-[150px]">
                       {item.estadoItem === 'aceptado' && item.articulo ? (
                         <div className="flex items-start justify-between gap-2">
                           <a
                             href={`/articulos/${item.articulo.id}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="hover:underline"
+                            className="hover:underline min-w-0"
                             title="Ver detalle del artículo"
                           >
-                            <p className="font-medium text-green-700">{item.articulo.nombre}</p>
+                            <p className="font-medium text-green-700 break-words">{item.articulo.nombre}</p>
                             <p className="text-xs text-gray-500 font-mono">
                               {item.articulo.codigo}
                               {item.articulo.marca && ` · ${item.articulo.marca}`}
