@@ -469,17 +469,6 @@ export function SolicitudCotizacionDetailPage() {
         <Badge variant={estadoVariants[solicitud.estado]}>{estadoLabels[solicitud.estado]}</Badge>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="p-4 bg-primary-50 rounded-lg">
-          <p className="text-sm text-primary-600">Total de Items</p>
-          <p className="text-3xl font-bold text-primary-700">{totalItems}</p>
-        </div>
-        <div className="p-4 bg-primary-50 rounded-lg">
-          <p className="text-sm text-primary-600">Cantidad de Items</p>
-          <p className="text-3xl font-bold text-primary-700">{cantidadTotalItems.toLocaleString('es-AR')}</p>
-        </div>
-      </div>
-
       <div className="card p-6">
         <div className="flex flex-wrap md:flex-nowrap items-center gap-4 text-sm">
           <div className="flex items-center gap-1.5 min-w-0 max-w-[160px]">
@@ -581,7 +570,15 @@ export function SolicitudCotizacionDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+        <div className="px-2 py-1.5 bg-primary-50 rounded-lg flex items-center justify-between gap-2">
+          <p className="text-xs text-primary-600">Total de Items</p>
+          <p className="text-sm font-bold text-primary-700">{totalItems}</p>
+        </div>
+        <div className="px-2 py-1.5 bg-primary-50 rounded-lg flex items-center justify-between gap-2">
+          <p className="text-xs text-primary-600">Cantidad de Items</p>
+          <p className="text-sm font-bold text-primary-700">{cantidadTotalItems.toLocaleString('es-AR')}</p>
+        </div>
         <div className="px-2 py-1.5 bg-green-50 rounded-lg flex items-center justify-between gap-2">
           <p className="text-xs text-green-600">Con Coincidencia</p>
           <p className="text-sm font-bold text-green-700">{conCoincidencia}</p>
