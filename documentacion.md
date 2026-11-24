@@ -2822,3 +2822,15 @@ Nicole pidió agregar el campo Presentación (texto libre del artículo, ej. "Ca
 **Backend**: `backend/src/repositories/solicitudCotizacion.repository.ts`
 **Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
 **Shared**: `shared/src/types/index.ts`
+
+### 24 de noviembre de 2026 (continuación 4) — Columna "Cantidad" editable en la grilla de ítems
+
+Nicole pidió una columna "Cantidad" nueva en la grilla de revisión, editable, que traiga por defecto la cantidad que pidió el cliente (`cantidadSolicitada`, inmutable). Se agregó el campo nuevo `cantidad` (entero, opcional, migración 034) en `solicitud_cotizacion_items`: cuando es `NULL` se toma `cantidadSolicitada` como valor por defecto; si Nicole la edita, esa queda guardada y pasa a mandar sobre la solicitada para todo cálculo downstream (columnas Costo Total/Venta/Total sin IVA de la exportación a Excel/Google Sheets, que ya referencian la celda de esta columna por fórmula, así que ajustan solas; el Total del pie de la grilla; la tarjeta indicadora "Cantidad de Items"). Mismo patrón de edición que Precio Unit./Mark Up (estado local por ítem, guarda `onBlur`). Se insertó entre "Acciones" y "Precio Unit.".
+
+Migración 034 aplicada a producción con el mismo mecanismo que la 033 (`railway run` + script Node de una sola vez con `pg`, sin `psql` local).
+
+##### Archivos Modificados
+**Backend**: `backend/src/repositories/solicitudCotizacion.repository.ts`, `backend/src/controllers/solicitudCotizacion.controller.ts`, `backend/src/services/cotizacionExport.service.ts`
+**Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
+**Shared**: `shared/src/types/index.ts`, `shared/src/validators/index.ts`
+**Migraciones**: `database/migrations/034_add_cantidad_editable_solicitud_items.sql`

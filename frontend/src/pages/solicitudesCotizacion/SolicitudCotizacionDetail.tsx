@@ -78,6 +78,7 @@ export function SolicitudCotizacionDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [savingItemId, setSavingItemId] = useState<string | null>(null);
+  const [cantidades, setCantidades] = useState<Record<string, number | undefined>>({});
   const [precios, setPrecios] = useState<Record<string, number | undefined>>({});
   const [markUps, setMarkUps] = useState<Record<string, number | undefined>>({});
   const [nombresExternos, setNombresExternos] = useState<Record<string, string>>({});
@@ -112,14 +113,17 @@ export function SolicitudCotizacionDetailPage() {
       ]);
       setSolicitud(solicitudData);
       setArticulos(articulosRes.data);
+      const cantidadesIniciales: Record<string, number | undefined> = {};
       const preciosIniciales: Record<string, number | undefined> = {};
       const markUpsIniciales: Record<string, number | undefined> = {};
       const nombresExternosIniciales: Record<string, string> = {};
       solicitudData.items.forEach((item) => {
+        cantidadesIniciales[item.id] = item.cantidad ?? item.cantidadSolicitada;
         preciosIniciales[item.id] = item.precioUnitario ?? undefined;
         markUpsIniciales[item.id] = item.markUp ?? undefined;
         nombresExternosIniciales[item.id] = item.nombreExterno || '';
       });
+      setCantidades(cantidadesIniciales);
       setPrecios(preciosIniciales);
       setMarkUps(markUpsIniciales);
       setNombresExternos(nombresExternosIniciales);
@@ -147,6 +151,7 @@ export function SolicitudCotizacionDetailPage() {
       setSolicitud(updated);
       const updatedItem = updated.items.find((i) => i.id === itemId);
       if (updatedItem) {
+        setCantidades((prev) => ({ ...prev, [itemId]: updatedItem.cantidad ?? updatedItem.cantidadSolicitada }));
         setPrecios((prev) => ({ ...prev, [itemId]: updatedItem.precioUnitario ?? undefined }));
         setMarkUps((prev) => ({ ...prev, [itemId]: updatedItem.markUp ?? undefined }));
         setNombresExternos((prev) => ({ ...prev, [itemId]: updatedItem.nombreExterno || '' }));
@@ -225,6 +230,16 @@ export function SolicitudCotizacionDetailPage() {
   const handleDeclinarUrlExterna = (item: SolicitudCotizacionItemConArticulo) => {
     applyUpdate(item.id, { urlExterna: null });
     setUrlDrafts((prev) => ({ ...prev, [item.id]: '' }));
+  };
+
+  const handleCantidadBlur = (item: SolicitudCotizacionItemConArticulo) => {
+    const cantidadEfectivaActual = item.cantidad ?? item.cantidadSolicitada;
+    const nuevaCantidad = cantidades[item.id];
+    if (nuevaCantidad === undefined || nuevaCantidad === cantidadEfectivaActual) {
+      setCantidades((prev) => ({ ...prev, [item.id]: cantidadEfectivaActual }));
+      return;
+    }
+    applyUpdate(item.id, { cantidad: nuevaCantidad });
   };
 
   const handlePrecioBlur = (item: SolicitudCotizacionItemConArticulo) => {
@@ -383,7 +398,10 @@ export function SolicitudCotizacionDetailPage() {
   const handlePrint = () => {
     if (!solicitud) return;
 
-    const total = solicitud.items.reduce((sum, item) => sum + (item.precioUnitario || 0) * item.cantidadSolicitada, 0);
+    const total = solicitud.items.reduce(
+      (sum, item) => sum + (item.precioUnitario || 0) * (item.cantidad ?? item.cantidadSolicitada),
+      0
+    );
     const fechaFormateada = format(new Date(solicitud.fechaSolicitud), 'dd/MM/yyyy HH:mm', { locale: es });
 
     const printContent = `
@@ -423,11 +441,12 @@ export function SolicitudCotizacionDetailPage() {
           <tbody>
             ${solicitud.items
               .map((item) => {
-                const subtotal = (item.precioUnitario || 0) * item.cantidadSolicitada;
+                const cantidadEfectiva = item.cantidad ?? item.cantidadSolicitada;
+                const subtotal = (item.precioUnitario || 0) * cantidadEfectiva;
                 return `<tr>
                   <td>${item.descripcionSolicitada}</td>
                   <td>${item.marcaSolicitada || '-'}</td>
-                  <td class="text-right">${item.cantidadSolicitada.toLocaleString('es-AR')}</td>
+                  <td class="text-right">${cantidadEfectiva.toLocaleString('es-AR')}</td>
                   <td class="text-right">$${(item.precioUnitario || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}</td>
                   <td class="text-right">$${subtotal.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</td>
                 </tr>`;
@@ -458,13 +477,16 @@ export function SolicitudCotizacionDetailPage() {
   if (isLoading) return <PageLoader />;
   if (!solicitud) return null;
 
-  const total = solicitud.items.reduce((sum, item) => sum + (item.precioUnitario || 0) * item.cantidadSolicitada, 0);
+  const total = solicitud.items.reduce(
+    (sum, item) => sum + (item.precioUnitario || 0) * (item.cantidad ?? item.cantidadSolicitada),
+    0
+  );
   const puedeMarcarCotizada =
     solicitud.estado === 'en_revision' &&
     solicitud.items.every((item) => item.estadoItem !== 'pendiente' && item.precioUnitario !== null && item.precioUnitario !== undefined);
 
   const totalItems = solicitud.items.length;
-  const cantidadTotalItems = solicitud.items.reduce((sum, item) => sum + item.cantidadSolicitada, 0);
+  const cantidadTotalItems = solicitud.items.reduce((sum, item) => sum + (item.cantidad ?? item.cantidadSolicitada), 0);
   const conCoincidencia = solicitud.items.filter((item) => item.matchConfianza === 'etm' || item.matchConfianza === 'nombre').length;
   const sinCoincidencia = totalItems - conCoincidencia;
   const aceptados = solicitud.items.filter((item) => item.estadoItem !== 'pendiente').length;
@@ -656,6 +678,7 @@ export function SolicitudCotizacionDetailPage() {
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs w-[150px] whitespace-normal break-words">Sugerido</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs w-[150px] whitespace-normal break-words">Ofrecido</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs min-w-[140px]">Acciones</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs w-[70px] whitespace-normal break-words">Cantidad</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words">Precio Unit.</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-500 uppercase text-xs w-[60px] whitespace-normal break-words">Mark Up</th>
               </tr>
@@ -905,6 +928,24 @@ export function SolicitudCotizacionDetailPage() {
                       )}
                     </td>
 
+                    <td className="px-3 py-3 w-[70px]">
+                      <input
+                        type="number"
+                        step="1"
+                        min="1"
+                        className="input"
+                        value={cantidades[item.id] ?? ''}
+                        onChange={(e) =>
+                          setCantidades((prev) => ({
+                            ...prev,
+                            [item.id]: e.target.value === '' ? undefined : parseInt(e.target.value, 10),
+                          }))
+                        }
+                        onBlur={() => handleCantidadBlur(item)}
+                        disabled={disabled}
+                      />
+                    </td>
+
                     <td className="px-3 py-3 w-[100px]">
                       <CurrencyInput
                         value={precios[item.id]}
@@ -939,7 +980,7 @@ export function SolicitudCotizacionDetailPage() {
             </tbody>
             <tfoot className="bg-gray-50">
               <tr>
-                <td colSpan={5} className="px-3 py-3 text-right font-semibold">Total</td>
+                <td colSpan={6} className="px-3 py-3 text-right font-semibold">Total</td>
                 <td className="px-3 py-3 text-right font-semibold whitespace-nowrap">${total.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</td>
               </tr>
             </tfoot>

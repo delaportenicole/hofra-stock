@@ -247,6 +247,7 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
     data: {
       articuloId?: string | null;
       estadoItem?: EstadoItemCotizacion;
+      cantidad?: number | null;
       precioUnitario?: number | null;
       markUp?: number | null;
       urlExterna?: string | null;
@@ -264,6 +265,10 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
     if (data.estadoItem !== undefined) {
       sets.push(`estado_item = $${paramIndex++}`);
       values.push(data.estadoItem);
+    }
+    if (data.cantidad !== undefined) {
+      sets.push(`cantidad = $${paramIndex++}`);
+      values.push(data.cantidad);
     }
     if (data.precioUnitario !== undefined) {
       sets.push(`precio_unitario = $${paramIndex++}`);
@@ -351,6 +356,7 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       descripcionInglesSolicitada: row.descripcion_ingles_solicitada as string | null,
       unidadSolicitada: row.unidad_solicitada as string | null,
       cantidadSolicitada: row.cantidad_solicitada as number,
+      cantidad: row.cantidad as number | null,
       articuloId: row.articulo_id as string | null,
       articuloIdSugerido: row.articulo_id_sugerido as string | null,
       matchConfianza: row.match_confianza as MatchConfianza | null,

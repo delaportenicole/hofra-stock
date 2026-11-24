@@ -392,6 +392,7 @@ export const normalizarTextoSchema = z.object({
 export const updateSolicitudCotizacionItemSchema = z.object({
   articuloId: uuidSchema.optional().nullable(),
   estadoItem: z.enum(['pendiente', 'aceptado', 'no_disponible']).optional(),
+  cantidad: z.coerce.number().int().positive('La cantidad debe ser mayor a 0').optional().nullable(),
   precioUnitario: z.coerce.number().nonnegative('El precio no puede ser negativo').optional().nullable(),
   markUp: z.coerce.number().int('El mark up debe ser un número entero').nonnegative('El mark up no puede ser negativo').optional().nullable(),
   urlExterna: z.string().trim().url('La URL no es válida').max(2000).optional().nullable(),

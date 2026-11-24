@@ -120,7 +120,7 @@ function valorColumnaItem(
     case 'modelo':
       return item.modeloSolicitado || '';
     case 'cantidad':
-      return item.cantidadSolicitada;
+      return item.cantidad ?? item.cantidadSolicitada;
     case 'itemOfrecido':
       return articulo?.nombre || (item.estadoItem === 'no_disponible' ? item.nombreExterno : null) || '';
     case 'unidadMedida':
@@ -221,7 +221,7 @@ export function buildCotizacionSheetData(
     const precios = calcularPreciosItem(
       item.precioUnitario ?? 0,
       item.markUp ?? 0,
-      item.cantidadSolicitada,
+      item.cantidad ?? item.cantidadSolicitada,
       solicitud.usdOficialCompra ?? 0
     );
 

@@ -294,6 +294,7 @@ export interface SolicitudCotizacionItem {
   descripcionInglesSolicitada: string | null;
   unidadSolicitada: string | null;
   cantidadSolicitada: number;
+  cantidad: number | null;
   articuloId: string | null;
   articuloIdSugerido: string | null;
   matchConfianza: MatchConfianza | null;
@@ -662,6 +663,7 @@ export interface UpdateSolicitudCotizacionDto {
 export interface UpdateSolicitudCotizacionItemDto {
   articuloId?: string | null;
   estadoItem?: EstadoItemCotizacion;
+  cantidad?: number | null;
   precioUnitario?: number | null;
   markUp?: number | null;
   urlExterna?: string | null;

@@ -104,6 +104,7 @@ export class SolicitudCotizacionController {
           ? {
               articuloId: oldItem.articuloId,
               estadoItem: oldItem.estadoItem,
+              cantidad: oldItem.cantidad,
               precioUnitario: oldItem.precioUnitario,
               markUp: oldItem.markUp,
               urlExterna: oldItem.urlExterna,
@@ -114,6 +115,7 @@ export class SolicitudCotizacionController {
           ? {
               articuloId: newItem.articuloId,
               estadoItem: newItem.estadoItem,
+              cantidad: newItem.cantidad,
               precioUnitario: newItem.precioUnitario,
               markUp: newItem.markUp,
               urlExterna: newItem.urlExterna,
