@@ -2895,5 +2895,13 @@ Nicole notó que las líneas horizontales entre filas de la grilla (agregadas en
 
 De paso, se acortó la etiqueta "No Disponible" a "No Disp." en el botón de acción y en el estado mostrado en la columna "Item Ofrecido" (el texto completo del `confirm()` al marcar un ítem y el enum interno `itemEstadoLabels` se dejaron igual, para no leerse mal dentro de una oración).
 
+### 25 de noviembre de 2026 (continuación) — Wrap text en Item Ofrecido + popup para pegar URL
+
+Dos ajustes puntuales de usabilidad en la grilla:
+
+**Item Ofrecido hace wrap**: el input de texto era un `<input type="text">`, que por naturaleza nunca hace salto de línea (se recorta o scrollea horizontalmente). Se cambió a un `<textarea rows={2} className="... resize-y">`, que sí envuelve el texto largo en varias líneas y además se puede estirar a mano si hace falta más alto.
+
+**Pegar URL de compra externa ahora es un popup**: el input inline que aparecía al hacer click en "URL" quedaba metido en una columna de ~110px, totalmente ilegible para pegar una URL completa. Se reemplazó por un popup centrado (mismo patrón que el modal de "Agregar Artículos"): al hacer click en "URL" se abre con un input ancho y grande, foco automático, Enter guarda (mismo `handleGuardarUrlExterna` de antes) y Escape o click afuera cancela sin guardar.
+
 ##### Archivos Modificados
 **Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`

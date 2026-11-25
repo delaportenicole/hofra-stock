@@ -537,6 +537,15 @@ export function SolicitudCotizacionDetailPage() {
   if (isLoading) return <PageLoader />;
   if (!solicitud) return null;
 
+  const itemPasteandoUrl = pastingUrlItemId ? solicitud.items.find((i) => i.id === pastingUrlItemId) ?? null : null;
+
+  const handleCancelarPastearUrl = () => {
+    if (pastingUrlItemId) {
+      setUrlDrafts((prev) => ({ ...prev, [pastingUrlItemId]: '' }));
+    }
+    setPastingUrlItemId(null);
+  };
+
   const total = solicitud.items.reduce(
     (sum, item) => sum + (item.precioUnitario || 0) * (item.cantidad ?? item.cantidadSolicitada),
     0
@@ -793,8 +802,8 @@ export function SolicitudCotizacionDetailPage() {
                     </td>
 
                     <td className="sticky left-[240px] z-10 bg-white px-2 py-2 w-[200px] border-b border-gray-300">
-                      <input
-                        type="text"
+                      <textarea
+                        rows={2}
                         value={nombresOfrecidos[item.id] ?? ''}
                         onChange={(e) =>
                           setNombresOfrecidos((prev) => ({ ...prev, [item.id]: e.target.value }))
@@ -802,7 +811,7 @@ export function SolicitudCotizacionDetailPage() {
                         onBlur={() => handleNombreOfrecidoBlur(item)}
                         disabled={disabled}
                         placeholder="Nombre del artículo..."
-                        className="input px-2 py-1 text-xs w-full mb-1"
+                        className="input px-2 py-1 text-xs w-full mb-1 resize-y"
                       />
                       {item.estadoItem === 'aceptado' && item.articulo ? (
                         <div className="flex items-start justify-between gap-2">
@@ -956,21 +965,6 @@ export function SolicitudCotizacionDetailPage() {
                                     </button>
                                   </div>
                                 </div>
-                              ) : pastingUrlItemId === item.id ? (
-                                <div className="flex gap-1 mt-1">
-                                  <input
-                                    type="text"
-                                    autoFocus
-                                    value={urlDrafts[item.id] || ''}
-                                    onChange={(e) => setUrlDrafts((prev) => ({ ...prev, [item.id]: e.target.value }))}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleGuardarUrlExterna(item)}
-                                    placeholder="Pegar URL del producto..."
-                                    className="input px-2 py-1 text-xs"
-                                  />
-                                  <button onClick={() => handleGuardarUrlExterna(item)} className="btn-secondary text-xs px-2 py-1">
-                                    Guardar
-                                  </button>
-                                </div>
                               ) : (
                                 !(item.estadoItem === 'no_disponible' && item.urlExterna) && (
                                   <button
@@ -1093,6 +1087,36 @@ export function SolicitudCotizacionDetailPage() {
           </table>
         </div>
       </div>
+
+      {itemPasteandoUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={handleCancelarPastearUrl} />
+          <div className="relative bg-white rounded-lg shadow-xl w-full max-w-2xl p-6">
+            <h2 className="text-sm font-semibold text-gray-900 mb-1">Pegar URL del producto</h2>
+            <p className="text-xs text-gray-500 mb-3 break-words">{itemPasteandoUrl.descripcionSolicitada}</p>
+            <input
+              type="text"
+              autoFocus
+              value={urlDrafts[itemPasteandoUrl.id] || ''}
+              onChange={(e) => setUrlDrafts((prev) => ({ ...prev, [itemPasteandoUrl.id]: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleGuardarUrlExterna(itemPasteandoUrl);
+                if (e.key === 'Escape') handleCancelarPastearUrl();
+              }}
+              placeholder="https://..."
+              className="input text-base w-full"
+            />
+            <div className="flex justify-end gap-3 mt-4">
+              <button type="button" onClick={handleCancelarPastearUrl} className="btn-secondary">
+                Cancelar
+              </button>
+              <button type="button" onClick={() => handleGuardarUrlExterna(itemPasteandoUrl)} className="btn-primary">
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {mostrarAgregarItems && solicitud.estado === 'en_revision' && (
         <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto">
