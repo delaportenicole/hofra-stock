@@ -733,19 +733,19 @@ export function SolicitudCotizacionDetailPage() {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1360px] border-separate border-spacing-0 text-sm">
             <thead className="bg-gray-50">
-              <tr className="divide-x divide-gray-300 border-b border-gray-300">
-                <th className="sticky left-0 z-20 bg-gray-50 px-2 py-2 text-center align-top font-medium text-gray-500 uppercase text-xs w-[40px]">Item</th>
-                <th className="sticky left-[40px] z-20 bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[200px] whitespace-normal break-words">Item Solicitado</th>
-                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs min-w-[160px] whitespace-normal break-words">Item Sugerido</th>
-                <th className="sticky left-[240px] z-20 bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[200px] whitespace-normal break-words">Item Ofrecido</th>
-                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[110px] whitespace-normal break-words">Acciones</th>
-                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[56px] whitespace-normal break-words">Cant.</th>
-                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[90px] whitespace-normal break-words">Unidad de medida</th>
-                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words">Marca</th>
-                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words">Modelo</th>
-                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[120px] whitespace-normal break-words">$ Unitario Sin Iva (ARS)</th>
-                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[120px] whitespace-normal break-words">$ Unitario Sin Iva (USD)</th>
-                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[64px] whitespace-normal break-words">Mark Up</th>
+              <tr className="divide-x divide-gray-300">
+                <th className="sticky left-0 z-20 bg-gray-50 px-2 py-2 text-center align-top font-medium text-gray-500 uppercase text-xs w-[40px] border-b border-gray-300">Item</th>
+                <th className="sticky left-[40px] z-20 bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[200px] whitespace-normal break-words border-b border-gray-300">Item Solicitado</th>
+                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs min-w-[160px] whitespace-normal break-words border-b border-gray-300">Item Sugerido</th>
+                <th className="sticky left-[240px] z-20 bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[200px] whitespace-normal break-words border-b border-gray-300">Item Ofrecido</th>
+                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[110px] whitespace-normal break-words border-b border-gray-300">Acciones</th>
+                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[56px] whitespace-normal break-words border-b border-gray-300">Cant.</th>
+                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[90px] whitespace-normal break-words border-b border-gray-300">Unidad de medida</th>
+                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words border-b border-gray-300">Marca</th>
+                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words border-b border-gray-300">Modelo</th>
+                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[120px] whitespace-normal break-words border-b border-gray-300">$ Unitario Sin Iva (ARS)</th>
+                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[120px] whitespace-normal break-words border-b border-gray-300">$ Unitario Sin Iva (USD)</th>
+                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[64px] whitespace-normal break-words border-b border-gray-300">Mark Up</th>
               </tr>
             </thead>
             <tbody>
@@ -753,17 +753,17 @@ export function SolicitudCotizacionDetailPage() {
                 const disabled = solicitud.estado !== 'en_revision' || savingItemId === item.id;
 
                 return (
-                  <tr key={item.id} className="align-top divide-x divide-gray-300 border-b border-gray-300">
-                    <td className="sticky left-0 z-10 bg-white px-2 py-2 w-[40px] text-center text-gray-500">
+                  <tr key={item.id} className="align-top divide-x divide-gray-300">
+                    <td className="sticky left-0 z-10 bg-white px-2 py-2 w-[40px] text-center text-gray-500 border-b border-gray-300">
                       {itemIndex + 1}
                     </td>
 
-                    <td className="sticky left-[40px] z-10 bg-white px-2 py-2 w-[200px]">
+                    <td className="sticky left-[40px] z-10 bg-white px-2 py-2 w-[200px] border-b border-gray-300">
                       <p className="font-medium text-gray-900 break-words">{item.descripcionSolicitada}</p>
                       {item.etmSolicitado && <p className="text-xs text-gray-500">ETM: {item.etmSolicitado}</p>}
                     </td>
 
-                    <td className="px-2 py-2 min-w-[160px]">
+                    <td className="px-2 py-2 min-w-[160px] border-b border-gray-300">
                       {item.matchConfianza && item.articuloSugerido && (
                         <Badge variant={confianzaVariants[item.matchConfianza]} className="mb-1">
                           {confianzaLabels[item.matchConfianza]}
@@ -792,7 +792,7 @@ export function SolicitudCotizacionDetailPage() {
                       )}
                     </td>
 
-                    <td className="sticky left-[240px] z-10 bg-white px-2 py-2 w-[200px]">
+                    <td className="sticky left-[240px] z-10 bg-white px-2 py-2 w-[200px] border-b border-gray-300">
                       <input
                         type="text"
                         value={nombresOfrecidos[item.id] ?? ''}
@@ -851,7 +851,7 @@ export function SolicitudCotizacionDetailPage() {
                         </div>
                       ) : item.estadoItem === 'no_disponible' ? (
                         <div className="flex items-start justify-between gap-2">
-                          <p className="text-xs font-medium text-gray-500">No Disponible</p>
+                          <p className="text-xs font-medium text-gray-500">No Disp.</p>
                           <button
                             onClick={() => handleQuitarAceptacion(item)}
                             disabled={disabled}
@@ -864,7 +864,7 @@ export function SolicitudCotizacionDetailPage() {
                       ) : null}
                     </td>
 
-                    <td className="px-2 py-2 w-[110px]">
+                    <td className="px-2 py-2 w-[110px] border-b border-gray-300">
                       {editingItemId === item.id ? (
                         <div className="flex items-start gap-1">
                           <ArticuloCombobox
@@ -923,7 +923,7 @@ export function SolicitudCotizacionDetailPage() {
                               disabled={disabled}
                               className="flex items-center gap-1 text-xs text-gray-600 hover:text-red-600 disabled:opacity-50"
                             >
-                              <Ban className="w-3.5 h-3.5 flex-shrink-0" /> No Disponible
+                              <Ban className="w-3.5 h-3.5 flex-shrink-0" /> No Disp.
                             </button>
                           )}
 
@@ -988,7 +988,7 @@ export function SolicitudCotizacionDetailPage() {
                       )}
                     </td>
 
-                    <td className="px-2 py-2 w-[56px]">
+                    <td className="px-2 py-2 w-[56px] border-b border-gray-300">
                       <input
                         type="number"
                         step="1"
@@ -1006,7 +1006,7 @@ export function SolicitudCotizacionDetailPage() {
                       />
                     </td>
 
-                    <td className="px-2 py-2 w-[90px]">
+                    <td className="px-2 py-2 w-[90px] border-b border-gray-300">
                       <input
                         type="text"
                         className="input px-2"
@@ -1017,7 +1017,7 @@ export function SolicitudCotizacionDetailPage() {
                       />
                     </td>
 
-                    <td className="px-2 py-2 w-[100px]">
+                    <td className="px-2 py-2 w-[100px] border-b border-gray-300">
                       <input
                         type="text"
                         className="input px-2"
@@ -1028,7 +1028,7 @@ export function SolicitudCotizacionDetailPage() {
                       />
                     </td>
 
-                    <td className="px-2 py-2 w-[100px]">
+                    <td className="px-2 py-2 w-[100px] border-b border-gray-300">
                       <input
                         type="text"
                         className="input px-2"
@@ -1039,7 +1039,7 @@ export function SolicitudCotizacionDetailPage() {
                       />
                     </td>
 
-                    <td className="px-2 py-2 w-[120px]">
+                    <td className="px-2 py-2 w-[120px] border-b border-gray-300">
                       <CurrencyInput
                         value={precios[item.id]}
                         onChange={(val) => setPrecios((prev) => ({ ...prev, [item.id]: val }))}
@@ -1050,7 +1050,7 @@ export function SolicitudCotizacionDetailPage() {
                       />
                     </td>
 
-                    <td className="px-2 py-2 w-[120px]">
+                    <td className="px-2 py-2 w-[120px] border-b border-gray-300">
                       <CurrencyInput
                         value={preciosUsd[item.id]}
                         onChange={(val) => setPreciosUsd((prev) => ({ ...prev, [item.id]: val }))}
@@ -1061,7 +1061,7 @@ export function SolicitudCotizacionDetailPage() {
                       />
                     </td>
 
-                    <td className="px-2 py-2 w-[64px]">
+                    <td className="px-2 py-2 w-[64px] border-b border-gray-300">
                       <input
                         type="number"
                         step="1"
@@ -1084,10 +1084,10 @@ export function SolicitudCotizacionDetailPage() {
               })}
             </tbody>
             <tfoot className="bg-gray-50">
-              <tr className="border-t border-gray-300">
-                <td colSpan={9} className="px-2 py-2 text-right font-semibold">Total</td>
-                <td className="px-2 py-2 text-right font-semibold whitespace-nowrap">${total.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</td>
-                <td colSpan={2} />
+              <tr>
+                <td colSpan={9} className="px-2 py-2 text-right font-semibold border-t border-gray-300">Total</td>
+                <td className="px-2 py-2 text-right font-semibold whitespace-nowrap border-t border-gray-300">${total.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</td>
+                <td colSpan={2} className="border-t border-gray-300" />
               </tr>
             </tfoot>
           </table>

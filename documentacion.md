@@ -2888,3 +2888,12 @@ Nicole pidió reordenar y rehacer la grilla de ítems con una lista precisa de 1
 **Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
 **Shared**: `shared/src/types/index.ts`, `shared/src/validators/index.ts`
 **Migraciones**: `database/migrations/036_add_overrides_y_precio_usd_solicitud_items.sql`
+
+### 25 de noviembre de 2026 — Fix: las líneas entre filas no se veían + "No Disp."
+
+Nicole notó que las líneas horizontales entre filas de la grilla (agregadas en la ronda de densidad/sticky) no se veían, a diferencia de las líneas verticales entre columnas que sí se veían bien. Causa: estaban puestas como `border-b`/`border-t` en el elemento `<tr>`, pero la tabla usa `border-separate` (necesario para que el sticky de las columnas funcione) — y en ese modo, por spec de CSS, los bordes puestos en `<tr>` (o en `<tbody>`) simplemente **no se dibujan**, solo se respetan los bordes puestos directo en cada celda (`<td>`/`<th>`). Las líneas verticales sí andaban porque Tailwind's `divide-x` aplicado sobre el `<tr>` en realidad les pone `border-left` a los `<td>`/`<th>` (sus hijos directos), no al `<tr>` mismo. Se sacó el `border-b`/`border-t` de todos los `<tr>` (header, filas de ítems y pie) y se puso `border-b`/`border-t` directo en las 12 celdas de cada fila.
+
+De paso, se acortó la etiqueta "No Disponible" a "No Disp." en el botón de acción y en el estado mostrado en la columna "Item Ofrecido" (el texto completo del `confirm()` al marcar un ítem y el enum interno `itemEstadoLabels` se dejaron igual, para no leerse mal dentro de una oración).
+
+##### Archivos Modificados
+**Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
