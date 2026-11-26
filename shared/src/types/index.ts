@@ -338,7 +338,17 @@ export interface SolicitudCotizacionItemConArticulo extends SolicitudCotizacionI
   articulo:
     | (Pick<
         Articulo,
-        'id' | 'codigo' | 'nombre' | 'marca' | 'etm' | 'sku' | 'costoInicialEstimado' | 'stockActual' | 'imagenUrl' | 'presentacion'
+        | 'id'
+        | 'codigo'
+        | 'nombre'
+        | 'marca'
+        | 'etm'
+        | 'sku'
+        | 'costoInicialEstimado'
+        | 'costoInicialEstimadoUsd'
+        | 'stockActual'
+        | 'imagenUrl'
+        | 'presentacion'
       > & {
         proveedorNombre: string | null;
       })
@@ -346,7 +356,17 @@ export interface SolicitudCotizacionItemConArticulo extends SolicitudCotizacionI
   articuloSugerido:
     | (Pick<
         Articulo,
-        'id' | 'codigo' | 'nombre' | 'marca' | 'etm' | 'sku' | 'costoInicialEstimado' | 'stockActual' | 'imagenUrl' | 'presentacion'
+        | 'id'
+        | 'codigo'
+        | 'nombre'
+        | 'marca'
+        | 'etm'
+        | 'sku'
+        | 'costoInicialEstimado'
+        | 'costoInicialEstimadoUsd'
+        | 'stockActual'
+        | 'imagenUrl'
+        | 'presentacion'
       > & {
         proveedorNombre: string | null;
       })

@@ -2945,3 +2945,14 @@ Efecto práctico: `item.articulo` (el artículo "aceptado") quedaba poblado apen
 **Backend**: `backend/src/repositories/solicitudCotizacion.repository.ts`
 **Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
 **Migraciones**: `database/migrations/038_fix_articulo_id_pendiente_sin_aceptar.sql`
+
+### 26 de noviembre de 2026 (continuación 3) — Precargar $ Unitario Sin IVA (USD) desde el artículo del catálogo
+
+Nicole pidió que al aceptar un ítem desde el catálogo (ya sea con "Aceptar Sug." o buscando uno manual con "Buscar otro"), se precargue el precio unitario sin IVA tanto en ARS como en USD — antes solo se precargaba el de ARS (`articulo.costoInicialEstimado`), dejando el campo USD siempre vacío aunque el artículo ya tuviera cargado `costoInicialEstimadoUsd`.
+
+Se agregó `costoInicialEstimadoUsd` al recorte (`Pick`) de campos de artículo que trae `SolicitudCotizacionItemConArticulo` (antes solo tenía la versión en pesos) y al query de `getItems()` en el repositorio. En el frontend, `handleAceptar` y `handleSeleccionarArticulo` ahora precargan `precioUnitarioUsd` con el mismo criterio que ya usaban para ARS (solo si el campo todavía está vacío, para no pisar un valor que el usuario ya haya cargado a mano).
+
+##### Archivos Modificados
+**Backend**: `backend/src/repositories/solicitudCotizacion.repository.ts`
+**Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
+**Shared**: `shared/src/types/index.ts`

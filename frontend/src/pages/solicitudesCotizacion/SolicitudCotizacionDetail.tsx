@@ -214,6 +214,9 @@ export function SolicitudCotizacionDetailPage() {
       ...(item.precioUnitario == null && item.articuloSugerido?.costoInicialEstimado != null
         ? { precioUnitario: item.articuloSugerido.costoInicialEstimado }
         : {}),
+      ...(item.precioUnitarioUsd == null && item.articuloSugerido?.costoInicialEstimadoUsd != null
+        ? { precioUnitarioUsd: item.articuloSugerido.costoInicialEstimadoUsd }
+        : {}),
     });
   };
 
@@ -225,6 +228,9 @@ export function SolicitudCotizacionDetailPage() {
       estadoItem: 'aceptado',
       ...(item.precioUnitario == null && articulo.costoInicialEstimado != null
         ? { precioUnitario: articulo.costoInicialEstimado }
+        : {}),
+      ...(item.precioUnitarioUsd == null && articulo.costoInicialEstimadoUsd != null
+        ? { precioUnitarioUsd: articulo.costoInicialEstimadoUsd }
         : {}),
     });
   };
