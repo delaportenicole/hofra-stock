@@ -2921,3 +2921,12 @@ El detector de encabezados ahora carga la lista completa al montar `ItemsCapture
 **Frontend**: `frontend/src/services/sinonimosColumnaExcel.service.ts` (nuevo), `frontend/src/pages/unidades/SinonimosColumnaExcelTab.tsx` (nuevo), `frontend/src/pages/unidades/UnidadesList.tsx`, `frontend/src/components/solicitudesCotizacion/ItemsCaptureEditor.tsx`
 **Shared**: `shared/src/types/index.ts`, `shared/src/validators/index.ts`
 **Migraciones**: `database/migrations/037_add_sinonimos_columna_excel.sql`
+
+### 26 de noviembre de 2026 (continuación) — Fix: toggle Excel/Texto parecía un botón de acción
+
+Nicole pensó que el botón "Subir Excel" del importador de ítems no hacía nada — en realidad es un toggle que cambia entre el modo "subir Excel" y "pegar texto" (arranca en Excel por defecto, así que clickearlo estando ya ahí no cambia nada visible). El problema real era de diseño: tenía pinta de botón de acción (borde, fondo, rounded) en vez de pestaña, lo que inducía a pensar que debía "hacer" algo al clickearlo.
+
+Se cambió al mismo patrón de tabs que ya usa el resto del sistema (ej. Configuraciones: Rubros/Marcas/Google Drive) — subrayado inferior en vez de borde completo, sin fondo — y se sacó el verbo de acción de los labels: "Subir Excel" → "Excel", "Pegar texto" → "Texto pegado".
+
+##### Archivos Modificados
+**Frontend**: `frontend/src/components/solicitudesCotizacion/ItemsCaptureEditor.tsx`

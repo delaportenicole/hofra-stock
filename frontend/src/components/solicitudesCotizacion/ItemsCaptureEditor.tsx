@@ -286,27 +286,33 @@ export function ItemsCaptureEditor({ items, onItemsChange, fileName, onFileNameC
     <div className="space-y-4">
       {!fileName && (
         <div>
-          <div className="flex gap-2 mb-4">
-            <button
-              type="button"
-              onClick={() => setModo('excel')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium border ${
-                modo === 'excel' ? 'bg-primary-50 border-primary-500 text-primary-700' : 'border-gray-300 text-gray-600'
-              }`}
-            >
-              <FileSpreadsheet className="w-4 h-4 inline mr-2" />
-              Subir Excel
-            </button>
-            <button
-              type="button"
-              onClick={() => setModo('texto')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium border ${
-                modo === 'texto' ? 'bg-primary-50 border-primary-500 text-primary-700' : 'border-gray-300 text-gray-600'
-              }`}
-            >
-              <FileText className="w-4 h-4 inline mr-2" />
-              Pegar texto
-            </button>
+          <div className="border-b border-gray-200 mb-4">
+            <nav className="-mb-px flex space-x-6">
+              <button
+                type="button"
+                onClick={() => setModo('excel')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                  modo === 'excel'
+                    ? 'border-primary-500 text-primary-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                Excel
+              </button>
+              <button
+                type="button"
+                onClick={() => setModo('texto')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                  modo === 'texto'
+                    ? 'border-primary-500 text-primary-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+                Texto pegado
+              </button>
+            </nav>
           </div>
 
           {modo === 'excel' && (
