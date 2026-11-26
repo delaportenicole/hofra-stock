@@ -2956,3 +2956,14 @@ Se agregó `costoInicialEstimadoUsd` al recorte (`Pick`) de campos de artículo 
 **Backend**: `backend/src/repositories/solicitudCotizacion.repository.ts`
 **Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
 **Shared**: `shared/src/types/index.ts`
+
+### 26 de noviembre de 2026 (continuación 4) — Fix: imagen rota en el Excel ("IMAGE is an unsupported function")
+
+Nicole detectó que al abrir el Excel exportado, la columna "Imagen de lo Ofrecido" mostraba el error de Excel "The formula couldn't be imported. IMAGE is an unsupported function" en vez de la imagen — la celda tenía la fórmula `=IMAGE("url")`, que es una función nativa de **Google Sheets**, no de Excel.
+
+Esa fórmula seguía siendo necesaria para la exportación a Google Sheets (ahí sí la soporta), así que `buildCotizacionSheetData`/`valorColumnaItem` ahora reciben un parámetro `destino: 'sheets' | 'excel'` para diferenciar: a Google Sheets le sigue mandando la fórmula `IMAGE()`; para Excel, la celda de imagen queda en blanco y en `buildCotizacionExcelBuffer` se agregó un paso nuevo que **descarga** cada imagen (Cloudinary) y la **incrusta como imagen real** en la celda correspondiente (mismo mecanismo que ya se usaba para los logos institucionales, `workbook.addImage` + `sheet.addImage` anclado a esa fila/columna puntual). Las descargas van en paralelo (`Promise.all`) con un timeout de 8s por imagen para que una URL caída no cuelgue todo el export; si una imagen falla, esa celda queda sin imagen pero el resto del archivo se genera igual.
+
+No requirió migración (no hay cambio de esquema). No se pudo probar generando un Excel real en esta sesión (sin forma fácil de disparar el export localmente) — se verificó compilación y revisión manual del código; vale la pena que Nicole genere un Excel de una solicitud con artículos con imagen para confirmar que se ve bien.
+
+##### Archivos Modificados
+**Backend**: `backend/src/services/cotizacionExport.service.ts`

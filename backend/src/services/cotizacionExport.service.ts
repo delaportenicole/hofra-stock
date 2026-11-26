@@ -15,6 +15,13 @@ export interface CotizacionSheetData {
 
 export type ModoExportacion = 'interno' | 'externo';
 
+// 'sheets': Google Sheets soporta la función IMAGE() de forma nativa, así que la columna
+// Imagen lleva la fórmula en vivo. 'excel' (xlsx vía exceljs): Excel no tiene esa función —
+// al abrir el archivo tira "The formula couldn't be imported" y la reemplaza por el último
+// valor calculado (texto plano) — así que ahí la imagen se descarga y se incrusta como
+// imagen real en la celda (ver buildCotizacionExcelBuffer), y esta columna queda en blanco.
+export type DestinoExportacion = 'sheets' | 'excel';
+
 type ColorHeader = 'celeste' | 'celesteAmarillo' | 'verde' | 'rojoAmarillo';
 type FormatoPrecio = 'pesos' | 'usd';
 
@@ -86,6 +93,7 @@ function calcularPreciosItem(precioUnitSinIva: number, precioUnitSinIvaUsd: numb
 function valorColumnaItem(
   col: ColumnaConfig,
   modo: ModoExportacion,
+  destino: DestinoExportacion,
   ctx: {
     index: number;
     filaNum: number;
@@ -120,7 +128,9 @@ function valorColumnaItem(
     case 'modeloOfrecido':
       return ''; // Modelo del artículo ofrecido: no lo trackeamos, queda para completar a mano
     case 'imagen':
-      return articulo?.imagenUrl ? { formula: `IMAGE("${articulo.imagenUrl}")` } : '';
+      // En Excel la imagen se incrusta aparte (ver buildCotizacionExcelBuffer): acá solo
+      // corresponde la fórmula para Google Sheets, que sí soporta IMAGE() nativamente.
+      return destino === 'sheets' && articulo?.imagenUrl ? { formula: `IMAGE("${articulo.imagenUrl}")` } : '';
     case 'proveedor':
       return proveedor;
     case 'markUp':
@@ -163,7 +173,8 @@ function valorColumnaItem(
  */
 export function buildCotizacionSheetData(
   solicitud: SolicitudCotizacionConRelaciones,
-  modo: ModoExportacion = 'interno'
+  modo: ModoExportacion = 'interno',
+  destino: DestinoExportacion = 'sheets'
 ): CotizacionSheetData {
   const titulo = `${solicitud.cliente?.razonSocial || 'Sin Cliente'} - Cotización${
     solicitud.numeroReferenciaCliente ? ` - ${solicitud.numeroReferenciaCliente}` : ''
@@ -211,7 +222,7 @@ export function buildCotizacionSheetData(
       item.cantidad ?? item.cantidadSolicitada
     );
 
-    rows.push(columnas.map((col) => valorColumnaItem(col, modo, { index, filaNum, item, articulo, proveedor, precios })));
+    rows.push(columnas.map((col) => valorColumnaItem(col, modo, destino, { index, filaNum, item, articulo, proveedor, precios })));
   });
 
   return { titulo, rows };
@@ -233,7 +244,7 @@ export async function buildCotizacionExcelBuffer(
   solicitud: SolicitudCotizacionConRelaciones,
   modo: ModoExportacion = 'interno'
 ): Promise<Buffer> {
-  const { titulo, rows } = buildCotizacionSheetData(solicitud, modo);
+  const { titulo, rows } = buildCotizacionSheetData(solicitud, modo, 'excel');
   const columnas = columnasParaModo(modo);
   const numColumnas = columnas.length;
 
@@ -366,6 +377,40 @@ export async function buildCotizacionExcelBuffer(
   sheet.addImage(geLogoId, { tl: { col: 7, row: 0 }, br: { col: 8, row: 6 } } as ExcelJS.ImageRange); // H1:H6
   const hofraLogoId = workbook.addImage({ base64: `data:image/png;base64,${LOGO_HOFRA_GROUP_BASE64}`, extension: 'png' });
   sheet.addImage(hofraLogoId, { tl: { col: 10, row: 0 }, br: { col: 11, row: 6 } } as ExcelJS.ImageRange); // K1:K6
+
+  // Imagen del artículo ofrecido: Excel no soporta la función IMAGE() de Google Sheets (al
+  // abrir el archivo tira "The formula couldn't be imported" y la pisa con el último valor
+  // calculado), así que acá se descarga cada imagen y se incrusta de verdad en la celda de
+  // la columna "Imagen" de cada fila de ítem — un fetch fallido no debe tirar abajo todo el
+  // export, solo esa celda queda sin imagen.
+  const imagenColIndex = columnas.findIndex((col) => col.key === 'imagen');
+  if (imagenColIndex !== -1) {
+    await Promise.all(
+      solicitud.items.map(async (item, i) => {
+        const url = item.articulo?.imagenUrl;
+        if (!url) return;
+        try {
+          // Timeout corto para que una imagen que no responde no cuelgue todo el export.
+          const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
+          if (!response.ok) return;
+          const buffer = Buffer.from(await response.arrayBuffer());
+          const contentType = response.headers.get('content-type') || '';
+          const extension = contentType.includes('png') ? 'png' : contentType.includes('gif') ? 'gif' : 'jpeg';
+          // exceljs tipa Image.buffer como el Buffer "clásico" (no genérico); el Buffer que
+          // devuelve @types/node moderno es Buffer<ArrayBufferLike>, estructuralmente
+          // incompatible a nivel de tipos aunque sea el mismo objeto en runtime.
+          const imageId = workbook.addImage({ buffer, extension } as unknown as ExcelJS.Image);
+          const filaIndex0 = primeraFilaItems + i - 1;
+          sheet.addImage(imageId, {
+            tl: { col: imagenColIndex, row: filaIndex0 },
+            br: { col: imagenColIndex + 1, row: filaIndex0 + 1 },
+          } as ExcelJS.ImageRange);
+        } catch (err) {
+          console.error(`No se pudo descargar la imagen del artículo (ítem ${i + 1}):`, err);
+        }
+      })
+    );
+  }
 
   // Centrado global: todos los textos de todas las celdas quedan centrados horizontal y
   // verticalmente, pisando cualquier alineación previa (títulos, etiquetas, valores,
