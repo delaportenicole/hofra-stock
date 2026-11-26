@@ -2905,3 +2905,19 @@ Dos ajustes puntuales de usabilidad en la grilla:
 
 ##### Archivos Modificados
 **Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
+
+### 26 de noviembre de 2026 — Sinónimos de columna configurables para la importación de Excel
+
+Nicole notó que los Excels de Solicitud de Cotización a veces llegan con nombres de columna distintos a los esperados (ej. "CANT." o "QTY" en vez de "Cantidad"). El detector de encabezados (`ItemsCaptureEditor.tsx`, compartido por "Nueva Solicitud" y "Agregar Artículos") ya ignoraba mayúsculas/acentos, pero buscaba un único nombre exacto por campo — sin sinónimos.
+
+Se agregó una pantalla de gestión en **Configuraciones → Sinónimos de Columnas** (nueva pestaña en `/configuraciones`, junto a Rubros/Marcas/Google Drive): una tarjeta por cada uno de los 7 campos detectables (ETM, Descripción, Descripción en inglés, Cantidad, Marca, Modelo, Unidad) con sus sinónimos como chips removibles y un input para agregar uno nuevo (Enter o botón "+"). Tabla nueva `sinonimos_columna_excel` (migración 037), CRUD simple (crear/listar/eliminar, sin update — para corregir uno se borra y se carga de nuevo) siguiendo el mismo patrón de Rubros/Marcas (`BaseRepository`, soft delete).
+
+El detector de encabezados ahora carga la lista completa al montar `ItemsCaptureEditor` y, para cada campo, acepta el nombre exacto de siempre **o** cualquiera de sus sinónimos (ambos pasan por el mismo `normalizarHeader`). Importante: esto también se aplicó a la búsqueda de la fila de encabezados en sí (antes solo reconocía la fila como tal si encontraba literalmente "DESCRIPCION" y "CANTIDAD" — si el archivo llamaba a la columna "DETALLE", ni siquiera se detectaba qué fila era el header). Si la carga de sinónimos falla o el usuario no tiene permiso, se degrada en silencio al comportamiento exacto de siempre (no rompe la importación).
+
+**Permisos**: módulo nuevo `sinonimos_columna_excel` con `leer`/`crear`/`eliminar`, asignado a Administrador y Compras (pedido explícito de Nicole). Se armó como permiso propio en vez de reutilizar `solicitudes_cotizacion:leer` por un hallazgo en el camino: en producción, el rol **Compras no tiene ningún permiso del módulo `solicitudes_cotizacion`** — si el `GET` de sinónimos hubiera dependido de ese permiso, nunca se habrían aplicado al importar para el único rol no-admin al que le importa esta feature. **Esto queda como un posible gap a revisar con Nicole**: Jorge Costilla (rol Compras, quien sube los Excel según la conversación) no tiene acceso formal al módulo de Solicitudes de Cotización por el sistema de permisos — no se tocó nada de eso en esta sesión por ser una decisión de acceso aparte, pero valdría la pena confirmarlo.
+
+##### Archivos Modificados
+**Backend**: `backend/src/repositories/sinonimoColumnaExcel.repository.ts` (nuevo), `backend/src/services/sinonimoColumnaExcel.service.ts` (nuevo), `backend/src/controllers/sinonimoColumnaExcel.controller.ts` (nuevo), `backend/src/routes/sinonimoColumnaExcel.routes.ts` (nuevo), `backend/src/routes/index.ts`
+**Frontend**: `frontend/src/services/sinonimosColumnaExcel.service.ts` (nuevo), `frontend/src/pages/unidades/SinonimosColumnaExcelTab.tsx` (nuevo), `frontend/src/pages/unidades/UnidadesList.tsx`, `frontend/src/components/solicitudesCotizacion/ItemsCaptureEditor.tsx`
+**Shared**: `shared/src/types/index.ts`, `shared/src/validators/index.ts`
+**Migraciones**: `database/migrations/037_add_sinonimos_columna_excel.sql`

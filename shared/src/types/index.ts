@@ -130,6 +130,29 @@ export interface UpdateMarcaDto {
 }
 
 // ============================================
+// SINONIMOS DE COLUMNA EXCEL
+// ============================================
+
+export type CampoSinonimoExcel =
+  | 'etm'
+  | 'descripcion'
+  | 'descripcion_ingles'
+  | 'cantidad'
+  | 'marca'
+  | 'modelo'
+  | 'unidad';
+
+export interface SinonimoColumnaExcel extends BaseEntity {
+  campo: CampoSinonimoExcel;
+  sinonimo: string;
+}
+
+export interface CreateSinonimoColumnaExcelDto {
+  campo: CampoSinonimoExcel;
+  sinonimo: string;
+}
+
+// ============================================
 // CLIENTES
 // ============================================
 

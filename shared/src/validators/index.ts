@@ -159,6 +159,25 @@ export const updateMarcaSchema = z.object({
 });
 
 // ============================================
+// SINONIMOS DE COLUMNA EXCEL
+// ============================================
+
+export const campoSinonimoExcelEnum = z.enum([
+  'etm',
+  'descripcion',
+  'descripcion_ingles',
+  'cantidad',
+  'marca',
+  'modelo',
+  'unidad',
+]);
+
+export const createSinonimoColumnaExcelSchema = z.object({
+  campo: campoSinonimoExcelEnum,
+  sinonimo: z.string().trim().min(1, 'El sinónimo no puede estar vacío').max(100),
+});
+
+// ============================================
 // CLIENTES
 // ============================================
 

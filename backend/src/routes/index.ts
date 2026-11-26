@@ -16,6 +16,7 @@ import { sugerenciaRoutes } from './sugerencia.routes.js';
 import { solicitudCotizacionRoutes } from './solicitudCotizacion.routes.js';
 import { googleRoutes } from './google.routes.js';
 import { configuracionRoutes } from './configuracionDolar.routes.js';
+import { sinonimoColumnaExcelRoutes } from './sinonimoColumnaExcel.routes.js';
 
 const router = Router();
 
@@ -42,5 +43,6 @@ router.use('/sugerencias', sugerenciaRoutes);
 router.use('/solicitudes-cotizacion', solicitudCotizacionRoutes);
 router.use('/google', googleRoutes);
 router.use('/configuracion', configuracionRoutes);
+router.use('/sinonimos-columna-excel', sinonimoColumnaExcelRoutes);
 
 export { router as apiRoutes };

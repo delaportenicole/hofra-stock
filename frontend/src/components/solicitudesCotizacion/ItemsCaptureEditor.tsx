@@ -1,10 +1,11 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { FileSpreadsheet, FileText, Wand2, AlertCircle, AlertTriangle, Loader2, X, Trash2 } from 'lucide-react';
 import { solicitudesCotizacionService } from '../../services/solicitudesCotizacion.service';
+import { sinonimosColumnaExcelService } from '../../services/sinonimosColumnaExcel.service';
 import { getErrorMessage } from '../../services/api';
 import toast from 'react-hot-toast';
-import type { CreateSolicitudCotizacionItemDto } from '@hofra/shared';
+import type { CreateSolicitudCotizacionItemDto, SinonimoColumnaExcel, CampoSinonimoExcel } from '@hofra/shared';
 
 type ModoCarga = 'excel' | 'texto';
 
@@ -54,6 +55,28 @@ export function ItemsCaptureEditor({ items, onItemsChange, fileName, onFileNameC
     setColumnasVisibles((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const [sinonimos, setSinonimos] = useState<SinonimoColumnaExcel[]>([]);
+
+  useEffect(() => {
+    // Si el usuario no tiene permiso de lectura sobre solicitudes de cotización, o falla la
+    // carga, se sigue funcionando con los nombres de columna exactos de siempre (sin sinónimos).
+    sinonimosColumnaExcelService.getAll().then(setSinonimos).catch(() => {});
+  }, []);
+
+  const sinonimosPorCampo = useMemo(() => {
+    const mapa: Record<CampoSinonimoExcel, Set<string>> = {
+      etm: new Set(),
+      descripcion: new Set(),
+      descripcion_ingles: new Set(),
+      cantidad: new Set(),
+      marca: new Set(),
+      modelo: new Set(),
+      unidad: new Set(),
+    };
+    sinonimos.forEach((s) => mapa[s.campo].add(normalizarHeader(s.sinonimo)));
+    return mapa;
+  }, [sinonimos]);
+
   const parseExcelFile = useCallback(
     (file: File) => {
       const reader = new FileReader();
@@ -79,9 +102,14 @@ export function ItemsCaptureEditor({ items, onItemsChange, fileName, onFileNameC
           let headerRowIndex = -1;
           let headers: string[] = [];
 
+          const tieneDescripcion = (hs: string[]) =>
+            hs.includes('DESCRIPCION') || hs.some((h) => sinonimosPorCampo.descripcion.has(h));
+          const tieneCantidad = (hs: string[]) =>
+            hs.includes('CANTIDAD') || hs.some((h) => sinonimosPorCampo.cantidad.has(h));
+
           for (let i = 0; i < Math.min(jsonData.length, MAX_FILAS_BUSQUEDA_HEADER); i++) {
             const candidateHeaders = (jsonData[i] as unknown[]).map((h) => normalizarHeader(String(h ?? '')));
-            if (candidateHeaders.includes('DESCRIPCION') && candidateHeaders.includes('CANTIDAD')) {
+            if (tieneDescripcion(candidateHeaders) && tieneCantidad(candidateHeaders)) {
               headerRowIndex = i;
               headers = candidateHeaders;
               break;
@@ -95,13 +123,15 @@ export function ItemsCaptureEditor({ items, onItemsChange, fileName, onFileNameC
             return;
           }
 
-          const etmIdx = headers.findIndex((h) => h === 'ETM');
-          const descIdx = headers.findIndex((h) => h === 'DESCRIPCION');
-          const descIngIdx = headers.findIndex((h) => h === 'DESCRIPCION EN INGLES');
-          const cantidadIdx = headers.findIndex((h) => h === 'CANTIDAD');
-          const marcaIdx = headers.findIndex((h) => h === 'MARCA');
-          const modeloIdx = headers.findIndex((h) => h === 'MODELO');
-          const unidadIdx = headers.findIndex((h) => h === 'UNIDAD');
+          const etmIdx = headers.findIndex((h) => h === 'ETM' || sinonimosPorCampo.etm.has(h));
+          const descIdx = headers.findIndex((h) => h === 'DESCRIPCION' || sinonimosPorCampo.descripcion.has(h));
+          const descIngIdx = headers.findIndex(
+            (h) => h === 'DESCRIPCION EN INGLES' || sinonimosPorCampo.descripcion_ingles.has(h)
+          );
+          const cantidadIdx = headers.findIndex((h) => h === 'CANTIDAD' || sinonimosPorCampo.cantidad.has(h));
+          const marcaIdx = headers.findIndex((h) => h === 'MARCA' || sinonimosPorCampo.marca.has(h));
+          const modeloIdx = headers.findIndex((h) => h === 'MODELO' || sinonimosPorCampo.modelo.has(h));
+          const unidadIdx = headers.findIndex((h) => h === 'UNIDAD' || sinonimosPorCampo.unidad.has(h));
 
           const rows: CreateSolicitudCotizacionItemDto[] = [];
           let skipped = 0;
@@ -148,7 +178,7 @@ export function ItemsCaptureEditor({ items, onItemsChange, fileName, onFileNameC
       };
       reader.readAsBinaryString(file);
     },
-    [onItemsChange, onFileNameChange]
+    [onItemsChange, onFileNameChange, sinonimosPorCampo]
   );
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

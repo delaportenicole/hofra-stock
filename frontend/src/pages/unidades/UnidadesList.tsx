@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Edit2, Trash2, Tags, Award, HardDrive, CheckCircle2, ExternalLink } from 'lucide-react';
+import { Plus, Edit2, Trash2, Tags, Award, HardDrive, CheckCircle2, ExternalLink, Columns3 } from 'lucide-react';
 import { rubrosService } from '../../services/rubros.service';
 import { marcasService } from '../../services/marcas.service';
 import { googleService, type GoogleStatus } from '../../services/google.service';
@@ -12,8 +12,9 @@ import toast from 'react-hot-toast';
 import type { Rubro, Marca } from '@hofra/shared';
 import { RubroModal } from './RubroModal';
 import { MarcaModal } from './MarcaModal';
+import { SinonimosColumnaExcelTab } from './SinonimosColumnaExcelTab';
 
-type TabType = 'rubros' | 'marcas' | 'google';
+type TabType = 'rubros' | 'marcas' | 'sinonimos' | 'google';
 
 export function UnidadesListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -277,6 +278,17 @@ export function UnidadesListPage() {
             Marcas
           </button>
           <button
+            onClick={() => setActiveTab('sinonimos')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+              activeTab === 'sinonimos'
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <Columns3 className="w-4 h-4" />
+            Sinónimos de Columnas
+          </button>
+          <button
             onClick={() => setActiveTab('google')}
             className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
               activeTab === 'google'
@@ -356,6 +368,8 @@ export function UnidadesListPage() {
           />
         </div>
       )}
+
+      {activeTab === 'sinonimos' && <SinonimosColumnaExcelTab />}
 
       {activeTab === 'google' && (
         <div className="card p-6 max-w-xl">
