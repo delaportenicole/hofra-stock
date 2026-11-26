@@ -2930,3 +2930,18 @@ Se cambió al mismo patrón de tabs que ya usa el resto del sistema (ej. Configu
 
 ##### Archivos Modificados
 **Frontend**: `frontend/src/components/solicitudesCotizacion/ItemsCaptureEditor.tsx`
+
+### 26 de noviembre de 2026 (continuación 2) — Bug: Item Ofrecido se precargaba con el artículo matcheado sin aceptar
+
+Nicole pidió que al importar, "Item Ofrecido" quede en blanco y editable, y que solo se llene al aceptar una sugerencia (botón "Aceptar Sug.", antes "Aceptar sugerencia") o con texto manual. Al revisar, el problema era un bug de más atrás, no solo de la pantalla: en `solicitudCotizacion.repository.ts`, tanto `create()` como `addItems()` insertaban el mismo match del matching automático en **dos** columnas (`articulo_id` y `articulo_id_sugerido`, vía el mismo parámetro `$10` reusado en el INSERT) — aunque `estado_item` quedaba en `'pendiente'` (nunca se seteaba explícito en el insert, así que tomaba el default). La migración 031 (hace unas semanas) había separado ambas columnas justo para evitar esto, pero el insert nunca se actualizó para dejar de pisar `articulo_id` también.
+
+Efecto práctico: `item.articulo` (el artículo "aceptado") quedaba poblado apenas se importaba, aunque el usuario nunca tocó "Aceptar Sug.", y el frontend (`nombreOfrecidoEfectivo`) lo usaba como fallback para precargar "Item Ofrecido" sin chequear `estadoItem`.
+
+**Fix en dos capas**: el insert ahora deja `articulo_id` en `NULL` siempre al crear (solo `articulo_id_sugerido` se carga con el match), y `nombreOfrecidoEfectivo` en el frontend ahora solo cae al nombre del artículo cuando `estadoItem === 'aceptado'` — doble resguardo, para que "Item Ofrecido" dependa únicamente de un "Aceptar Sug." explícito o de texto manual, nunca de un match automático sin confirmar.
+
+**Migración 038** (de datos, no de esquema): limpió los ítems ya existentes que habían quedado en ese estado inconsistente (`pendiente` + `articulo_id` ya cargado igual al sugerido) — 122 filas en producción. No se tocó ningún ítem ya aceptado/no disponible, ni la sugerencia en sí (`articulo_id_sugerido` queda intacto, la columna "Sugerido" sigue mostrando lo mismo).
+
+##### Archivos Modificados
+**Backend**: `backend/src/repositories/solicitudCotizacion.repository.ts`
+**Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
+**Migraciones**: `database/migrations/038_fix_articulo_id_pendiente_sin_aceptar.sql`

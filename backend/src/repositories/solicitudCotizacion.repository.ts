@@ -86,9 +86,11 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       const items: SolicitudCotizacionItem[] = [];
       for (const item of data.items) {
         const itemRows = await client.query<Record<string, unknown>>(
+          // articulo_id queda NULL a propósito: la sugerencia del matching (articulo_id_sugerido)
+          // no implica aceptación — eso solo pasa cuando el usuario acepta (ver migración 031).
           `INSERT INTO solicitud_cotizacion_items
              (solicitud_id, orden, etm_solicitado, descripcion_solicitada, marca_solicitada, modelo_solicitado, descripcion_ingles_solicitada, unidad_solicitada, cantidad_solicitada, articulo_id, articulo_id_sugerido, match_confianza)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10, $11)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NULL, $10, $11)
            RETURNING *`,
           [
             solicitud.id,
@@ -127,9 +129,11 @@ export class SolicitudCotizacionRepository extends BaseRepository<SolicitudCotiz
       const inserted: SolicitudCotizacionItem[] = [];
       for (const item of items) {
         const itemRows = await client.query<Record<string, unknown>>(
+          // articulo_id queda NULL a propósito: la sugerencia del matching (articulo_id_sugerido)
+          // no implica aceptación — eso solo pasa cuando el usuario acepta (ver migración 031).
           `INSERT INTO solicitud_cotizacion_items
              (solicitud_id, orden, etm_solicitado, descripcion_solicitada, marca_solicitada, modelo_solicitado, descripcion_ingles_solicitada, unidad_solicitada, cantidad_solicitada, articulo_id, articulo_id_sugerido, match_confianza)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10, $11)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NULL, $10, $11)
            RETURNING *`,
           [
             solicitudId,

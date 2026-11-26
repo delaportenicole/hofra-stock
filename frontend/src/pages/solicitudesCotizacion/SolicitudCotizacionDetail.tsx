@@ -64,7 +64,13 @@ function buildGoogleUrl(item: SolicitudCotizacionItemConArticulo): string {
 }
 
 function nombreOfrecidoEfectivo(item: SolicitudCotizacionItemConArticulo): string {
-  return item.nombreOfrecido || item.articulo?.nombre || '';
+  // Solo se precarga con el nombre del artículo matcheado si el ítem ya fue aceptado
+  // (por "Aceptar Sug." o eligiendo uno manualmente) — nunca al importar, aunque haya
+  // un articuloIdSugerido con buena confianza: ahí el campo debe quedar en blanco.
+  if (item.estadoItem === 'aceptado' && item.articulo) {
+    return item.nombreOfrecido || item.articulo.nombre;
+  }
+  return item.nombreOfrecido || '';
 }
 
 function unidadEfectiva(item: SolicitudCotizacionItemConArticulo): string {
@@ -902,7 +908,7 @@ export function SolicitudCotizacionDetailPage() {
                               disabled={disabled}
                               className="flex items-center gap-1 text-xs text-green-700 hover:text-green-800 disabled:opacity-50"
                             >
-                              <Check className="w-3.5 h-3.5 flex-shrink-0" /> Aceptar sugerencia
+                              <Check className="w-3.5 h-3.5 flex-shrink-0" /> Aceptar Sug.
                             </button>
                           )}
                           <button
