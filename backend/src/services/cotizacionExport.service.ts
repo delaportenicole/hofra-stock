@@ -1,6 +1,14 @@
 import ExcelJS from 'exceljs';
+import { imageSize } from 'image-size';
 import type { SolicitudCotizacionConRelaciones, SolicitudCotizacionItemConArticulo } from '@hofra/shared';
 import { LOGO_GE_VERNOVA_BASE64, LOGO_HOFRA_GROUP_BASE64 } from '../assets/logos.js';
+
+// Tamaño máximo de la imagen incrustada en la columna "Imagen de lo Ofrecido": se achica
+// manteniendo la proporción original (nunca se agranda ni se deforma) para que entre en el
+// alto de fila (50pt) sin invadir filas vecinas ni desbordar el ancho de la columna.
+const IMAGEN_MAX_WIDTH_PT = 170;
+const IMAGEN_MAX_HEIGHT_PT = 50;
+const PT_A_PX = 96 / 72; // exceljs toma el tamaño de imagen (ext) en píxeles a 96dpi
 
 export interface SheetCellFormula {
   formula: string; // sin el "=" inicial
@@ -114,19 +122,20 @@ function valorColumnaItem(
     case 'etm':
       return item.etmSolicitado || '';
     case 'marca':
-      return item.marca ?? item.marcaSolicitada ?? '';
+      // Columna del lado "Solicitado": lo que pidió el cliente, sin pisar con overrides.
+      return item.marcaSolicitada || '';
     case 'modelo':
-      return item.modelo ?? item.modeloSolicitado ?? '';
+      return item.modeloSolicitado || '';
     case 'cantidad':
       return item.cantidad ?? item.cantidadSolicitada;
     case 'itemOfrecido':
       return item.nombreOfrecido || articulo?.nombre || '';
     case 'unidadMedida':
-      return articulo ? 'Unidad' : '';
+      return item.unidad || '';
     case 'marcaOfrecida':
-      return articulo?.marca || '';
+      return item.marca || articulo?.marca || '';
     case 'modeloOfrecido':
-      return ''; // Modelo del artículo ofrecido: no lo trackeamos, queda para completar a mano
+      return item.modelo || '';
     case 'imagen':
       // En Excel la imagen se incrusta aparte (ver buildCotizacionExcelBuffer): acá solo
       // corresponde la fórmula para Google Sheets, que sí soporta IMAGE() nativamente.
@@ -400,11 +409,30 @@ export async function buildCotizacionExcelBuffer(
           // devuelve @types/node moderno es Buffer<ArrayBufferLike>, estructuralmente
           // incompatible a nivel de tipos aunque sea el mismo objeto en runtime.
           const imageId = workbook.addImage({ buffer, extension } as unknown as ExcelJS.Image);
+
+          // Se escala manteniendo proporción para entrar en 170x50pt, sin agrandar imágenes
+          // que ya sean más chicas (solo reduce, nunca estira ni deforma).
+          const maxWidthPx = IMAGEN_MAX_WIDTH_PT * PT_A_PX;
+          const maxHeightPx = IMAGEN_MAX_HEIGHT_PT * PT_A_PX;
+          let width = maxWidthPx;
+          let height = maxHeightPx;
+          try {
+            const dimensiones = imageSize(buffer);
+            if (dimensiones.width && dimensiones.height) {
+              const escala = Math.min(maxWidthPx / dimensiones.width, maxHeightPx / dimensiones.height, 1);
+              width = dimensiones.width * escala;
+              height = dimensiones.height * escala;
+            }
+          } catch {
+            // Si no se puede leer el tamaño real (formato raro, header corrupto, etc.),
+            // se usa el máximo como último recurso en vez de no mostrar nada.
+          }
+
           const filaIndex0 = primeraFilaItems + i - 1;
           sheet.addImage(imageId, {
             tl: { col: imagenColIndex, row: filaIndex0 },
-            br: { col: imagenColIndex + 1, row: filaIndex0 + 1 },
-          } as ExcelJS.ImageRange);
+            ext: { width, height },
+          } as unknown as ExcelJS.ImagePosition);
         } catch (err) {
           console.error(`No se pudo descargar la imagen del artículo (ítem ${i + 1}):`, err);
         }

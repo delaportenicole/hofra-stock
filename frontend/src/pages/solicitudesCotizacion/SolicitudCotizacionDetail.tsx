@@ -73,16 +73,25 @@ function nombreOfrecidoEfectivo(item: SolicitudCotizacionItemConArticulo): strin
   return item.nombreOfrecido || '';
 }
 
+// Unidad de Medida, Marca Ofr. y Modelo Ofr. son del lado "Ofrecido": nunca deben caer en
+// los datos de "Solicitado" (eso ahora vive en sus propias columnas Sol., de solo lectura).
+// Si hay un override cargado a mano, gana siempre; si no, y el ítem ya fue aceptado, se
+// completa con el dato del artículo del catálogo — igual que nombreOfrecidoEfectivo.
+// El catálogo de Articulo no tiene campos de modelo ni unidad (se sacaron hace tiempo), así
+// que esos dos solo pueden llegar por override manual.
+
 function unidadEfectiva(item: SolicitudCotizacionItemConArticulo): string {
-  return item.unidad ?? item.unidadSolicitada ?? '';
+  return item.unidad || '';
 }
 
 function marcaEfectiva(item: SolicitudCotizacionItemConArticulo): string {
-  return item.marca ?? item.marcaSolicitada ?? '';
+  if (item.marca) return item.marca;
+  if (item.estadoItem === 'aceptado' && item.articulo?.marca) return item.articulo.marca;
+  return '';
 }
 
 function modeloEfectivo(item: SolicitudCotizacionItemConArticulo): string {
-  return item.modelo ?? item.modeloSolicitado ?? '';
+  return item.modelo || '';
 }
 
 // El `title` nativo del navegador tarda y es inconsistente para aparecer (varía según

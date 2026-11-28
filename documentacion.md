@@ -2995,3 +2995,15 @@ Se reemplazó por un tooltip propio en CSS puro (patrón `group`/`group-hover` d
 
 ##### Archivos Modificados
 **Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
+
+### 28 de noviembre de 2026 (continuación 2) — Imagen incrustada a tamaño real + Marca/Modelo/Unidad Ofr. ya no heredan del Solicitado
+
+**Imagen del Excel a tamaño correcto**: la imagen incrustada (ver fix anterior de "IMAGE is an unsupported function") se estaba estirando para llenar la celda entera, deformando la proporción original. Se agregó la dependencia `image-size` (liviana, sin binarios nativos; se fijó en `^1.2.1` porque la 2.x exige Node 22 y Railway corre Node 20) para leer el ancho/alto real de la imagen descargada y escalarla manteniendo su proporción hasta entrar en un máximo de 170pt de ancho × 50pt de alto (coincide con el alto de fila ya fijado) — nunca agranda una imagen más chica que ese máximo, solo reduce. Técnicamente se pasó de un anchor de dos puntas (`tl`/`br`, que estira la imagen al tamaño exacto de la celda) a un anchor de una punta con tamaño explícito en píxeles (`tl` + `ext: {width, height}`), convirtiendo puntos a píxeles a 96dpi (`pt * 96/72`).
+
+**Marca Ofr./Modelo Ofr./Unidad de Medida dejan de heredar del lado "Solicitado"**: Nicole notó que estas tres columnas editables, cuando estaban vacías, se completaban con lo que pidió el cliente (`marcaSolicitada`/`modeloSolicitado`/`unidadSolicitada`) — confuso ahora que existen columnas "Sol." dedicadas y de solo lectura para eso. Se cambió el valor por defecto de las tres para que, en vez de cliente, miren al lado "Ofrecido": si hay un override cargado a mano gana siempre; si no, y el ítem ya fue aceptado, se completa con el dato del **artículo del catálogo** (mismo patrón que ya usaba `nombreOfrecidoEfectivo`). Con una salvedad real de modelo de datos: la tabla `articulos` no tiene campos de `modelo` ni `unidad` (se habían sacado hace tiempo), así que esos dos nunca tienen de dónde completarse automáticamente — quedan en blanco hasta que alguien los tipee a mano, incluso con un artículo ya aceptado. Marca sí tiene de dónde traerse (`articulo.marca`).
+
+De paso se corrigió la misma inconsistencia en la exportación a Excel/Google Sheets, que tenía exactamente el mismo problema en el otro sentido: las columnas "MARCA"/"MODELO" del lado Solicitado mostraban el valor con override ya aplicado (debían mostrar lo puro solicitado); "Marca Ofrecida" ya estaba bien pero ahora también respeta el override manual antes que el artículo; "Modelo Ofrecido" estaba hardcodeada en blanco con un comentario "no lo trackeamos" (ya no es cierto, ahora se carga en la grilla); "Unidad de Medida" devolvía literalmente el string fijo `"Unidad"` si había artículo matcheado, en vez del dato real cargado.
+
+##### Archivos Modificados
+**Backend**: `backend/src/services/cotizacionExport.service.ts`, `backend/package.json` (nueva dependencia `image-size`)
+**Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
