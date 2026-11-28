@@ -881,25 +881,25 @@ export function SolicitudCotizacionDetailPage() {
           <table className="w-full border-separate border-spacing-0 text-sm">
             <thead className="bg-gray-50">
               <tr className="divide-x divide-gray-300">
-                <th className="sticky top-16 left-0 z-20 bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[200px] whitespace-normal break-words border-b border-gray-300">Item Solicitado</th>
+                <th className="sticky top-16 left-0 z-20 bg-[#03b0f0] px-2 py-2 text-left align-top font-medium text-white uppercase text-xs w-[200px] whitespace-normal break-words border-b border-gray-300">Item Solicitado</th>
                 {columnasVisibles.cantSol && (
-                  <EncabezadoConTooltip tooltip="Cantidad Solicitada" className="bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[56px] whitespace-normal break-words border-b border-gray-300">Cant. Sol.</EncabezadoConTooltip>
+                  <EncabezadoConTooltip tooltip="Cantidad Solicitada" className="bg-[#03b0f0] px-2 py-2 text-left align-top font-medium text-white uppercase text-xs w-[56px] whitespace-normal break-words border-b border-gray-300">Cant. Sol.</EncabezadoConTooltip>
                 )}
                 {columnasVisibles.marcaSol && (
-                  <EncabezadoConTooltip tooltip="Marca Solicitada" className="bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words border-b border-gray-300">Marca Sol.</EncabezadoConTooltip>
+                  <EncabezadoConTooltip tooltip="Marca Solicitada" className="bg-[#03b0f0] px-2 py-2 text-left align-top font-medium text-white uppercase text-xs w-[100px] whitespace-normal break-words border-b border-gray-300">Marca Sol.</EncabezadoConTooltip>
                 )}
                 {columnasVisibles.modeloSol && (
-                  <EncabezadoConTooltip tooltip="Modelo Solicitado" className="bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words border-b border-gray-300">Modelo Sol.</EncabezadoConTooltip>
+                  <EncabezadoConTooltip tooltip="Modelo Solicitado" className="bg-[#03b0f0] px-2 py-2 text-left align-top font-medium text-white uppercase text-xs w-[100px] whitespace-normal break-words border-b border-gray-300">Modelo Sol.</EncabezadoConTooltip>
                 )}
                 {columnasVisibles.itemSugerido && (
                   <th className="sticky top-16 z-10 bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs min-w-[160px] whitespace-normal break-words border-b border-gray-300">Item Sugerido</th>
                 )}
-                <th className="sticky top-16 left-[200px] z-20 bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[200px] whitespace-normal break-words border-b border-gray-300">Item Ofrecido</th>
+                <th className="sticky top-16 left-[200px] z-20 bg-[#548135] px-2 py-2 text-left align-top font-medium text-white uppercase text-xs w-[200px] whitespace-normal break-words border-b border-gray-300">Item Ofrecido</th>
                 {columnasVisibles.acciones && (
                   <th className="sticky top-16 z-10 bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[110px] whitespace-normal break-words border-b border-gray-300">Acciones</th>
                 )}
                 {columnasVisibles.cantOfr && (
-                  <EncabezadoConTooltip tooltip="Cantidad Ofrecida" className="bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[56px] whitespace-normal break-words border-b border-gray-300">Cant. Ofr.</EncabezadoConTooltip>
+                  <EncabezadoConTooltip tooltip="Cantidad Ofrecida" className="bg-[#548135] px-2 py-2 text-left align-top font-medium text-white uppercase text-xs w-[56px] whitespace-normal break-words border-b border-gray-300">Cant. Ofr.</EncabezadoConTooltip>
                 )}
                 {columnasVisibles.unidad && (
                   <EncabezadoConTooltip tooltip="Presentación" className="bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[90px] whitespace-normal break-words border-b border-gray-300">
@@ -909,13 +909,13 @@ export function SolicitudCotizacionDetailPage() {
                   </EncabezadoConTooltip>
                 )}
                 {columnasVisibles.marcaOfr && (
-                  <EncabezadoConTooltip tooltip="Marca Ofrecida" className="bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words border-b border-gray-300">Marca Ofr.</EncabezadoConTooltip>
+                  <EncabezadoConTooltip tooltip="Marca Ofrecida" className="bg-[#548135] px-2 py-2 text-left align-top font-medium text-white uppercase text-xs w-[100px] whitespace-normal break-words border-b border-gray-300">Marca Ofr.</EncabezadoConTooltip>
                 )}
                 {columnasVisibles.modeloOfr && (
-                  <EncabezadoConTooltip tooltip="Modelo Ofrecido" className="bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words border-b border-gray-300">Modelo Ofr.</EncabezadoConTooltip>
+                  <EncabezadoConTooltip tooltip="Modelo Ofrecido" className="bg-[#548135] px-2 py-2 text-left align-top font-medium text-white uppercase text-xs w-[100px] whitespace-normal break-words border-b border-gray-300">Modelo Ofr.</EncabezadoConTooltip>
                 )}
                 {columnasVisibles.precioArs && (
-                  <th className="sticky top-16 z-10 bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[120px] whitespace-normal break-words border-b border-gray-300">$ Unitario Sin Iva (ARS)</th>
+                  <th className="sticky top-16 z-10 bg-[#03b0f0] px-2 py-2 text-left align-top font-medium text-white uppercase text-xs w-[120px] whitespace-normal break-words border-b border-gray-300">$ Unitario Sin Iva (ARS)</th>
                 )}
                 {columnasVisibles.markUp && (
                   <th className="sticky top-16 z-10 bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[64px] whitespace-normal break-words border-b border-gray-300">Mark Up</th>

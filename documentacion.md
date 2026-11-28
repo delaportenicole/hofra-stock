@@ -3049,7 +3049,12 @@ Estos 4 campos del encabezado de Solicitud de Cotización se deshabilitan (`disa
 
 La fila con los nombres de columna de la grilla de ítems ahora queda fija al scrollear verticalmente, además de las dos columnas que ya eran sticky horizontalmente (Item Solicitado/Item Ofrecido). Técnicamente: en una tabla, pegar el `<thead>` entero no es confiable entre navegadores, así que se vuelve sticky cada `<th>` individualmente (mismo truco que ya se usaba para las columnas fijas) con `top-16` (64px, la altura del header fijo de la app) en vez de pegar la fila completa. Cada `th` necesita su propio `bg-gray-50` explícito — antes alcanzaba con el fondo del `<thead>` porque las celdas nunca se despegaban de ahí, pero una vez que cada una se vuelve `sticky` y flota sobre las filas que van scrolleando, necesita pintar su propio fondo para no verse transparente. El componente `EncabezadoConTooltip` pasó de `relative` (para anclar el tooltip) a `sticky top-16` — `position: sticky` también sirve como ancla para el tooltip absolutamente posicionado, así que no hace falta `relative` además. Las dos columnas ya fijas por izquierda (Item Solicitado/Ofrecido, `z-20`) quedan por encima del resto de los encabezados (`z-10`) para que la esquina superior-izquierda se vea siempre completa al scrollear en ambos sentidos.
 
-Queda pendiente aplicar colores de fondo distintos por columna en esta misma fila de encabezados (Nicole va a pasar el código de color para cada una).
+##### Archivos Modificados
+**Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
+
+### 28 de noviembre de 2026 (continuación 9) — Colores de fondo por grupo de columna en el encabezado
+
+Nicole pasó dos colores para agrupar visualmente el lado "Solicitado" del lado "Ofrecido" en el encabezado de la grilla: **`#03b0f0`** (celeste) en Item Solicitado, Cant. Sol., Marca Sol., Modelo Sol. y $ Unitario Sin Iva (ARS); **`#548135`** (verde oliva) en Item Ofrecido, Cant. Ofr., Marca Ofr. y Modelo Ofr. El resto de las columnas (Item Sugerido, Acciones, Presentación, Mark Up) se dejaron con el gris por defecto porque no se pidió color para ellas. Como ambos colores son bastante saturados/oscuros, el texto del encabezado en esas columnas pasó de `text-gray-500` a `text-white` para que siga siendo legible (con `text-gray-500` original el contraste quedaba muy bajo contra cualquiera de los dos fondos).
 
 ##### Archivos Modificados
 **Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
