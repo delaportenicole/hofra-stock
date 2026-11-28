@@ -3068,3 +3068,12 @@ Rename de la columna "Presentación" a "U. de medida" (header de la grilla y des
 ##### Archivos Modificados
 **Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
 **Backend**: `backend/src/services/cotizacionExport.service.ts`
+
+### 28 de noviembre de 2026 (continuación 11) — Fix real del sticky header (el anterior no funcionaba)
+
+El sticky de la fila de encabezados implementado antes (`top-16` dentro de un `<div overflow-x-auto>`) compilaba y deployaba sin error, pero en el navegador NO se quedaba pegado al scrollear — se iba con el resto de la página. Causa raíz: el div que envuelve la tabla tiene `overflow-x: auto` para el scroll horizontal; por regla de la spec de CSS (Overflow Module Level 3), cuando `overflow-x` no es `visible` y `overflow-y` no se especifica, el navegador fuerza el valor computado de `overflow-y` a `auto` también — aunque nunca se haya escrito `overflow-y-auto` a mano. Eso convierte a ese div en el "contenedor de scroll" de referencia para `position: sticky`, pero como el div en sí no tenía una altura acotada (crecía con el contenido, sin scrollbar propio), nunca se generaba un scroll real ahí adentro — el que scrolleaba era la página completa, así que el `th` sticky quedaba "pegado" a un contenedor que nunca se movía de forma independiente, y terminaba yéndose con todo lo demás.
+
+**Fix**: se le dio una altura máxima explícita al div (`max-h-[70vh]`) junto con `overflow-y-auto` explícito, para que el scroll vertical ocurra genuinamente adentro de esa tarjeta (con su propia scrollbar) en vez de en la página entera. Como consecuencia, el offset de los `th` sticky pasó de `top-16` (64px, para compensar el header fijo de la app cuando quien scrolleaba era la página) a `top-0` (ahora scrollea su propio contenedor, que no tiene ningún header superpuesto).
+
+##### Archivos Modificados
+**Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
