@@ -3014,3 +3014,10 @@ Ajuste de layout en el menú lateral (`AdminLayout.tsx`): el ancho expandido pas
 
 ##### Archivos Modificados
 **Frontend**: `frontend/src/layouts/AdminLayout.tsx`, `frontend/src/index.css`
+
+### 28 de noviembre de 2026 (continuación 4) — Columna "Unidad de medida" renombrada a "Presentación" (grilla)
+
+En la grilla de Solicitud de Cotización, la columna "Unidad de medida" pasó a llamarse "Presentación" (tanto en el header de la tabla como en el desplegable de mostrar/ocultar columnas). Nicole pidió que el encabezado se vea partido en dos renglones dentro de la celda angosta (90px), tipo "Presen" / "tación" — se forzó el corte a mitad de palabra con un `<br />` explícito (en vez de depender de `break-words`, que solo corta en el límite natural de la palabra) y se usa el mismo componente `EncabezadoConTooltip` que ya tenían las demás columnas, así que al pasar el mouse por el encabezado se sigue viendo "Presentación" completa.
+
+##### Archivos Modificados
+**Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`

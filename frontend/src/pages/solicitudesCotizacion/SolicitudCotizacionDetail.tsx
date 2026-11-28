@@ -145,7 +145,7 @@ const COLUMNAS_TOGGLEABLES: { key: ColumnaToggleable; label: string }[] = [
   { key: 'itemSugerido', label: 'Item Sugerido' },
   { key: 'acciones', label: 'Acciones' },
   { key: 'cantOfr', label: 'Cant. Ofr.' },
-  { key: 'unidad', label: 'Unidad de medida' },
+  { key: 'unidad', label: 'Presentación' },
   { key: 'marcaOfr', label: 'Marca Ofr.' },
   { key: 'modeloOfr', label: 'Modelo Ofr.' },
   { key: 'precioArs', label: '$ Unitario Sin Iva (ARS)' },
@@ -900,7 +900,11 @@ export function SolicitudCotizacionDetailPage() {
                   <EncabezadoConTooltip tooltip="Cantidad Ofrecida" className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[56px] whitespace-normal break-words border-b border-gray-300">Cant. Ofr.</EncabezadoConTooltip>
                 )}
                 {columnasVisibles.unidad && (
-                  <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[90px] whitespace-normal break-words border-b border-gray-300">Unidad de medida</th>
+                  <EncabezadoConTooltip tooltip="Presentación" className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[90px] whitespace-normal break-words border-b border-gray-300">
+                    Presen
+                    <br />
+                    tación
+                  </EncabezadoConTooltip>
                 )}
                 {columnasVisibles.marcaOfr && (
                   <EncabezadoConTooltip tooltip="Marca Ofrecida" className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words border-b border-gray-300">Marca Ofr.</EncabezadoConTooltip>
