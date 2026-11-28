@@ -3037,3 +3037,10 @@ Ajuste sobre el fix anterior de la imagen incrustada: el máximo bajó de 170×5
 
 ##### Archivos Modificados
 **Backend**: `backend/src/services/cotizacionExport.service.ts`
+
+### 28 de noviembre de 2026 (continuación 7) — Fix: texto "grayed out" en N° Cotización, Nombre, USD Oficial Compra/Venta
+
+Estos 4 campos del encabezado de Solicitud de Cotización se deshabilitan (`disabled`) apenas la solicitud sale del estado "en_revision", para que no se puedan seguir editando — pero la clase `.input` global aplica `disabled:bg-gray-100` a cualquier input deshabilitado, y además los navegadores suelen apagar el color de texto de un `<input disabled>` por su cuenta. El resultado era que, una vez pasada de "en_revision", esos 4 valores quedaban grises sobre gris y costaba leerlos — justo los que Nicole más necesita consultar después (número y nombre de la cotización, cotización oficial del dólar). Se agregó un override puntual (`disabled:bg-white disabled:text-gray-900 disabled:border-gray-200`) solo en estos 4 inputs para que el valor se siga viendo con texto normal y fondo blanco aunque el campo esté bloqueado; el resto de los inputs deshabilitados de la pantalla (Fecha de Entrega, Lugar de Entrega, Solicitado Por) no se tocaron.
+
+##### Archivos Modificados
+**Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`

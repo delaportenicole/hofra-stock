@@ -688,7 +688,7 @@ export function SolicitudCotizacionDetailPage() {
             <label className="text-gray-500">N° Cotización:</label>
             <input
               type="number"
-              className="input w-16"
+              className="input w-16 disabled:bg-white disabled:text-gray-900 disabled:border-gray-200"
               value={headerDraft.numeroCotizacion ?? ''}
               disabled={solicitud.estado !== 'en_revision' || isSavingHeader}
               onChange={(e) =>
@@ -705,7 +705,7 @@ export function SolicitudCotizacionDetailPage() {
             <label className="text-gray-500 whitespace-nowrap">Nombre:</label>
             <input
               type="text"
-              className="input flex-1"
+              className="input flex-1 disabled:bg-white disabled:text-gray-900 disabled:border-gray-200"
               value={headerDraft.nombreCotizacion}
               disabled={solicitud.estado !== 'en_revision' || isSavingHeader}
               onChange={(e) => setHeaderDraft((prev) => ({ ...prev, nombreCotizacion: e.target.value }))}
@@ -759,6 +759,7 @@ export function SolicitudCotizacionDetailPage() {
                 onChange={(val) => setHeaderDraft((prev) => ({ ...prev, usdOficialCompra: val }))}
                 onBlur={() => handleHeaderFieldBlur('usdOficialCompra', headerDraft.usdOficialCompra)}
                 placeholder="0,00"
+                className="disabled:bg-white disabled:text-gray-900 disabled:border-gray-200"
               />
             </div>
             <div>
@@ -769,6 +770,7 @@ export function SolicitudCotizacionDetailPage() {
                 onChange={(val) => setHeaderDraft((prev) => ({ ...prev, usdOficialVenta: val }))}
                 onBlur={() => handleHeaderFieldBlur('usdOficialVenta', headerDraft.usdOficialVenta)}
                 placeholder="0,00"
+                className="disabled:bg-white disabled:text-gray-900 disabled:border-gray-200"
               />
             </div>
           </div>
