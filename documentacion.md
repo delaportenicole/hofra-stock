@@ -3007,3 +3007,10 @@ De paso se corrigió la misma inconsistencia en la exportación a Excel/Google S
 ##### Archivos Modificados
 **Backend**: `backend/src/services/cotizacionExport.service.ts`, `backend/package.json` (nueva dependencia `image-size`)
 **Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
+
+### 28 de noviembre de 2026 (continuación 3) — Sidebar más angosto, ítems corridos a la izquierda y renombre "Configuraciones" → "Configurar"
+
+Ajuste de layout en el menú lateral (`AdminLayout.tsx`): el ancho expandido pasó de `w-64` (256px) a `w-48` (192px) — se achicó para que el máximo necesario sea el de la palabra más larga del menú, "Reposiciones", en vez del valor por defecto de Tailwind. Se redujeron también los paddings horizontales del `<nav>` y de cada link (`sidebar-link` en `index.css`: `px-4`→`px-3`, `gap-3`→`gap-2`) para correr el texto e íconos un poco más a la izquierda. El padding del contenido principal (`lg:pl-64`→`lg:pl-48`) se actualizó en conjunto para que no quede un hueco en blanco al lado del sidebar angosto. El ítem de menú "Configuraciones" se renombró a "Configurar" (solo la etiqueta del menú; el título de la página en `UnidadesList.tsx` sigue diciendo "Configuraciones").
+
+##### Archivos Modificados
+**Frontend**: `frontend/src/layouts/AdminLayout.tsx`, `frontend/src/index.css`

@@ -43,7 +43,7 @@ const navigation: NavItem[] = [
   { name: 'Reposiciones', href: '/reposiciones', icon: ArrowDownToLine, permiso: { modulo: 'reposiciones', accion: 'leer' } },
   { name: 'Clientes', href: '/clientes', icon: Building2, permiso: { modulo: 'clientes', accion: 'leer' } },
   { name: 'Proveedores', href: '/proveedores', icon: Truck, permiso: { modulo: 'proveedores', accion: 'leer' } },
-  { name: 'Configuraciones', href: '/configuraciones', icon: Settings },
+  { name: 'Configurar', href: '/configuraciones', icon: Settings },
 ];
 
 const adminNavigation: NavItem[] = [
@@ -91,7 +91,7 @@ export function AdminLayout() {
       <aside
         className={`fixed top-0 left-0 z-50 h-full bg-white border-r border-gray-200 transform transition-all duration-300 ease-in-out lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } ${sidebarCollapsed ? 'w-16' : 'w-64'}`}
+        } ${sidebarCollapsed ? 'w-16' : 'w-48'}`}
       >
         <div className={`flex items-center h-16 border-b border-gray-200 ${sidebarCollapsed ? 'justify-center px-2' : 'justify-between px-4'}`}>
           <div className="flex items-center gap-2">
@@ -110,7 +110,7 @@ export function AdminLayout() {
           </button>
         </div>
 
-        <nav className={`p-2 space-y-1 ${sidebarCollapsed ? 'px-2' : 'px-4'} relative`}>
+        <nav className={`p-2 space-y-1 ${sidebarCollapsed ? 'px-2' : 'px-3'} relative`}>
           {/* Collapse toggle button - positioned at Dashboard height */}
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -143,7 +143,7 @@ export function AdminLayout() {
             <>
               <div className="pt-4 pb-2">
                 {!sidebarCollapsed && (
-                  <span className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  <span className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
                     Administración
                   </span>
                 )}
@@ -172,7 +172,7 @@ export function AdminLayout() {
       </aside>
 
       {/* Main content */}
-      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-64'}`}>
+      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-48'}`}>
         {/* Header */}
         <header className="sticky top-0 z-30 h-16 bg-white border-b border-gray-200">
           <div className="flex items-center justify-between h-full px-4">

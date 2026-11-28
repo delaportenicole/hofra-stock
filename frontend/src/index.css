@@ -102,7 +102,7 @@
   }
 
   .sidebar-link {
-    @apply flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-100 hover:text-gray-900 transition-colors;
+    @apply flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-100 hover:text-gray-900 transition-colors;
   }
 
   .sidebar-link-active {
