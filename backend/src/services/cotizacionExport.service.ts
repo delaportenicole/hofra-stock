@@ -134,7 +134,7 @@ function valorColumnaItem(
     case 'itemOfrecido':
       return item.nombreOfrecido || articulo?.nombre || '';
     case 'unidadMedida':
-      return item.unidad || '';
+      return item.unidad || articulo?.presentacion || '';
     case 'marcaOfrecida':
       return item.marca || articulo?.marca || '';
     case 'modeloOfrecido':

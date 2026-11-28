@@ -73,15 +73,18 @@ function nombreOfrecidoEfectivo(item: SolicitudCotizacionItemConArticulo): strin
   return item.nombreOfrecido || '';
 }
 
-// Unidad de Medida, Marca Ofr. y Modelo Ofr. son del lado "Ofrecido": nunca deben caer en
+// U. de Medida, Marca Ofr. y Modelo Ofr. son del lado "Ofrecido": nunca deben caer en
 // los datos de "Solicitado" (eso ahora vive en sus propias columnas Sol., de solo lectura).
 // Si hay un override cargado a mano, gana siempre; si no, y el ítem ya fue aceptado, se
-// completa con el dato del artículo del catálogo — igual que nombreOfrecidoEfectivo.
-// El catálogo de Articulo no tiene campos de modelo ni unidad (se sacaron hace tiempo), así
-// que esos dos solo pueden llegar por override manual.
+// completa con el dato del artículo del catálogo — igual que nombreOfrecidoEfectivo. U. de
+// Medida usa `articulo.presentacion` (así se llama ese campo en el catálogo). El catálogo de
+// Articulo no tiene campo de modelo (se sacó hace tiempo), así que Modelo Ofr. solo puede
+// llegar por override manual.
 
 function unidadEfectiva(item: SolicitudCotizacionItemConArticulo): string {
-  return item.unidad || '';
+  if (item.unidad) return item.unidad;
+  if (item.estadoItem === 'aceptado' && item.articulo?.presentacion) return item.articulo.presentacion;
+  return '';
 }
 
 function marcaEfectiva(item: SolicitudCotizacionItemConArticulo): string {
@@ -145,7 +148,7 @@ const COLUMNAS_TOGGLEABLES: { key: ColumnaToggleable; label: string }[] = [
   { key: 'itemSugerido', label: 'Item Sugerido' },
   { key: 'acciones', label: 'Acciones' },
   { key: 'cantOfr', label: 'Cant. Ofr.' },
-  { key: 'unidad', label: 'Presentación' },
+  { key: 'unidad', label: 'U. de medida' },
   { key: 'marcaOfr', label: 'Marca Ofr.' },
   { key: 'modeloOfr', label: 'Modelo Ofr.' },
   { key: 'precioArs', label: '$ Unitario Sin Iva (ARS)' },
@@ -902,10 +905,8 @@ export function SolicitudCotizacionDetailPage() {
                   <EncabezadoConTooltip tooltip="Cantidad Ofrecida" className="bg-[#548135] px-2 py-2 text-left align-top font-medium text-white uppercase text-xs w-[56px] whitespace-normal break-words border-b border-gray-300">Cant. Ofr.</EncabezadoConTooltip>
                 )}
                 {columnasVisibles.unidad && (
-                  <EncabezadoConTooltip tooltip="Presentación" className="bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[90px] whitespace-normal break-words border-b border-gray-300">
-                    Presen
-                    <br />
-                    tación
+                  <EncabezadoConTooltip tooltip="Unidad de Medida" className="bg-[#03b0f0] px-2 py-2 text-left align-top font-medium text-white uppercase text-xs w-[90px] whitespace-normal break-words border-b border-gray-300">
+                    U. de medida
                   </EncabezadoConTooltip>
                 )}
                 {columnasVisibles.marcaOfr && (

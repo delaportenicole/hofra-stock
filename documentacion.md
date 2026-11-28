@@ -3058,3 +3058,13 @@ Nicole pasó dos colores para agrupar visualmente el lado "Solicitado" del lado 
 
 ##### Archivos Modificados
 **Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
+
+### 28 de noviembre de 2026 (continuación 10) — "Presentación" → "U. de medida" con fondo celeste + autocompletado real al aceptar
+
+Rename de la columna "Presentación" a "U. de medida" (header de la grilla y desplegable de mostrar/ocultar columnas), con fondo celeste `#03b0f0` igual que el resto de las columnas "Solicitado" — ya no hace falta forzar el salto de línea a mitad de palabra ("Presen"/"tación") porque "U. de medida" entra en una sola línea dentro del ancho de 90px.
+
+**Bug encontrado al revisar el autocompletado**: la documentación de un fix anterior (24/11 y 28/11) asumía que el catálogo de `Articulo` no tenía ningún campo de unidad/presentación — eso era incorrecto. El campo sí existe, se llama `presentacion` (`shared/src/types/index.ts`), pero `unidadEfectiva()` nunca lo consultaba. Se corrigió para que siga el mismo patrón que `marcaEfectiva`: si hay un override cargado a mano gana siempre; si no, y el ítem ya fue aceptado, se completa automáticamente con `articulo.presentacion` del catálogo. Mismo fix simétrico en la exportación a Excel/Sheets (`cotizacionExport.service.ts`, caso `unidadMedida`).
+
+##### Archivos Modificados
+**Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
+**Backend**: `backend/src/services/cotizacionExport.service.ts`
