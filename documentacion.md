@@ -2986,3 +2986,12 @@ El pie de la tabla (fila "Total") ahora calcula su `colSpan` dinámicamente seg�
 
 ##### Archivos Modificados
 **Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
+
+### 28 de noviembre de 2026 (continuación) — Fix: tooltip nativo del navegador poco confiable
+
+Nicole notó que el tooltip (`title` nativo del navegador) en las 6 columnas abreviadas (Cant./Marca/Modelo Sol./Ofr.) tardaba y no se mostraba de forma consistente — comportamiento conocido del atributo `title`, que depende del navegador/SO y suele tener un delay largo y variable.
+
+Se reemplazó por un tooltip propio en CSS puro (patrón `group`/`group-hover` de Tailwind, sin JS ni librería): un `<span>` con el label subrayado punteado (para indicar que tiene más info) y un globito oscuro debajo que aparece apenas se pasa el mouse, sin el delay del navegador. Se armó como componente reutilizable (`EncabezadoConTooltip`) para no repetir el markup en las 6 columnas.
+
+##### Archivos Modificados
+**Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`

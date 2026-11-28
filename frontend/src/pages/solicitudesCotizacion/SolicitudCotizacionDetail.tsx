@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -83,6 +83,28 @@ function marcaEfectiva(item: SolicitudCotizacionItemConArticulo): string {
 
 function modeloEfectivo(item: SolicitudCotizacionItemConArticulo): string {
   return item.modelo ?? item.modeloSolicitado ?? '';
+}
+
+// El `title` nativo del navegador tarda y es inconsistente para aparecer (varía según
+// browser/SO). Este tooltip propio en CSS (group-hover) se muestra apenas se pasa el mouse,
+// sin esa demora.
+function EncabezadoConTooltip({
+  tooltip,
+  className,
+  children,
+}: {
+  tooltip: string;
+  className: string;
+  children: ReactNode;
+}) {
+  return (
+    <th className={`${className} relative group`}>
+      <span className="border-b border-dotted border-gray-400 cursor-help">{children}</span>
+      <span className="pointer-events-none absolute left-1/2 top-full z-30 mt-1 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs font-normal normal-case text-white shadow-lg group-hover:block">
+        {tooltip}
+      </span>
+    </th>
+  );
 }
 
 // Ocultos a pedido de Nicole (2026-09-07): Google Sheets no sirve mientras la cuenta de
@@ -850,13 +872,13 @@ export function SolicitudCotizacionDetailPage() {
               <tr className="divide-x divide-gray-300">
                 <th className="sticky left-0 z-20 bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[200px] whitespace-normal break-words border-b border-gray-300">Item Solicitado</th>
                 {columnasVisibles.cantSol && (
-                  <th title="Cantidad Solicitada" className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[56px] whitespace-normal break-words border-b border-gray-300">Cant. Sol.</th>
+                  <EncabezadoConTooltip tooltip="Cantidad Solicitada" className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[56px] whitespace-normal break-words border-b border-gray-300">Cant. Sol.</EncabezadoConTooltip>
                 )}
                 {columnasVisibles.marcaSol && (
-                  <th title="Marca Solicitada" className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words border-b border-gray-300">Marca Sol.</th>
+                  <EncabezadoConTooltip tooltip="Marca Solicitada" className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words border-b border-gray-300">Marca Sol.</EncabezadoConTooltip>
                 )}
                 {columnasVisibles.modeloSol && (
-                  <th title="Modelo Solicitado" className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words border-b border-gray-300">Modelo Sol.</th>
+                  <EncabezadoConTooltip tooltip="Modelo Solicitado" className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words border-b border-gray-300">Modelo Sol.</EncabezadoConTooltip>
                 )}
                 {columnasVisibles.itemSugerido && (
                   <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs min-w-[160px] whitespace-normal break-words border-b border-gray-300">Item Sugerido</th>
@@ -866,16 +888,16 @@ export function SolicitudCotizacionDetailPage() {
                   <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[110px] whitespace-normal break-words border-b border-gray-300">Acciones</th>
                 )}
                 {columnasVisibles.cantOfr && (
-                  <th title="Cantidad Ofrecida" className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[56px] whitespace-normal break-words border-b border-gray-300">Cant. Ofr.</th>
+                  <EncabezadoConTooltip tooltip="Cantidad Ofrecida" className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[56px] whitespace-normal break-words border-b border-gray-300">Cant. Ofr.</EncabezadoConTooltip>
                 )}
                 {columnasVisibles.unidad && (
                   <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[90px] whitespace-normal break-words border-b border-gray-300">Unidad de medida</th>
                 )}
                 {columnasVisibles.marcaOfr && (
-                  <th title="Marca Ofrecida" className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words border-b border-gray-300">Marca Ofr.</th>
+                  <EncabezadoConTooltip tooltip="Marca Ofrecida" className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words border-b border-gray-300">Marca Ofr.</EncabezadoConTooltip>
                 )}
                 {columnasVisibles.modeloOfr && (
-                  <th title="Modelo Ofrecido" className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words border-b border-gray-300">Modelo Ofr.</th>
+                  <EncabezadoConTooltip tooltip="Modelo Ofrecido" className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words border-b border-gray-300">Modelo Ofr.</EncabezadoConTooltip>
                 )}
                 {columnasVisibles.precioArs && (
                   <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[120px] whitespace-normal break-words border-b border-gray-300">$ Unitario Sin Iva (ARS)</th>
