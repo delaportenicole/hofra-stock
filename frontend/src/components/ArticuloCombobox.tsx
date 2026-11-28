@@ -12,6 +12,7 @@ interface ArticuloComboboxProps {
   className?: string;
   allowZeroStock?: boolean; // Para Reposiciones: permite seleccionar artículos sin stock
   dropdownClassName?: string; // Para angostar/ensanchar el listado desplegable en layouts angostos (ej. celdas de tabla)
+  expandOnFocus?: boolean; // Para celdas angostas de tabla: mientras está abierto, el input se superpone (position absolute) y se ensancha a medida que se escribe, en vez de quedar recortado al ancho fijo de la celda
 }
 
 export function ArticuloCombobox({
@@ -24,6 +25,7 @@ export function ArticuloCombobox({
   className = '',
   allowZeroStock = false,
   dropdownClassName = '',
+  expandOnFocus = false,
 }: ArticuloComboboxProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -125,8 +127,15 @@ export function ArticuloCombobox({
     }
   };
 
+  const expanded = expandOnFocus && isOpen;
+  const expandedWidth = Math.max(260, Math.min(420, inputValue.length * 8 + 80));
+
   return (
-    <div ref={containerRef} className={`relative ${className}`}>
+    <div
+      ref={containerRef}
+      className={expanded ? 'absolute left-0 top-0 z-30' : `relative ${className}`}
+      style={expanded ? { width: expandedWidth } : undefined}
+    >
       <div className="relative">
         <input
           ref={inputRef}

@@ -3021,3 +3021,10 @@ En la grilla de Solicitud de Cotización, la columna "Unidad de medida" pasó a 
 
 ##### Archivos Modificados
 **Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
+
+### 28 de noviembre de 2026 (continuación 5) — El buscador de "Buscar otro" artículo se ensancha mientras se escribe
+
+En la columna "Acciones", al hacer click en "Buscar otro" se abre un `ArticuloCombobox` metido en una celda de 110px — el desplegable con los resultados ya se veía bien ancho (`dropdownClassName="min-w-[520px]"`), pero el input donde se tipea quedaba atrapado en esos 110px, así que no se podía leer ni seleccionar bien lo que uno iba escribiendo. Se agregó un prop nuevo `expandOnFocus` a `ArticuloCombobox`: mientras el desplegable está abierto, el input pasa a `position: absolute` (superpuesto, no empuja el layout de la tabla ni ensancha la columna para todas las filas) y su ancho crece con la cantidad de caracteres tipeados (mínimo 260px, máximo 420px); al cerrarse vuelve a su tamaño normal dentro de la celda. Se activó solo en este uso puntual (la celda "Buscar otro" de Solicitud de Cotización); el resto de los usos de `ArticuloCombobox` (Reposiciones, Entregas, etc.) quedan sin cambios porque no pasan el nuevo prop.
+
+##### Archivos Modificados
+**Frontend**: `frontend/src/components/ArticuloCombobox.tsx`, `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`

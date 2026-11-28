@@ -1049,7 +1049,7 @@ export function SolicitudCotizacionDetailPage() {
                     {columnasVisibles.acciones && (
                     <td className="px-2 py-2 w-[110px] border-b border-gray-300">
                       {editingItemId === item.id ? (
-                        <div className="flex items-start gap-1">
+                        <div className="relative flex items-start gap-1">
                           <ArticuloCombobox
                             articulos={articulos}
                             value={item.articuloId}
@@ -1058,6 +1058,7 @@ export function SolicitudCotizacionDetailPage() {
                             placeholder="Buscar artículo..."
                             dropdownClassName="min-w-[520px]"
                             className="flex-1"
+                            expandOnFocus
                           />
                           <button
                             onClick={() => setEditingItemId(null)}
