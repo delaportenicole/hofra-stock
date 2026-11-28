@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ArrowLeft, Check, Search, ExternalLink, Printer, XCircle, FileCheck, Package, X, Link2, Ban, Download, HardDrive, Loader2, Plus, Globe } from 'lucide-react';
+import { ArrowLeft, Check, Search, ExternalLink, Printer, XCircle, FileCheck, Package, X, Link2, Ban, Download, HardDrive, Loader2, Plus, Globe, Columns3 } from 'lucide-react';
 import { solicitudesCotizacionService } from '../../services/solicitudesCotizacion.service';
 import { articulosService } from '../../services/articulos.service';
 import { ArticuloCombobox } from '../../components/ArticuloCombobox';
@@ -91,6 +91,56 @@ function modeloEfectivo(item: SolicitudCotizacionItemConArticulo): string {
 const MOSTRAR_EXPORTAR_GOOGLE_SHEETS = false;
 const MOSTRAR_IMPRIMIR = false;
 
+// Columnas de la grilla que se pueden mostrar/ocultar desde el desplegable "Columnas".
+// Item Solicitado e Item Ofrecido quedan siempre visibles (son sticky, hacen de referencia
+// fija al scrollear) y no forman parte de este set.
+type ColumnaToggleable =
+  | 'cantSol'
+  | 'marcaSol'
+  | 'modeloSol'
+  | 'itemSugerido'
+  | 'acciones'
+  | 'cantOfr'
+  | 'unidad'
+  | 'marcaOfr'
+  | 'modeloOfr'
+  | 'precioArs'
+  | 'markUp';
+
+const COLUMNAS_TOGGLEABLES: { key: ColumnaToggleable; label: string }[] = [
+  { key: 'cantSol', label: 'Cant. Sol.' },
+  { key: 'marcaSol', label: 'Marca Sol.' },
+  { key: 'modeloSol', label: 'Modelo Sol.' },
+  { key: 'itemSugerido', label: 'Item Sugerido' },
+  { key: 'acciones', label: 'Acciones' },
+  { key: 'cantOfr', label: 'Cant. Ofr.' },
+  { key: 'unidad', label: 'Unidad de medida' },
+  { key: 'marcaOfr', label: 'Marca Ofr.' },
+  { key: 'modeloOfr', label: 'Modelo Ofr.' },
+  { key: 'precioArs', label: '$ Unitario Sin Iva (ARS)' },
+  { key: 'markUp', label: 'Mark Up' },
+];
+
+const COLUMNAS_VISIBLES_STORAGE_KEY = 'hofra:solicitudCotizacion:columnasVisibles';
+
+function columnasVisiblesPorDefecto(): Record<ColumnaToggleable, boolean> {
+  return COLUMNAS_TOGGLEABLES.reduce(
+    (acc, col) => ({ ...acc, [col.key]: true }),
+    {} as Record<ColumnaToggleable, boolean>
+  );
+}
+
+function cargarColumnasVisibles(): Record<ColumnaToggleable, boolean> {
+  const defaults = columnasVisiblesPorDefecto();
+  try {
+    const raw = localStorage.getItem(COLUMNAS_VISIBLES_STORAGE_KEY);
+    if (!raw) return defaults;
+    return { ...defaults, ...JSON.parse(raw) };
+  } catch {
+    return defaults;
+  }
+}
+
 export function SolicitudCotizacionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -105,7 +155,6 @@ export function SolicitudCotizacionDetailPage() {
   const [marcas, setMarcas] = useState<Record<string, string>>({});
   const [modelos, setModelos] = useState<Record<string, string>>({});
   const [precios, setPrecios] = useState<Record<string, number | undefined>>({});
-  const [preciosUsd, setPreciosUsd] = useState<Record<string, number | undefined>>({});
   const [markUps, setMarkUps] = useState<Record<string, number | undefined>>({});
   const [nombresOfrecidos, setNombresOfrecidos] = useState<Record<string, string>>({});
   const [pastingUrlItemId, setPastingUrlItemId] = useState<string | null>(null);
@@ -126,6 +175,23 @@ export function SolicitudCotizacionDetailPage() {
   const [nuevosItemsFileName, setNuevosItemsFileName] = useState<string | null>(null);
   const [isAddingItems, setIsAddingItems] = useState(false);
 
+  const [columnasVisibles, setColumnasVisibles] = useState<Record<ColumnaToggleable, boolean>>(cargarColumnasVisibles);
+  const [mostrarColumnasDropdown, setMostrarColumnasDropdown] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem(COLUMNAS_VISIBLES_STORAGE_KEY, JSON.stringify(columnasVisibles));
+  }, [columnasVisibles]);
+
+  const toggleColumnaVisible = (key: ColumnaToggleable) => {
+    setColumnasVisibles((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const marcarTodasColumnas = (visible: boolean) => {
+    setColumnasVisibles(
+      COLUMNAS_TOGGLEABLES.reduce((acc, col) => ({ ...acc, [col.key]: visible }), {} as Record<ColumnaToggleable, boolean>)
+    );
+  };
+
   useEffect(() => {
     if (id) loadData(id);
   }, [id]);
@@ -144,7 +210,6 @@ export function SolicitudCotizacionDetailPage() {
       const marcasIniciales: Record<string, string> = {};
       const modelosIniciales: Record<string, string> = {};
       const preciosIniciales: Record<string, number | undefined> = {};
-      const preciosUsdIniciales: Record<string, number | undefined> = {};
       const markUpsIniciales: Record<string, number | undefined> = {};
       const nombresOfrecidosIniciales: Record<string, string> = {};
       solicitudData.items.forEach((item) => {
@@ -153,7 +218,6 @@ export function SolicitudCotizacionDetailPage() {
         marcasIniciales[item.id] = marcaEfectiva(item);
         modelosIniciales[item.id] = modeloEfectivo(item);
         preciosIniciales[item.id] = item.precioUnitario ?? undefined;
-        preciosUsdIniciales[item.id] = item.precioUnitarioUsd ?? undefined;
         markUpsIniciales[item.id] = item.markUp ?? undefined;
         nombresOfrecidosIniciales[item.id] = nombreOfrecidoEfectivo(item);
       });
@@ -162,7 +226,6 @@ export function SolicitudCotizacionDetailPage() {
       setMarcas(marcasIniciales);
       setModelos(modelosIniciales);
       setPrecios(preciosIniciales);
-      setPreciosUsd(preciosUsdIniciales);
       setMarkUps(markUpsIniciales);
       setNombresOfrecidos(nombresOfrecidosIniciales);
       setHeaderDraft({
@@ -194,7 +257,6 @@ export function SolicitudCotizacionDetailPage() {
         setMarcas((prev) => ({ ...prev, [itemId]: marcaEfectiva(updatedItem) }));
         setModelos((prev) => ({ ...prev, [itemId]: modeloEfectivo(updatedItem) }));
         setPrecios((prev) => ({ ...prev, [itemId]: updatedItem.precioUnitario ?? undefined }));
-        setPreciosUsd((prev) => ({ ...prev, [itemId]: updatedItem.precioUnitarioUsd ?? undefined }));
         setMarkUps((prev) => ({ ...prev, [itemId]: updatedItem.markUp ?? undefined }));
         setNombresOfrecidos((prev) => ({ ...prev, [itemId]: nombreOfrecidoEfectivo(updatedItem) }));
       }
@@ -312,12 +374,6 @@ export function SolicitudCotizacionDetailPage() {
     const nuevoPrecio = precios[item.id];
     if (nuevoPrecio === item.precioUnitario) return;
     applyUpdate(item.id, { precioUnitario: nuevoPrecio ?? null });
-  };
-
-  const handlePrecioUsdBlur = (item: SolicitudCotizacionItemConArticulo) => {
-    const nuevoPrecioUsd = preciosUsd[item.id];
-    if (nuevoPrecioUsd === item.precioUnitarioUsd) return;
-    applyUpdate(item.id, { precioUnitarioUsd: nuevoPrecioUsd ?? null });
   };
 
   const handleMarkUpBlur = (item: SolicitudCotizacionItemConArticulo) => {
@@ -573,6 +629,10 @@ export function SolicitudCotizacionDetailPage() {
   const aceptados = solicitud.items.filter((item) => item.estadoItem !== 'pendiente').length;
   const pendientesRevision = totalItems - aceptados;
 
+  // Item Solicitado + Item Ofrecido siempre están visibles (son sticky), más las que
+  // estén tildadas en el desplegable "Columnas" — usado para el colSpan del pie de la tabla.
+  const columnasVisiblesCount = 2 + COLUMNAS_TOGGLEABLES.filter((col) => columnasVisibles[col.key]).length;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -712,6 +772,39 @@ export function SolicitudCotizacionDetailPage() {
       </div>
 
       <div className="flex flex-wrap justify-end gap-3">
+        <div className="relative">
+          <button onClick={() => setMostrarColumnasDropdown((v) => !v)} className="btn-secondary">
+            <Columns3 className="w-4 h-4 mr-2" />
+            Columnas
+          </button>
+          {mostrarColumnasDropdown && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setMostrarColumnasDropdown(false)} />
+              <div className="absolute left-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-3">
+                <div className="flex justify-between gap-2 mb-2 pb-2 border-b border-gray-100">
+                  <button onClick={() => marcarTodasColumnas(true)} className="text-xs text-primary-700 hover:underline">
+                    Tildar todas
+                  </button>
+                  <button onClick={() => marcarTodasColumnas(false)} className="text-xs text-primary-700 hover:underline">
+                    Destildar todas
+                  </button>
+                </div>
+                <div className="space-y-1.5 max-h-72 overflow-y-auto">
+                  {COLUMNAS_TOGGLEABLES.map((col) => (
+                    <label key={col.key} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={columnasVisibles[col.key]}
+                        onChange={() => toggleColumnaVisible(col.key)}
+                      />
+                      {col.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
         <button onClick={handleExportarExcel} className="btn-secondary">
           <Download className="w-4 h-4 mr-2" />
           Descargar Excel Interno
@@ -752,38 +845,70 @@ export function SolicitudCotizacionDetailPage() {
 
       <div className="card p-0 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1360px] border-separate border-spacing-0 text-sm">
+          <table className="w-full border-separate border-spacing-0 text-sm">
             <thead className="bg-gray-50">
               <tr className="divide-x divide-gray-300">
-                <th className="sticky left-0 z-20 bg-gray-50 px-2 py-2 text-center align-top font-medium text-gray-500 uppercase text-xs w-[40px] border-b border-gray-300">Item</th>
-                <th className="sticky left-[40px] z-20 bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[200px] whitespace-normal break-words border-b border-gray-300">Item Solicitado</th>
-                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs min-w-[160px] whitespace-normal break-words border-b border-gray-300">Item Sugerido</th>
-                <th className="sticky left-[240px] z-20 bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[200px] whitespace-normal break-words border-b border-gray-300">Item Ofrecido</th>
-                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[110px] whitespace-normal break-words border-b border-gray-300">Acciones</th>
-                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[56px] whitespace-normal break-words border-b border-gray-300">Cant.</th>
-                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[90px] whitespace-normal break-words border-b border-gray-300">Unidad de medida</th>
-                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words border-b border-gray-300">Marca</th>
-                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words border-b border-gray-300">Modelo</th>
-                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[120px] whitespace-normal break-words border-b border-gray-300">$ Unitario Sin Iva (ARS)</th>
-                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[120px] whitespace-normal break-words border-b border-gray-300">$ Unitario Sin Iva (USD)</th>
-                <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[64px] whitespace-normal break-words border-b border-gray-300">Mark Up</th>
+                <th className="sticky left-0 z-20 bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[200px] whitespace-normal break-words border-b border-gray-300">Item Solicitado</th>
+                {columnasVisibles.cantSol && (
+                  <th title="Cantidad Solicitada" className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[56px] whitespace-normal break-words border-b border-gray-300">Cant. Sol.</th>
+                )}
+                {columnasVisibles.marcaSol && (
+                  <th title="Marca Solicitada" className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words border-b border-gray-300">Marca Sol.</th>
+                )}
+                {columnasVisibles.modeloSol && (
+                  <th title="Modelo Solicitado" className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words border-b border-gray-300">Modelo Sol.</th>
+                )}
+                {columnasVisibles.itemSugerido && (
+                  <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs min-w-[160px] whitespace-normal break-words border-b border-gray-300">Item Sugerido</th>
+                )}
+                <th className="sticky left-[200px] z-20 bg-gray-50 px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[200px] whitespace-normal break-words border-b border-gray-300">Item Ofrecido</th>
+                {columnasVisibles.acciones && (
+                  <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[110px] whitespace-normal break-words border-b border-gray-300">Acciones</th>
+                )}
+                {columnasVisibles.cantOfr && (
+                  <th title="Cantidad Ofrecida" className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[56px] whitespace-normal break-words border-b border-gray-300">Cant. Ofr.</th>
+                )}
+                {columnasVisibles.unidad && (
+                  <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[90px] whitespace-normal break-words border-b border-gray-300">Unidad de medida</th>
+                )}
+                {columnasVisibles.marcaOfr && (
+                  <th title="Marca Ofrecida" className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words border-b border-gray-300">Marca Ofr.</th>
+                )}
+                {columnasVisibles.modeloOfr && (
+                  <th title="Modelo Ofrecido" className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[100px] whitespace-normal break-words border-b border-gray-300">Modelo Ofr.</th>
+                )}
+                {columnasVisibles.precioArs && (
+                  <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[120px] whitespace-normal break-words border-b border-gray-300">$ Unitario Sin Iva (ARS)</th>
+                )}
+                {columnasVisibles.markUp && (
+                  <th className="px-2 py-2 text-left align-top font-medium text-gray-500 uppercase text-xs w-[64px] whitespace-normal break-words border-b border-gray-300">Mark Up</th>
+                )}
               </tr>
             </thead>
             <tbody>
-              {solicitud.items.map((item, itemIndex) => {
+              {solicitud.items.map((item) => {
                 const disabled = solicitud.estado !== 'en_revision' || savingItemId === item.id;
 
                 return (
                   <tr key={item.id} className="align-top divide-x divide-gray-300">
-                    <td className="sticky left-0 z-10 bg-white px-2 py-2 w-[40px] text-center text-gray-500 border-b border-gray-300">
-                      {itemIndex + 1}
-                    </td>
-
-                    <td className="sticky left-[40px] z-10 bg-white px-2 py-2 w-[200px] border-b border-gray-300">
+                    <td className="sticky left-0 z-10 bg-white px-2 py-2 w-[200px] border-b border-gray-300">
                       <p className="font-medium text-gray-900 break-words">{item.descripcionSolicitada}</p>
                       {item.etmSolicitado && <p className="text-xs text-gray-500">ETM: {item.etmSolicitado}</p>}
                     </td>
 
+                    {columnasVisibles.cantSol && (
+                      <td className="px-2 py-2 w-[56px] text-center text-gray-700 border-b border-gray-300">
+                        {item.cantidadSolicitada.toLocaleString('es-AR')}
+                      </td>
+                    )}
+                    {columnasVisibles.marcaSol && (
+                      <td className="px-2 py-2 w-[100px] text-gray-700 border-b border-gray-300">{item.marcaSolicitada || '-'}</td>
+                    )}
+                    {columnasVisibles.modeloSol && (
+                      <td className="px-2 py-2 w-[100px] text-gray-700 border-b border-gray-300">{item.modeloSolicitado || '-'}</td>
+                    )}
+
+                    {columnasVisibles.itemSugerido && (
                     <td className="px-2 py-2 min-w-[160px] border-b border-gray-300">
                       {item.matchConfianza && item.articuloSugerido && (
                         <Badge variant={confianzaVariants[item.matchConfianza]} className="mb-1">
@@ -812,8 +937,9 @@ export function SolicitudCotizacionDetailPage() {
                         </p>
                       )}
                     </td>
+                    )}
 
-                    <td className="sticky left-[240px] z-10 bg-white px-2 py-2 w-[200px] border-b border-gray-300">
+                    <td className="sticky left-[200px] z-10 bg-white px-2 py-2 w-[200px] border-b border-gray-300">
                       <textarea
                         rows={2}
                         value={nombresOfrecidos[item.id] ?? ''}
@@ -885,6 +1011,7 @@ export function SolicitudCotizacionDetailPage() {
                       ) : null}
                     </td>
 
+                    {columnasVisibles.acciones && (
                     <td className="px-2 py-2 w-[110px] border-b border-gray-300">
                       {editingItemId === item.id ? (
                         <div className="flex items-start gap-1">
@@ -993,7 +1120,9 @@ export function SolicitudCotizacionDetailPage() {
                         </div>
                       )}
                     </td>
+                    )}
 
+                    {columnasVisibles.cantOfr && (
                     <td className="px-2 py-2 w-[56px] border-b border-gray-300">
                       <input
                         type="number"
@@ -1011,7 +1140,9 @@ export function SolicitudCotizacionDetailPage() {
                         disabled={disabled}
                       />
                     </td>
+                    )}
 
+                    {columnasVisibles.unidad && (
                     <td className="px-2 py-2 w-[90px] border-b border-gray-300">
                       <input
                         type="text"
@@ -1022,7 +1153,9 @@ export function SolicitudCotizacionDetailPage() {
                         disabled={disabled}
                       />
                     </td>
+                    )}
 
+                    {columnasVisibles.marcaOfr && (
                     <td className="px-2 py-2 w-[100px] border-b border-gray-300">
                       <input
                         type="text"
@@ -1033,7 +1166,9 @@ export function SolicitudCotizacionDetailPage() {
                         disabled={disabled}
                       />
                     </td>
+                    )}
 
+                    {columnasVisibles.modeloOfr && (
                     <td className="px-2 py-2 w-[100px] border-b border-gray-300">
                       <input
                         type="text"
@@ -1044,7 +1179,9 @@ export function SolicitudCotizacionDetailPage() {
                         disabled={disabled}
                       />
                     </td>
+                    )}
 
+                    {columnasVisibles.precioArs && (
                     <td className="px-2 py-2 w-[120px] border-b border-gray-300">
                       <CurrencyInput
                         value={precios[item.id]}
@@ -1055,18 +1192,9 @@ export function SolicitudCotizacionDetailPage() {
                         className="px-2"
                       />
                     </td>
+                    )}
 
-                    <td className="px-2 py-2 w-[120px] border-b border-gray-300">
-                      <CurrencyInput
-                        value={preciosUsd[item.id]}
-                        onChange={(val) => setPreciosUsd((prev) => ({ ...prev, [item.id]: val }))}
-                        onBlur={() => handlePrecioUsdBlur(item)}
-                        disabled={disabled}
-                        placeholder="0,00"
-                        className="px-2"
-                      />
-                    </td>
-
+                    {columnasVisibles.markUp && (
                     <td className="px-2 py-2 w-[64px] border-b border-gray-300">
                       <input
                         type="number"
@@ -1085,15 +1213,15 @@ export function SolicitudCotizacionDetailPage() {
                         placeholder="0"
                       />
                     </td>
+                    )}
                   </tr>
                 );
               })}
             </tbody>
             <tfoot className="bg-gray-50">
               <tr>
-                <td colSpan={9} className="px-2 py-2 text-right font-semibold border-t border-gray-300">Total</td>
+                <td colSpan={columnasVisiblesCount - 1} className="px-2 py-2 text-right font-semibold border-t border-gray-300">Total</td>
                 <td className="px-2 py-2 text-right font-semibold whitespace-nowrap border-t border-gray-300">${total.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</td>
-                <td colSpan={2} className="border-t border-gray-300" />
               </tr>
             </tfoot>
           </table>

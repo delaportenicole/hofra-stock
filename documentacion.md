@@ -2967,3 +2967,22 @@ No requirió migración (no hay cambio de esquema). No se pudo probar generando 
 
 ##### Archivos Modificados
 **Backend**: `backend/src/services/cotizacionExport.service.ts`
+
+### 28 de noviembre de 2026 — Columnas Sol./Ofr. separadas + gestor de columnas visibles
+
+Nicole pidió una reestructuración grande de la grilla de ítems para que no se confunda "lo que pidió el cliente" con "lo que se está ofreciendo":
+
+**Columnas nuevas, de solo lectura** (lo que vino del Excel/texto importado, nunca editable): **Cant. Sol.**, **Marca Sol.**, **Modelo Sol.** — muestran directo `cantidadSolicitada`/`marcaSolicitada`/`modeloSolicitado`, ubicadas junto a "Item Solicitado".
+
+**Columnas editables renombradas** (antes "Cant.", "Marca", "Modelo" — los overrides que ya existían, mismo campo/lógica de siempre, solo cambió la etiqueta): ahora son **Cant. Ofr.**, **Marca Ofr.**, **Modelo Ofr.**. "Unidad de medida" no se tocó (no tenía una contraparte "Sol." pedida).
+
+Las 6 columnas abreviadas tienen un `title` (tooltip nativo del navegador al hacer hover) con el nombre completo: Cantidad Solicitada, Marca Solicitada, Modelo Solicitado, Cantidad Ofrecida, Marca Ofrecida, Modelo Ofrecido.
+
+**Columnas eliminadas**: "Item" (el número de fila) y "$ Unitario Sin Iva (USD)". Esta última se sacó solo de la grilla — el campo `precioUnitarioUsd` sigue existiendo en la base y en la exportación a Excel/Sheets (que sigue calculando Total Sin IVA USD con ese valor), y el auto-completado al aceptar un artículo del catálogo (`costoInicialEstimadoUsd`) se dejó intacto — simplemente ya no hay forma de verlo/editarlo a mano desde la grilla. Si en algún momento hace falta cargarlo manualmente de nuevo, va a hacer falta reagregar la columna.
+
+**Gestor de columnas visibles**: nuevo botón "Columnas" (icono, arriba de la grilla) que abre un desplegable con un checkbox por columna — todas menos **Item Solicitado** e **Item Ofrecido**, que quedan siempre visibles por ser las columnas sticky de referencia. Incluye "Tildar todas"/"Destildar todas". La preferencia se guarda en `localStorage` (clave `hofra:solicitudCotizacion:columnasVisibles`), por navegador, no por servidor — persiste entre sesiones pero no viaja entre dispositivos ni usuarios. Ocultar una columna es solo visual: el dato sigue ahí y se sigue exportando igual a Excel/Sheets.
+
+El pie de la tabla (fila "Total") ahora calcula su `colSpan` dinámicamente según cuántas columnas están visibles en cada momento, en vez de un número fijo — necesario porque antes ocultar/mostrar columnas desalinearía esa fila.
+
+##### Archivos Modificados
+**Frontend**: `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
