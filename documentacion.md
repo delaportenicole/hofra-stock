@@ -3028,3 +3028,12 @@ En la columna "Acciones", al hacer click en "Buscar otro" se abre un `ArticuloCo
 
 ##### Archivos Modificados
 **Frontend**: `frontend/src/components/ArticuloCombobox.tsx`, `frontend/src/pages/solicitudesCotizacion/SolicitudCotizacionDetail.tsx`
+
+### 28 de noviembre de 2026 (continuación 6) — Imagen del Excel: tamaño máximo 160×40pt y centrada en la celda
+
+Ajuste sobre el fix anterior de la imagen incrustada: el máximo bajó de 170×50pt a **160pt de ancho × 40pt de alto** (`IMAGEN_MAX_WIDTH_PT`/`IMAGEN_MAX_HEIGHT_PT` en `cotizacionExport.service.ts`), siempre escalando manteniendo proporción sin agrandar. El alto de fila se dejó en 50pt (ahora como constante `FILA_ITEM_ALTURA_PT` en vez de un `50` suelto) a propósito — al ser más alto que el máximo de la imagen (40pt) queda margen para centrarla verticalmente.
+
+**Centrado**: se pasó de un anchor fijo en la esquina (`tl: {col, row}` entero) a uno con offset fraccionario — exceljs permite `col`/`row` fraccionarios (ej. `2.5` = mitad de la columna 2) para ubicar la imagen desplazada dentro de la celda en vez de pegada a la esquina superior izquierda. Se calcula cuánto "sobra" de columna y de fila respecto al tamaño ya escalado de la imagen, y se reparte mitad a cada lado. Para el alto de fila es exacto (el alto de fila en exceljs ya está en puntos). Para el ancho de columna no es exacto: exceljs guarda el ancho de columna en "unidades de carácter" de Excel, no en píxeles/puntos, así que se aproxima con la fórmula estándar de Excel para la fuente por defecto (Calibri 11, ancho de dígito máximo ≈ 7px) — queda centrada a ojo, no al pixel exacto, pero muy cerca.
+
+##### Archivos Modificados
+**Backend**: `backend/src/services/cotizacionExport.service.ts`

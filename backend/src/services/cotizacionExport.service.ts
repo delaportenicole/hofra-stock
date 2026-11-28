@@ -5,10 +5,13 @@ import { LOGO_GE_VERNOVA_BASE64, LOGO_HOFRA_GROUP_BASE64 } from '../assets/logos
 
 // Tamaño máximo de la imagen incrustada en la columna "Imagen de lo Ofrecido": se achica
 // manteniendo la proporción original (nunca se agranda ni se deforma) para que entre en el
-// alto de fila (50pt) sin invadir filas vecinas ni desbordar el ancho de la columna.
-const IMAGEN_MAX_WIDTH_PT = 170;
-const IMAGEN_MAX_HEIGHT_PT = 50;
+// alto de fila (ver FILA_ITEM_ALTURA_PT) sin invadir filas vecinas ni desbordar el ancho de
+// la columna. Queda más chica que la fila/columna a propósito, para poder centrarla.
+const IMAGEN_MAX_WIDTH_PT = 160;
+const IMAGEN_MAX_HEIGHT_PT = 40;
+const FILA_ITEM_ALTURA_PT = 50;
 const PT_A_PX = 96 / 72; // exceljs toma el tamaño de imagen (ext) en píxeles a 96dpi
+const PX_A_PT = 72 / 96;
 
 export interface SheetCellFormula {
   formula: string; // sin el "=" inicial
@@ -323,7 +326,7 @@ export async function buildCotizacionExcelBuffer(
   sheet.getRow(FILA_HEADER_COLUMNAS_1).height = 24;
   sheet.getRow(FILA_HEADER_COLUMNAS_2).height = 24;
   for (let i = 0; i < solicitud.items.length; i++) {
-    sheet.getRow(primeraFilaItems + i).height = 50;
+    sheet.getRow(primeraFilaItems + i).height = FILA_ITEM_ALTURA_PT;
   }
 
   // Cabecera: título en B1, etiqueta+valor en negrita/subrayado para Fecha/Lugar de
@@ -394,6 +397,13 @@ export async function buildCotizacionExcelBuffer(
   // export, solo esa celda queda sin imagen.
   const imagenColIndex = columnas.findIndex((col) => col.key === 'imagen');
   if (imagenColIndex !== -1) {
+    // Ancho de la columna "Imagen" en puntos, para poder centrar horizontalmente. exceljs
+    // guarda el ancho de columna en "unidades de caracter" de Excel (no en px/pt); se
+    // aproxima a píxeles con la fórmula estándar de Excel para la fuente por defecto
+    // (Calibri 11, ancho de dígito máximo ≈ 7px) y de ahí a puntos. Es una aproximación
+    // (no hay forma exacta sin conocer la fuente real), suficiente para centrar a ojo.
+    const anchoColumnaImagenPt = (columnas[imagenColIndex].width * 7 + 5) * PX_A_PT;
+
     await Promise.all(
       solicitud.items.map(async (item, i) => {
         const url = item.articulo?.imagenUrl;
@@ -428,9 +438,18 @@ export async function buildCotizacionExcelBuffer(
             // se usa el máximo como último recurso en vez de no mostrar nada.
           }
 
+          // Centrado: cuánto "sobra" de columna/fila respecto a la imagen ya escalada, repartido
+          // mitad arriba/abajo y mitad izquierda/derecha. tl.col/row acepta valores fraccionarios
+          // (ej. 2.5 = mitad de la columna 2) — así es como exceljs documenta el offset dentro
+          // de una celda, en vez de manipular EMU/colOff a mano.
+          const widthPt = width * PX_A_PT;
+          const heightPt = height * PX_A_PT;
+          const offsetColFraccion = Math.max(0, (anchoColumnaImagenPt - widthPt) / (2 * anchoColumnaImagenPt));
+          const offsetRowFraccion = Math.max(0, (FILA_ITEM_ALTURA_PT - heightPt) / (2 * FILA_ITEM_ALTURA_PT));
+
           const filaIndex0 = primeraFilaItems + i - 1;
           sheet.addImage(imageId, {
-            tl: { col: imagenColIndex, row: filaIndex0 },
+            tl: { col: imagenColIndex + offsetColFraccion, row: filaIndex0 + offsetRowFraccion },
             ext: { width, height },
           } as unknown as ExcelJS.ImagePosition);
         } catch (err) {
